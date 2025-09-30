@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Send, Copy, Settings, Zap } from "lucide-react";
+import { Send, Copy, Settings, Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { SearchBar } from "@/components/SearchBar";
 import { ChatMessage } from "@/components/ChatMessage";
+// 🌐 Import our global API hook
+import { useSearch } from "@/hooks/useSearch";
 
 interface Message {
   type: "user" | "assistant";
@@ -30,42 +32,16 @@ export default function RAGTuning() {
     },
   ]);
 
+  // 🌐 Use our global search hook
+  const { searchAsync, isSearching, searchData, searchError } = useSearch();
 
-// useEffect(() => {
-//   const fetchMessages = async () => {
-//     console.log("🚀 RAG Tuning - Making API request to:", "http://192.168.0.124:8000/api/v1/search");
-//     console.log("📤 Request payload:", { query: "nitsan" });
-    
-//     try {
-//       const response = await fetch("http://192.168.0.124:8000/api/v1/search", {
-//         method: "POST",
-//         headers: {
-//           "Content-Type": "application/json",
-//         },
-//         body: JSON.stringify({
-//           query: "nitsan",
-//         }),
-//       });
 
-//       console.log("📡 RAG API Response status:", response.status);
-//       console.log("📡 RAG API Response headers:", response.headers);
-//       console.log("📡 RAG API Response ok:", response.ok);
+  // 🗑️ Old fetchMessages function removed - now using global API
 
-//       const data = await response.json();
-//       console.log("📦 RAG API Response data:", data);
-//       console.log("📦 RAG API Data type:", typeof data);
-//       console.log("📦 RAG API Data length:", Array.isArray(data) ? data.length : "Not an array");
+// console.log(messages)
 
-//       console.log("✅ RAG API - Messages set successfully",data);
-//     } catch (error) {
-//       console.error("🚨 RAG API Error:", error);
-//       console.error("🚨 RAG API Error details:", error instanceof Error ? error.message : String(error));
-//     }
-//   };
-//   fetchMessages();
-// },[])
-
-  const handleQuery = (query: string) => {
+  // 🎯 New handleQuery using global API
+  const handleQuery = async (query: string) => {
     console.log("🔍 RAG Query - User submitted query:", query);
     console.log("⚙️ RAG Settings:", { 
       topK: topK[0], 
@@ -74,44 +50,47 @@ export default function RAGTuning() {
       maxTokens: maxTokens[0] 
     });
 
+    // Add user message immediately
     const userMessage: Message = {
       type: "user",
       content: query,
       timestamp: new Date(),
     };
 
-    console.log("👤 User message created:", userMessage);
+    setMessages(prev => [...prev, userMessage]);
 
-    // Simulate AI response with current settings
-    const assistantMessage: Message = {
-      type: "assistant",
-      content: `Based on your query "${query}", here's what I found in the documentation:
+    try {
+      // 🌐 Use global API - much simpler!
+      const apiResponse = await searchAsync(query);
+      console.log("📦 Global API Response:", apiResponse);
 
-This is a simulated response that would be generated using your current RAG settings:
-- Top-K: ${topK[0]} documents retrieved
-- Similarity threshold: ${similarityThreshold[0]}
-- Reranker: ${useReranker ? "Enabled" : "Disabled"}
-- Max tokens: ${maxTokens[0]}
+      // Create assistant message with real API response
+      const assistantMessage: Message = {
+        type: "assistant",
+        content: apiResponse.answer || "No answer from API",
+        citations: apiResponse.sources?.map((source: any) => ({
+          title: source.title || "Unknown Source",
+          url: source.url || "#",
+          snippet: source.snippet || "No snippet available",
+        })) || [],
+        timestamp: new Date(),
+      };
 
-The system would search through the indexed documents and provide relevant information based on these parameters.`,
-      citations: [
-        { title: "User Guide", url: "#", snippet: "Relevant section from documentation..." },
-        { title: "API Reference", url: "#", snippet: "Technical implementation details..." },
-        { title: "FAQ", url: "#", snippet: "Common questions and answers..." },
-      ],
-      timestamp: new Date(),
-    };
+      setMessages(prev => [...prev, assistantMessage]);
+      console.log("✅ RAG Query processed successfully with global API");
 
-    console.log("🤖 Assistant message created:", assistantMessage);
-    console.log("📊 Citations count:", assistantMessage.citations?.length || 0);
+    } catch (error) {
+      console.error("❌ Global API call failed:", error);
+      
+      // Add error message
+      const errorMessage: Message = {
+        type: "assistant",
+        content: `Sorry, I encountered an error while searching: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+        timestamp: new Date(),
+      };
 
-    setMessages(prev => {
-      const newMessages = [...prev, userMessage, assistantMessage];
-      console.log("💾 Messages updated, total count:", newMessages.length);
-      return newMessages;
-    });
-    
-    console.log("✅ RAG Query processed successfully");
+      setMessages(prev => [...prev, errorMessage]);
+    }
   };
 
   const exampleQueries = [
@@ -148,6 +127,16 @@ The system would search through the indexed documents and provide relevant infor
                 data-testid="rag-query-input"
               />
               
+              {/* 🌐 Loading indicator for global API */}
+              {isSearching && (
+                <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm text-muted-foreground">
+                    Searching with global API...
+                  </span>
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground">Quick Examples:</Label>
                 <div className="flex flex-wrap gap-2">
@@ -159,6 +148,7 @@ The system would search through the indexed documents and provide relevant infor
                       onClick={() => handleQuery(query)}
                       data-testid={`example-query-${index}`}
                       className="text-xs"
+                      disabled={isSearching}
                     >
                       {query}
                     </Button>

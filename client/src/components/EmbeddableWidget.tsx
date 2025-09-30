@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { MessageCircle, X, Minimize2, Search, MessageSquare, Zap } from "lucide-react";
+import { MessageCircle, X, Minimize2, Search, MessageSquare, Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SearchBar } from "./SearchBar";
 import { ChatMessage } from "./ChatMessage";
 import { Badge } from "@/components/ui/badge";
+// 🌐 Import our global API hook
+import { useSearch } from "@/hooks/useSearch";
 
 interface Message {
   type: "user" | "assistant";
@@ -36,25 +38,54 @@ export function EmbeddableWidget({
     }
   ]);
 
-  const handleSearch = (query: string) => {
+  // 🌐 Use our global search hook - same as RAGTuning!
+  const { searchAsync, isSearching, searchData, searchError } = useSearch();
+
+  // 🎯 Updated handleSearch using global API - same as RAGTuning!
+  const handleSearch = async (query: string) => {
+    console.log("🔍 Widget Search - User submitted query:", query);
+
+    // Add user message immediately
     const userMessage: Message = {
       type: "user",
       content: query,
       timestamp: new Date(),
     };
 
-    const assistantMessage: Message = {
-      type: "assistant",
-      content: "I found some relevant information about your query. Here are the key points from our documentation...",
-      citations: [
-        { title: "User Guide", url: "#", snippet: "Relevant information..." },
-        { title: "API Docs", url: "#", snippet: "Technical details..." },
-      ],
-      timestamp: new Date(),
-    };
+    setMessages(prev => [...prev, userMessage]);
 
-    setMessages(prev => [...prev, userMessage, assistantMessage]);
-    // Widget search performed
+    try {
+      // 🌐 Use global API - exactly like RAGTuning!
+      const apiResponse = await searchAsync(query);
+      console.log("📦 Widget API Response:", apiResponse);
+
+      // Create assistant message with real API response
+      const assistantMessage: Message = {
+        type: "assistant",
+        content: apiResponse.answer || "No answer from API",
+        citations: apiResponse.sources?.map((source: any) => ({
+          title: source.title || "Unknown Source",
+          url: source.url || "#",
+          snippet: source.snippet || "No snippet available",
+        })) || [],
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+      console.log("✅ Widget search completed with global API");
+
+    } catch (error) {
+      console.error("❌ Widget API call failed:", error);
+      
+      // Add error message
+      const errorMessage: Message = {
+        type: "assistant",
+        content: `Sorry, I encountered an error while searching: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, errorMessage]);
+    }
   };
 
   if (!isOpen) {
@@ -117,6 +148,17 @@ export function EmbeddableWidget({
                 onSearch={handleSearch}
                 showSendButton
               />
+              
+              {/* 🌐 Loading indicator for global API */}
+              {isSearching && (
+                <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm text-muted-foreground">
+                    Searching with global API...
+                  </span>
+                </div>
+              )}
+              
               <div className="text-sm text-muted-foreground">
                 Try searching for "API", "getting started", or "troubleshooting"
               </div>
@@ -148,6 +190,16 @@ export function EmbeddableWidget({
                 onSearch={handleSearch}
                 showSendButton
               />
+              
+              {/* 🌐 Loading indicator for chat */}
+              {isSearching && (
+                <div className="flex items-center gap-2 p-2 bg-muted rounded-lg mt-2">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span className="text-xs text-muted-foreground">
+                    Searching...
+                  </span>
+                </div>
+              )}
             </div>
           </TabsContent>
 
@@ -177,6 +229,16 @@ export function EmbeddableWidget({
                 showSendButton
                 showMicButton
               />
+              
+              {/* 🌐 Loading indicator for auto */}
+              {isSearching && (
+                <div className="flex items-center gap-2 p-2 bg-muted rounded-lg mt-2">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span className="text-xs text-muted-foreground">
+                    Searching...
+                  </span>
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
