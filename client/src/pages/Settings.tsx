@@ -1,0 +1,508 @@
+import { useState } from "react";
+import { Upload, Palette, Globe, Key, Activity, Eye, EyeOff, Copy, Trash2, Plus } from "lucide-react";
+import { CreateApiKeyForm } from "@/components/forms/CreateApiKeyForm";
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+// todo: remove mock functionality
+const apiKeys = [
+  {
+    id: "key-001",
+    name: "Production API Key",
+    key: "rgs_live_1234567890abcdef",
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    lastUsed: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    requests: 15420,
+    rateLimit: 1000,
+  },
+  {
+    id: "key-002",
+    name: "Development API Key",
+    key: "rgs_test_abcdef1234567890",
+    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
+    lastUsed: new Date(Date.now() - 5 * 60 * 1000),
+    requests: 2847,
+    rateLimit: 100,
+  },
+];
+
+const systemServices = [
+  { name: "API Gateway", status: "healthy", lastHeartbeat: new Date(Date.now() - 30 * 1000), uptime: "99.9%" },
+  { name: "Redis Cache", status: "healthy", lastHeartbeat: new Date(Date.now() - 45 * 1000), uptime: "99.8%" },
+  { name: "Vector Database", status: "degraded", lastHeartbeat: new Date(Date.now() - 2 * 60 * 1000), uptime: "98.5%" },
+  { name: "PostgreSQL", status: "healthy", lastHeartbeat: new Date(Date.now() - 15 * 1000), uptime: "99.9%" },
+  { name: "OpenAI API", status: "healthy", lastHeartbeat: new Date(Date.now() - 20 * 1000), uptime: "99.7%" },
+];
+
+export default function Settings() {
+  const [orgName, setOrgName] = useState("Acme Corporation");
+  const [primaryColor, setPrimaryColor] = useState("#1F6FEB");
+  const [retentionDays, setRetentionDays] = useState(90);
+  const [locale, setLocale] = useState("en");
+  const [showApiKey, setShowApiKey] = useState<string | null>(null);
+  const [showCreateKeyForm, setShowCreateKeyForm] = useState(false);
+  const { toast } = useToast();
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "healthy":
+        return "default";
+      case "degraded":
+        return "secondary";
+      case "down":
+        return "destructive";
+      default:
+        return "outline";
+    }
+  };
+
+  const handleCreateApiKey = (data: any) => {
+    console.log("Creating API key:", data);
+    toast({
+      title: "API Key Created",
+      description: `Successfully created ${data.name}`,
+    });
+  };
+
+  const handleRevokeApiKey = (keyId: string) => {
+    console.log("Revoking API key:", keyId);
+    toast({
+      title: "API Key Revoked",
+      description: "API key has been revoked and is no longer valid",
+      variant: "destructive",
+    });
+  };
+
+  const handleCopyKey = (key: string) => {
+    navigator.clipboard.writeText(key);
+    console.log("API key copied to clipboard");
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+        <p className="text-muted-foreground">
+          Manage your organization settings and preferences
+        </p>
+      </div>
+
+      <Tabs defaultValue="profile" className="space-y-6">
+        <TabsList className="grid w-full h-auto grid-cols-1 md:grid-cols-2 lg:grid-cols-5">
+          <TabsTrigger value="profile" data-testid="tab-profile">Profile & Branding</TabsTrigger>
+          <TabsTrigger value="retention" data-testid="tab-retention">Data Retention</TabsTrigger>
+          <TabsTrigger value="i18n" data-testid="tab-i18n">Internationalization</TabsTrigger>
+          <TabsTrigger value="api-keys" data-testid="tab-api-keys">API Keys</TabsTrigger>
+          <TabsTrigger value="health" data-testid="tab-health">System Health</TabsTrigger>
+        </TabsList>
+
+        {/* Profile & Branding */}
+        <TabsContent value="profile" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5" />
+                Organization Branding
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-6 lg:grid-cols-2">
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="org-name">Organization Name</Label>
+                    <Input
+                      id="org-name"
+                      value={orgName}
+                      onChange={(e) => setOrgName(e.target.value)}
+                      data-testid="input-org-name"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="logo-upload">Logo Upload</Label>
+                    <div className="mt-2 flex items-center gap-4">
+                      <div className="h-16 w-16 bg-secondary rounded-lg flex items-center justify-center">
+                        <Upload className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <Button variant="outline" data-testid="button-upload-logo">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload Logo
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Recommended: 64x64px PNG or SVG
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="primary-color">Primary Color</Label>
+                    <div className="mt-2 flex items-center gap-4">
+                      <div
+                        className="h-10 w-20 rounded border"
+                        style={{ backgroundColor: primaryColor }}
+                      />
+                      <Input
+                        id="primary-color"
+                        type="color"
+                        value={primaryColor}
+                        onChange={(e) => setPrimaryColor(e.target.value)}
+                        className="w-20"
+                        data-testid="input-primary-color"
+                      />
+                      <Input
+                        value={primaryColor}
+                        onChange={(e) => setPrimaryColor(e.target.value)}
+                        className="font-mono"
+                        data-testid="input-primary-color-hex"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label>Theme Presets</Label>
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPrimaryColor("#1F6FEB")}
+                        data-testid="button-preset-blue"
+                      >
+                        <div className="w-4 h-4 bg-blue-500 rounded mr-2" />
+                        Blue
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPrimaryColor("#22C55E")}
+                        data-testid="button-preset-green"
+                      >
+                        <div className="w-4 h-4 bg-green-500 rounded mr-2" />
+                        Green
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPrimaryColor("#8B5CF6")}
+                        data-testid="button-preset-purple"
+                      >
+                        <div className="w-4 h-4 bg-purple-500 rounded mr-2" />
+                        Purple
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <Label>Live Preview</Label>
+                  <Card className="p-4">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 bg-secondary rounded flex items-center justify-center">
+                          <Upload className="h-4 w-4" />
+                        </div>
+                        <span className="font-semibold">{orgName}</span>
+                      </div>
+                      <Button style={{ backgroundColor: primaryColor }} className="text-white">
+                        Primary Button
+                      </Button>
+                      <p className="text-sm text-muted-foreground">
+                        This is how your branding will appear in the admin interface and embeddable widget.
+                      </p>
+                    </div>
+                  </Card>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline">Reset</Button>
+                <Button data-testid="button-save-branding">Save Changes</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Data Retention */}
+        <TabsContent value="retention" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Data Retention Policy</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <Label htmlFor="retention-days">Retention Period (Days)</Label>
+                <Input
+                  id="retention-days"
+                  type="number"
+                  value={retentionDays}
+                  onChange={(e) => setRetentionDays(parseInt(e.target.value))}
+                  className="w-32 mt-2"
+                  data-testid="input-retention-days"
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Number of days to retain user queries, responses, and feedback data
+                </p>
+              </div>
+
+              <div className="p-4 bg-secondary rounded-lg">
+                <h4 className="font-medium mb-2">Data Retention Policy</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• Query logs and responses will be automatically deleted after {retentionDays} days</li>
+                  <li>• User feedback and analytics data will be retained for the same period</li>
+                  <li>• Crawled documents and embeddings are not affected by this policy</li>
+                  <li>• System logs and audit trails follow separate retention rules</li>
+                </ul>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline">Reset to Default</Button>
+                <Button data-testid="button-save-retention">Save Policy</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Internationalization */}
+        <TabsContent value="i18n" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5" />
+                Internationalization
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <Label htmlFor="locale">Default Language</Label>
+                <Select value={locale} onValueChange={setLocale}>
+                  <SelectTrigger className="w-64 mt-2" data-testid="select-locale">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en">English (US)</SelectItem>
+                    <SelectItem value="en-gb">English (UK)</SelectItem>
+                    <SelectItem value="es">Español</SelectItem>
+                    <SelectItem value="fr">Français</SelectItem>
+                    <SelectItem value="de">Deutsch</SelectItem>
+                    <SelectItem value="ja">日本語</SelectItem>
+                    <SelectItem value="zh">中文</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Default language for the admin interface and AI responses
+                </p>
+              </div>
+
+              <div className="p-4 bg-secondary rounded-lg">
+                <h4 className="font-medium mb-2">Translation Status</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Admin Interface</span>
+                    <Badge variant="default">100% Complete</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Widget Interface</span>
+                    <Badge variant="default">100% Complete</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Error Messages</span>
+                    <Badge variant="secondary">85% Complete</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Documentation</span>
+                    <Badge variant="outline">Available in English only</Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline">Reset to Default</Button>
+                <Button data-testid="button-save-locale">Save Language</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* API Keys */}
+        <TabsContent value="api-keys" className="space-y-6 w-full max-w-[92vw] overflow-hidden " style={{ maxWidth: '92vw' }} >
+          <Card className="w-full overflow-hidden">
+            <CardHeader className="flex flex-row flex-col lg:flex-row items-start lg:items-center justify-between gap-4 lg:gap-0">
+              <CardTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5" />
+                API Keys
+              </CardTitle>
+              <Button
+                onClick={() => setShowCreateKeyForm(true)}
+                data-testid="button-create-api-key"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create API Key
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <Table className="min-w-[1000px] w-full table-fixed">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="w-[25%]">Key</TableHead>
+                    <TableHead  >Created</TableHead>
+                    <TableHead>Last Used</TableHead>
+                    <TableHead>Requests</TableHead>
+                    <TableHead>Rate Limit</TableHead>
+                    <TableHead >Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {apiKeys.map((key) => (
+                    <TableRow key={key.id} data-testid={`row-api-key-${key.id}`}>
+                      <TableCell className="font-medium">{key.name}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm">
+                            {showApiKey === key.id ? key.key : `${key.key.slice(0, 12)}...`}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowApiKey(showApiKey === key.id ? null : key.id)}
+                            data-testid={`button-toggle-key-${key.id}`}
+                          >
+                            {showApiKey === key.id ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCopyKey(key.key)}
+                            data-testid={`button-copy-key-${key.id}`}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {key.createdAt.toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
+                          Math.floor((key.lastUsed.getTime() - Date.now()) / (1000 * 60)),
+                          "minute"
+                        )}
+                      </TableCell>
+                      <TableCell>{key.requests.toLocaleString()}</TableCell>
+                      <TableCell>{key.rateLimit}/hour</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRevokeApiKey(key.id)}
+                          data-testid={`button-revoke-key-${key.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* System Health */}
+        <TabsContent value="health" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                System Health
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {systemServices.map((service, index) => (
+                  <Card key={index} data-testid={`service-card-${index}`}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">{service.name}</CardTitle>
+                        <Badge variant={getStatusColor(service.status)}>
+                          {service.status}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Uptime</span>
+                        <span className="font-medium">{service.uptime}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Last Heartbeat</span>
+                        <span className="font-medium">
+                          {new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
+                            Math.floor((service.lastHeartbeat.getTime() - Date.now()) / (1000)),
+                            "second"
+                          )}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="mt-6 p-4 bg-secondary rounded-lg">
+                <h4 className="font-medium mb-2">Health Legend</h4>
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default">Healthy</Badge>
+                    <span className="text-muted-foreground">Service operating normally</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">Degraded</Badge>
+                    <span className="text-muted-foreground">Service experiencing issues</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="destructive">Down</Badge>
+                    <span className="text-muted-foreground">Service unavailable</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Create API Key Form */}
+      <CreateApiKeyForm
+        open={showCreateKeyForm}
+        onOpenChange={setShowCreateKeyForm}
+        onSubmit={handleCreateApiKey}
+      />
+    </div>
+  );
+}

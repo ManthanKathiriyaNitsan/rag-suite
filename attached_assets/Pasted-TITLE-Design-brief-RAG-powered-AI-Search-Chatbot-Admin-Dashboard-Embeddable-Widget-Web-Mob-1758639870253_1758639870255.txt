@@ -1,0 +1,145 @@
+TITLE
+Design brief: RAG-powered AI Search & Chatbot — Admin Dashboard + Embeddable Widget (Web + Mobile)
+
+ROLE
+You are a senior product designer. Deliver high-fidelity UI mockups and a clickable prototype. Do NOT generate code.
+
+GOAL
+Design a modern, enterprise-grade, privacy-first UI for a self-hosted RAG platform that includes:
+1) Admin Dashboard (desktop-first, responsive)
+2) Embeddable AI Widget (web + mobile) for search & chat
+
+AUDIENCE
+Enterprise admins, integrators, knowledge managers, and end users.
+
+VISUAL DIRECTION
+- Style: modern, minimal, confident; generous whitespace; 8px spacing grid
+- Dark mode first with light mode variant; explicit theme toggle
+- Color tokens (can adapt to brand):
+  - Primary #1F6FEB, Surface #0B1020, Card #0F172A, Text on dark #E5E7EB
+  - Success #22C55E, Warning #F59E0B, Danger #EF4444, Info #38BDF8
+- Typography: Inter or system UI; weights 400/500/600; clear hierarchy (H1/H2/H3, body, caption)
+- Iconography: simple, line-based
+- Motion: subtle fades/slides (respect reduced motion)
+- Accessibility: WCAG 2.1 AA; strong focus states; keyboard-first flows; ARIA annotations on forms and interactive elements
+
+DELIVERABLES
+1) Information Architecture map (overview of modules and primary nav)
+2) Component Library (cards, tables, forms, tabs, toasts, tooltips, empty/error/loader, badges, pagination, charts, modals, drawers)
+3) Design Tokens page (colors, type scale, spacing, radii, shadows)
+4) Screen mockups (desktop + key mobile breakpoints)
+5) Clickable prototype of key flows (not code)
+6) Copy deck/microcopy (placeholders welcome)
+7) Accessibility notes per complex component
+
+PRIMARY NAV (Admin Dashboard)
+Overview • Crawl • Documents • RAG Tuning • Analytics • Feedback • Settings (Profile/Theme/Retention) • API Keys • System Health
+
+ADMIN DASHBOARD — SCREENS (DESKTOP FIRST, RESPONSIVE)
+A. Auth / Onboarding
+  A1) Login: email, password, “Sign in”; error states; forgot password (informational)
+  A2) Onboarding Wizard (3 steps): Branding (logo/color preview) → Data Source (add first site URL, depth, cadence, headless toggle) → Quick Test (sample query, streaming answer + citations)
+
+B. Overview
+  - KPI cards: Queries Today, p95 Latency, Thumbs-up Rate, Crawl Errors
+  - Time-series chart: Queries over time (7/30 days)
+  - Top Sources table: source, docs, last crawl, errors
+  - Latest Feedback list with up/down and reason chips
+  - Empty states and loading skeletons
+
+C. Crawl
+  C1) Sources (list)
+     - Columns: URL, Depth, Cadence (Hourly/Daily/Weekly), Headless (Auto/On/Off), Status, Last Crawl, Actions
+     - Actions: Preview Render (modal: page snapshot + extracted text), Edit, Start Crawl
+     - Filters: status, cadence, domain
+     - New/Edit form: URL, depth (1–5), cadence, allow/deny patterns (tokenized), headless mode
+  C2) Jobs
+     - Timeline/table: id, source, started, duration, pages fetched, errors (view), status chip
+     - Filters: date range, status, source
+     - Empty and error states
+
+D. Documents
+  D1) Library
+     - Grid/List toggle; file type badges (PDF/DOC/HTML/TXT)
+     - Filters: source, language, status, date
+     - Bulk actions: re-index, delete
+     - Side panel: metadata (title, URL, checksum), chunk count, last indexed
+  D2) Document detail (read-only): preview snippet + metadata
+
+E. RAG Tuning (Playground)
+  - Left: Query bar (placeholder “Ask about policies, docs, or how-tos…”), example chips, optional mic icon (non-functional)
+  - Right: Answer panel: streaming feel, markdown, code highlight, citations as chips (hover = snippet+URL), copy button, feedback (👍/👎 with reason tags)
+  - Controls: top-K slider, similarity threshold slider, reranker toggle, max answer length
+  - Show latency stats + token/characters
+
+F. Analytics
+  - Charts: daily queries, p95/p50 latency, satisfaction %
+  - Breakdown: popular queries list/word cloud, source coverage (pie)
+  - “Hard queries” table: low satisfaction; link to feedback detail
+  - Export icon (non-functional)
+
+G. Feedback Moderation
+  - Table: message excerpt, vote, reasons, created_at, link to session
+  - Filters: time range, vote, reason
+  - Detail drawer: full Q/A, cited sources, copy to clipboard
+
+H. Settings
+  H1) Profile/Branding: org name, logo, primary color preview, theme presets
+  H2) Data Retention: numeric input (days), policy hint text
+  H3) Internationalization: locale select (EN baseline), note about translations
+  H4) API Keys: list, create (modal shows key once), revoke, per-key rate limit
+  H5) System Health: service cards (API, Redis, Chroma, Postgres, Ollama) with status, last heartbeat, health legend
+
+I. System/Edge
+  - 404 Not Found, 403 Permission, Empty States library, Global Toasts
+
+EMBEDDABLE WIDGET — SCREENS (WEB + MOBILE)
+W1) Launcher button (floating “Ask AI”); drawer/panel opens
+W2) Full Panel (responsive: 400–520px desktop panel; mobile full-screen)
+    - Header: title, theme-sync indicator, close/minimize
+    - Mode switch: Search | Chat | Auto (segmented control)
+    - Query bar: placeholder, send CTA; history optional (off by default)
+    - Search results (cards): title, snippet highlight, source link, score chip (optional)
+    - Chat answer: markdown, code blocks, citation chips (hover preview), copy, feedback
+    - States: idle (prompts), loading/streaming skeleton, empty, no-results, error (retry)
+    - Footer: “Powered by [AppName]” small note (toggleable)
+W3) Transcript view (optional): recent Q/A with timestamps, clear session
+W4) Mobile behavior: bottom-sheet or full-screen drawer; thumb-reachable controls; safe hit targets
+
+RESPONSIVE BREAKPOINTS
+- Desktop ≥1280, Tablet 768–1279, Mobile ≤767. Ensure layout reflows gracefully.
+
+MICROCOPY (EXEMPLARS)
+- Query placeholder: “Ask about policies, docs, or how-tos…”
+- Empty: “No results yet — try a broader query or adjust filters.”
+- Error: “Something went wrong. Try again or change settings.”
+- Feedback reasons: “not accurate” “outdated” “not helpful” “missing sources”
+
+ACCESSIBILITY NOTES
+- Clear keyboard order, focus rings visible on all interactives
+- Tooltips never hide essential info; timeouts user-friendly
+- Color contrast ≥4.5:1 for text; ≥3:1 for large text/icons
+- All charts include value labels or accessible summaries
+
+WHAT TO SHOW IN THE PROTOTYPE (CLICK PATHS)
+1) Login → Onboarding → Overview
+2) Add crawl source → Preview render modal → Save → Start Crawl
+3) Documents Library filters → Open side panel
+4) RAG Tuning: run a query → streaming answer → citations hover → feedback
+5) Widget: open launcher → ask in Auto mode → view citations → give feedback → switch to Search tab
+6) Settings: change theme preview → view System Health
+
+DELIVERY FORMAT
+- High-fidelity mockups for all screens listed (dark + light)
+- Component Library & Tokens page
+- Clickable prototype linking the flows above
+- Export: PNG/JPG previews for all key screens
+- Provide a short README frame summarizing IA, tokens, and usage
+
+CONSTRAINTS
+- No code. Design only. If uncertain, prefer clarity and legibility over ornamentation.
+- Avoid lorem ipsum in key areas—use concise, realistic copy.
+
+NOTES
+- App name placeholder: “RAGSuite” (replaceable)
+- Keep widget branding minimal and neutral (host site friendly)
