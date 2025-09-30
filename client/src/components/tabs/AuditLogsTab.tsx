@@ -551,15 +551,15 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
   });
 
   return (
-    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden min-w-0 px-2 sm:px-0" style={{ maxWidth: 'calc(90vw)' }}>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="space-y-4 lg:space-y-6 w-full max-w-full overflow-hidden min-w-0 px-2 lg:px-0" style={{ maxWidth: 'calc(93vw)' }}>
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold">Audit Logs & Compliance</h3>
           <p className="text-sm text-muted-foreground">
             Monitor system activity, track changes, and generate compliance reports
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2 w-full lg:w-auto">
           <Button variant="outline" size="sm" data-testid="button-export-logs" className="flex-1 sm:flex-none">
             <Download className="w-4 h-4 mr-2" />
             Export
@@ -624,23 +624,23 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
-          <TabsTrigger value="logs" data-testid="tab-activity-logs" className="text-xs sm:text-sm">Activity Logs</TabsTrigger>
-          <TabsTrigger value="alerts" data-testid="tab-security-alerts" className="text-xs sm:text-sm">Security Alerts</TabsTrigger>
-          <TabsTrigger value="reports" data-testid="tab-compliance-reports" className="text-xs sm:text-sm">Reports</TabsTrigger>
-          <TabsTrigger value="settings" data-testid="tab-audit-settings" className="text-xs sm:text-sm">Settings</TabsTrigger>
+          <TabsTrigger value="logs" data-testid="tab-activity-logs" className="text-sm">Activity Logs</TabsTrigger>
+          <TabsTrigger value="alerts" data-testid="tab-security-alerts" className="text-sm">Security Alerts</TabsTrigger>
+          <TabsTrigger value="reports" data-testid="tab-compliance-reports" className="text-sm">Reports</TabsTrigger>
+          <TabsTrigger value="settings" data-testid="tab-audit-settings" className="text-sm">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="logs" className="space-y-4">
           <Card data-testid="card-activity-logs">
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-0 sm:items-center justify-between">
                 <div>
                   <CardTitle>Activity Logs</CardTitle>
                   <CardDescription>
                     Real-time activity monitoring and historical log review
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-0 sm:items-center justify-between">
                   <div className="relative">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -652,7 +652,7 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
                     />
                   </div>
                   <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                    <SelectTrigger className="w-32" data-testid="select-category-filter">
+                    <SelectTrigger className=" w-[100%] lg:w-32" data-testid="select-category-filter">
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -666,7 +666,7 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
                     </SelectContent>
                   </Select>
                   <Select value={severityFilter} onValueChange={setSeverityFilter}>
-                    <SelectTrigger className="w-28" data-testid="select-severity-filter">
+                    <SelectTrigger className=" w-[100%]  lg:w-28" data-testid="select-severity-filter">
                       <SelectValue placeholder="Severity" />
                     </SelectTrigger>
                     <SelectContent>
@@ -678,7 +678,7 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
                     </SelectContent>
                   </Select>
                   <Select value={dateRange} onValueChange={setDateRange}>
-                    <SelectTrigger className="w-24" data-testid="select-date-range">
+                    <SelectTrigger className=" w-[100%] lg:w-24" data-testid="select-date-range">
                       <SelectValue placeholder="Range" />
                     </SelectTrigger>
                     <SelectContent>
@@ -703,7 +703,7 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
                     <div className="text-xs text-muted-foreground mb-2 sm:hidden">
                       ← Scroll horizontally to see all columns →
                     </div>
-                    <Table data-testid="table-activity-logs" className="min-w-[800px] sm:min-w-[1000px] table-fixed">
+                    <Table data-testid="table-activity-logs" className="min-w-[800px] lg:min-w-[1000px] table-fixed">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-[15%]">Time</TableHead>
@@ -794,9 +794,9 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
                   </div>
                 ) : (
                   data.securityAlerts.map((alert) => (
-                    <div key={alert.id} className="border rounded-lg p-4 space-y-3" data-testid={`card-alert-${alert.id}`}>
+                    <div key={alert.id} className="border rounded-lg p-0 lg:p-4 space-y-3" data-testid={`card-alert-${alert.id}`}>
                       <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3">
+                        <div className="flex flex-col lg:flex-row gap-3 lg:gap-0 items-start gap-3">
                           <div className="mt-1">
                             {getSeverityIcon(alert.severity)}
                           </div>
@@ -859,7 +859,7 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
         <TabsContent value="reports" className="space-y-4">
           <Card data-testid="card-compliance-reports">
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col lg:flex-row items-start gap-3 lg:gap-0 lg:items-center justify-between">
                 <div>
                   <CardTitle>Compliance Reports</CardTitle>
                   <CardDescription>
@@ -875,8 +875,8 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
             <CardContent>
               <div className="space-y-4">
                 {data.complianceReports.map((report) => (
-                  <div key={report.id} className="border rounded-lg p-4 space-y-3" data-testid={`card-report-${report.id}`}>
-                    <div className="flex items-start justify-between">
+                  <div key={report.id} className="border rounded-lg  p-0 lg:p-4 space-y-3" data-testid={`card-report-${report.id}`}>
+                    <div className="flex flex-col lg:flex-row items-start gap-3 lg:gap-0 lg:items-center justify-between">
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <h4 className="font-medium">{report.title}</h4>

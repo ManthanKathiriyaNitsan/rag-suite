@@ -602,7 +602,7 @@ export default function SecurityComplianceTab({ data, onChange }: SecurityCompli
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden min-w-0 px-2 sm:px-0" style={{ maxWidth: 'calc(90vw)' }}>
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden min-w-0 px-2 sm:px-0" style={{ maxWidth: '93vw' }}>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold">Security & Compliance</h3>
@@ -683,11 +683,11 @@ export default function SecurityComplianceTab({ data, onChange }: SecurityCompli
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto">
-          <TabsTrigger value="overview" data-testid="tab-security-overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
-          <TabsTrigger value="policies" data-testid="tab-security-policies" className="text-xs sm:text-sm">Policies</TabsTrigger>
-          <TabsTrigger value="compliance" data-testid="tab-compliance-frameworks" className="text-xs sm:text-sm">Compliance</TabsTrigger>
-          <TabsTrigger value="encryption" data-testid="tab-encryption-management" className="text-xs sm:text-sm">Encryption</TabsTrigger>
-          <TabsTrigger value="settings" data-testid="tab-security-settings" className="text-xs sm:text-sm">Settings</TabsTrigger>
+          <TabsTrigger value="overview" data-testid="tab-security-overview" className="text-sm">Overview</TabsTrigger>
+          <TabsTrigger value="policies" data-testid="tab-security-policies" className="text-sm">Policies</TabsTrigger>
+          <TabsTrigger value="compliance" data-testid="tab-compliance-frameworks" className="text-sm">Compliance</TabsTrigger>
+          <TabsTrigger value="encryption" data-testid="tab-encryption-management" className="text-sm">Encryption</TabsTrigger>
+          <TabsTrigger value="settings" data-testid="tab-security-settings" className="text-sm">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -709,14 +709,14 @@ export default function SecurityComplianceTab({ data, onChange }: SecurityCompli
                           <AlertTriangle className={`w-4 h-4 mt-0.5 ${getSeverityColor(alert.severity)}`} />
                           <div>
                             <h4 className="font-medium text-sm">{alert.title}</h4>
-                            <p className="text-xs text-muted-foreground">{alert.description}</p>
+                            <p className="text-xs pt-2 md:pt-0 text-muted-foreground">{alert.description}</p>
                           </div>
                         </div>
                         <Badge variant={getStatusBadgeVariant(alert.status)}>
                           {alert.status}
                         </Badge>
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs pt-2 md:pt-0 text-muted-foreground">
                         {alert.timestamp.toLocaleString()} • {alert.source}
                       </div>
                     </div>
@@ -804,7 +804,7 @@ export default function SecurityComplianceTab({ data, onChange }: SecurityCompli
                     <TableRow key={scan.id} data-testid={`row-scan-${scan.id}`}>
                       <TableCell>
                         <div className="font-medium capitalize">{scan.type.replace('_', ' ')}</div>
-                        <div className="text-sm text-muted-foreground">{scan.summary}</div>
+                        <div className=" text-xs sm:text-sm text-muted-foreground">{scan.summary}</div>
                       </TableCell>
                       <TableCell>
                         <Badge variant={getStatusBadgeVariant(scan.status)}>
@@ -844,7 +844,7 @@ export default function SecurityComplianceTab({ data, onChange }: SecurityCompli
         <TabsContent value="policies" className="space-y-4">
           <Card data-testid="card-security-policies">
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-0 sm:items-center justify-between">
                 <div>
                   <CardTitle>Security Policies</CardTitle>
                   <CardDescription>
@@ -860,7 +860,7 @@ export default function SecurityComplianceTab({ data, onChange }: SecurityCompli
             <CardContent>
               <div className="space-y-4">
                 {data.policies.map((policy) => (
-                  <div key={policy.id} className="border rounded-lg p-4 space-y-3" data-testid={`card-policy-${policy.id}`}>
+                  <div key={policy.id} className="border rounded-lg p-0 md:p-4 gap-3 md:gap-0 space-y-3" data-testid={`card-policy-${policy.id}`}>
                     <div className="flex items-start justify-between">
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
@@ -952,8 +952,8 @@ export default function SecurityComplianceTab({ data, onChange }: SecurityCompli
             <CardContent>
               <div className="space-y-6">
                 {data.frameworks.map((framework) => (
-                  <div key={framework.id} className="border rounded-lg p-4 space-y-4" data-testid={`card-framework-${framework.id}`}>
-                    <div className="flex items-start justify-between">
+                  <div key={framework.id} className="border rounded-lg p-0 md:p-4  space-y-4" data-testid={`card-framework-${framework.id}`}>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <h4 className="font-medium">{framework.name}</h4>
@@ -982,7 +982,7 @@ export default function SecurityComplianceTab({ data, onChange }: SecurityCompli
                       <Progress value={(framework.requirements.met / framework.requirements.total) * 100} className="h-2" />
                     </div>
                     
-                    <div className="grid grid-cols-4 gap-4 text-sm">
+                    <div className="grid grid-cols-2 lg:grid-cols-4  gap-4 text-sm">
                       <div className="text-center p-2 bg-green-50 dark:bg-green-950 rounded">
                         <div className="font-medium text-green-600">{framework.requirements.met}</div>
                         <div className="text-green-600">Met</div>

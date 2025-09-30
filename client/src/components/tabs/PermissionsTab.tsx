@@ -418,7 +418,7 @@ export default function PermissionsTab({ data, onChange }: PermissionsTabProps) 
   });
 
   return (
-    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden min-w-0 px-2 sm:px-0" style={{ maxWidth: 'calc(90vw)' }}>
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden min-w-0 px-2 sm:px-0" style={{ maxWidth: '93vw' }}>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold">Access Control & Permissions</h3>
@@ -434,10 +434,10 @@ export default function PermissionsTab({ data, onChange }: PermissionsTabProps) 
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
-          <TabsTrigger value="users" data-testid="tab-users" className="text-xs sm:text-sm">Users</TabsTrigger>
-          <TabsTrigger value="roles" data-testid="tab-roles" className="text-xs sm:text-sm">Roles</TabsTrigger>
-          <TabsTrigger value="access-rules" data-testid="tab-access-rules" className="text-xs sm:text-sm">Access Rules</TabsTrigger>
-          <TabsTrigger value="settings" data-testid="tab-security-settings" className="text-xs sm:text-sm">Security</TabsTrigger>
+          <TabsTrigger value="users" data-testid="tab-users" className="text-sm">Users</TabsTrigger>
+          <TabsTrigger value="roles" data-testid="tab-roles" className="text-sm">Roles</TabsTrigger>
+          <TabsTrigger value="access-rules" data-testid="tab-access-rules" className="text-sm">Access Rules</TabsTrigger>
+          <TabsTrigger value="settings" data-testid="tab-security-settings" className="text-sm">Security</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users" className="space-y-4">
@@ -485,7 +485,7 @@ export default function PermissionsTab({ data, onChange }: PermissionsTabProps) 
                   </div>
                 ) : (
                   filteredUsers.map((user) => (
-                    <div key={user.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border rounded-lg hover-elevate">
+                    <div key={user.id} className="flex flex-col sm:flex-row  justify-between gap-4 p-0 lg:p-4 border rounded-lg hover-elevate">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <Avatar className="h-10 w-10 flex-shrink-0">
                           <AvatarImage src={user.avatar} alt={user.name} />
@@ -514,7 +514,7 @@ export default function PermissionsTab({ data, onChange }: PermissionsTabProps) 
                         </div>
                       </div>
                       
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+                      <div className="flex   flex-row items-center justify-between gap-2 w-full sm:w-auto">
                         <div className="text-left sm:text-right text-sm text-muted-foreground">
                           <p>Last active</p>
                           <p className="break-words">{user.lastActive.toLocaleDateString()}</p>
@@ -522,7 +522,7 @@ export default function PermissionsTab({ data, onChange }: PermissionsTabProps) 
                         
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" data-testid={`button-user-menu-${user.id}`} className="w-full sm:w-auto">
+                            <Button variant="ghost" size="icon" data-testid={`button-user-menu-${user.id}`} className="sm:w-auto">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -579,7 +579,7 @@ export default function PermissionsTab({ data, onChange }: PermissionsTabProps) 
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
                 {data.roles.map((role) => (
-                  <div key={role.id} className="border rounded-lg p-4 space-y-3">
+                  <div key={role.id} className="border rounded-lg p-0 lg:p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div 
@@ -627,7 +627,7 @@ export default function PermissionsTab({ data, onChange }: PermissionsTabProps) 
             <CardContent>
               <div className="space-y-4">
                 {data.permissionGroups.map((group) => (
-                  <div key={group.id} className="border rounded-lg p-4 space-y-3">
+                  <div key={group.id} className="border rounded-lg p-0 lg:p-4 space-y-3">
                     <div>
                       <h4 className="font-medium">{group.name}</h4>
                       <p className="text-sm text-muted-foreground">{group.description}</p>
@@ -662,10 +662,10 @@ export default function PermissionsTab({ data, onChange }: PermissionsTabProps) 
             <CardContent>
               <div className="space-y-4">
                 {data.accessRules.map((rule) => (
-                  <div key={rule.id} className="border rounded-lg p-4 space-y-3">
+                  <div key={rule.id} className="border rounded-lg p-0 lg:p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex  items-end lg:items-center gap-2">
                           <h4 className="font-medium">{rule.name}</h4>
                           <Badge variant={rule.enabled ? "default" : "secondary"}>
                             {rule.enabled ? "Active" : "Disabled"}

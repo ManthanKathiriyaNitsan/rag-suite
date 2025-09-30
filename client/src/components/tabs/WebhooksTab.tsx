@@ -466,11 +466,11 @@ export default function WebhooksTab({ data, onChange }: WebhooksTabProps) {
                   Add Webhook
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl overflow-y-scroll w-[100%] sm:w-auto">
+              <DialogContent className="max-w-2xl  sm:mx-0 w-[calc(100vw-2rem)] sm:w-auto max-h-[100vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Create Webhook Endpoint</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 ">
+                <div className="space-y-4 sm:space-y-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="webhook-name">Name</Label>
@@ -498,7 +498,7 @@ export default function WebhooksTab({ data, onChange }: WebhooksTabProps) {
                     <Label>Events</Label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                       {webhooks.eventTypes.map((event) => (
-                        <label key={event} className="flex items-center space-x-2">
+                        <label key={event} className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer">
                           <input
                             type="checkbox"
                             checked={newWebhook.events?.includes(event)}
@@ -511,14 +511,15 @@ export default function WebhooksTab({ data, onChange }: WebhooksTabProps) {
                               }
                             }}
                             data-testid={`checkbox-event-${event}`}
+                            className="rounded"
                           />
-                          <span className="text-sm">{event}</span>
+                          <span className="text-sm break-words">{event}</span>
                         </label>
                       ))}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="webhook-secret">Secret (Optional)</Label>
                       <Input
@@ -544,37 +545,41 @@ export default function WebhooksTab({ data, onChange }: WebhooksTabProps) {
 
                   {/* Custom Headers */}
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                       <Label>Custom Headers</Label>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setNewWebhook(addCustomHeader(newWebhook))}
                         data-testid="button-add-header"
+                        className="w-full sm:w-auto"
                       >
                         <Plus className="h-3 w-3 mr-1" />
                         Add Header
                       </Button>
                     </div>
                     {newWebhook.customHeaders?.map((header, index) => (
-                      <div key={index} className="flex gap-2">
+                      <div key={index} className="flex flex-col sm:flex-row gap-2">
                         <Input
                           placeholder="Header name"
                           value={header.key}
                           onChange={(e) => setNewWebhook(updateCustomHeader(newWebhook, index, "key", e.target.value))}
                           data-testid={`input-header-key-${index}`}
+                          className="flex-1"
                         />
                         <Input
                           placeholder="Header value"
                           value={header.value}
                           onChange={(e) => setNewWebhook(updateCustomHeader(newWebhook, index, "value", e.target.value))}
                           data-testid={`input-header-value-${index}`}
+                          className="flex-1"
                         />
                         <Button
                           variant="outline"
                           size="icon"
                           onClick={() => setNewWebhook(removeCustomHeader(newWebhook, index))}
                           data-testid={`button-remove-header-${index}`}
+                          className="w-full sm:w-auto flex-shrink-0"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -582,14 +587,19 @@ export default function WebhooksTab({ data, onChange }: WebhooksTabProps) {
                     ))}
                   </div>
 
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                  <div className="flex flex-col sm:flex-row justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowCreateDialog(false)}
+                      className="w-full sm:w-auto order-2 sm:order-1"
+                    >
                       Cancel
                     </Button>
                     <Button 
                       onClick={addWebhook} 
                       disabled={!newWebhook.name || !newWebhook.url}
                       data-testid="button-save-webhook"
+                      className="w-full sm:w-auto order-1 sm:order-2"
                     >
                       Create Webhook
                     </Button>

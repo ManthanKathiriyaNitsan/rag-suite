@@ -403,7 +403,7 @@ export default function ABTestingTab({ data, onChange }: ABTestingTabProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row items-start gap-3 lg:gap-0 lg:items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">A/B Testing & Experiments</h3>
           <p className="text-sm text-muted-foreground">
@@ -417,7 +417,7 @@ export default function ABTestingTab({ data, onChange }: ABTestingTabProps) {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto">
           <TabsTrigger value="experiments" data-testid="tab-experiments">Experiments</TabsTrigger>
           <TabsTrigger value="results" data-testid="tab-results">Results</TabsTrigger>
           <TabsTrigger value="templates" data-testid="tab-templates">Templates</TabsTrigger>

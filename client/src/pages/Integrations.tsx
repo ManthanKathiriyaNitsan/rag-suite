@@ -290,14 +290,14 @@ export default function Integrations() {
                 placeholder="Search by name or public ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 "
                 data-testid="input-search-integrations"
               />
             </div>
 
         <div className="flex flex-wrap items-center gap-4">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-32" data-testid="select-status-filter">
+              <SelectTrigger className="w-full md:w-32" data-testid="select-status-filter">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -309,7 +309,7 @@ export default function Integrations() {
             </Select>
 
             <Select value={ownerFilter} onValueChange={setOwnerFilter}>
-              <SelectTrigger className="w-40" data-testid="select-owner-filter">
+              <SelectTrigger className="w-full md:w-40" data-testid="select-owner-filter">
                 <SelectValue placeholder="Owner" />
               </SelectTrigger>
               <SelectContent>
@@ -321,7 +321,7 @@ export default function Integrations() {
             </Select>
 
             <Select value={envFilter} onValueChange={setEnvFilter}>
-              <SelectTrigger className="w-40" data-testid="select-env-filter">
+              <SelectTrigger className="w-full md:w-40" data-testid="select-env-filter">
                 <SelectValue placeholder="Environment" />
               </SelectTrigger>
               <SelectContent>

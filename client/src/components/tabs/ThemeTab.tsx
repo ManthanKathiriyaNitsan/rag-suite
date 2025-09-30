@@ -293,7 +293,7 @@ export default function ThemeTab({ data, onChange }: ThemeTabProps) {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden min-w-0 px-0 sm:px-0" style={{ maxWidth: 'calc(95vw)' }}>
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden min-w-0 px-0 sm:px-0" style={{ maxWidth: '95vw' }}>
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2">

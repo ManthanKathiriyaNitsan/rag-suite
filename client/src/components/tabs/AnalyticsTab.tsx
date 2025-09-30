@@ -200,7 +200,7 @@ export default function AnalyticsTab({ data, onChange }: AnalyticsTabProps) {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden min-w-0 px-2 sm:px-0" style={{ maxWidth: 'calc(90vw)' }}>
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden min-w-0 px-2 sm:px-0" style={{ maxWidth: '93vw' }}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2">
@@ -277,23 +277,23 @@ export default function AnalyticsTab({ data, onChange }: AnalyticsTabProps) {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
-          <TabsTrigger value="overview" data-testid="tab-overview" className="text-xs sm:text-sm">
+        <TabsList className="grid w-full  grid-cols-2 sm:grid-cols-4 h-auto">
+          <TabsTrigger value="overview" data-testid="tab-overview" className="text-sm flex items-center ">
             <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             <span className="hidden sm:inline">Overview</span>
             <span className="sm:hidden">Over</span>
           </TabsTrigger>
-          <TabsTrigger value="queries" data-testid="tab-queries" className="text-xs sm:text-sm">
+          <TabsTrigger value="queries" data-testid="tab-queries" className="text-sm flex items-center ">
             <Search className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             <span className="hidden sm:inline">Top Queries</span>
             <span className="sm:hidden">Query</span>
           </TabsTrigger>
-          <TabsTrigger value="sources" data-testid="tab-sources" className="text-xs sm:text-sm">
+          <TabsTrigger value="sources" data-testid="tab-sources" className="text-sm flex items-center ">
             <Globe className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             <span className="hidden sm:inline">Traffic Sources</span>
             <span className="sm:hidden">Source</span>
           </TabsTrigger>
-          <TabsTrigger value="performance" data-testid="tab-performance" className="text-xs sm:text-sm">
+          <TabsTrigger value="performance" data-testid="tab-performance" className="text-sm flex items-center ">
             <Zap className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             <span className="hidden sm:inline">Performance</span>
             <span className="sm:hidden">Perf</span>
@@ -458,7 +458,7 @@ export default function AnalyticsTab({ data, onChange }: AnalyticsTabProps) {
                   {data.topQueries.map((query, index) => (
                     <div 
                       key={query.id} 
-                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border rounded-lg hover-elevate"
+                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-0 lg:p-4 border rounded-lg hover-elevate"
                       data-testid={`query-item-${query.id}`}
                     >
                       <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -548,7 +548,7 @@ export default function AnalyticsTab({ data, onChange }: AnalyticsTabProps) {
                   {data.topSources.map((source, index) => (
                     <div 
                       key={source.id} 
-                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border rounded-lg hover-elevate"
+                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-0 lg:p-4 border rounded-lg hover-elevate"
                       data-testid={`source-item-${source.id}`}
                     >
                       <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -637,7 +637,7 @@ export default function AnalyticsTab({ data, onChange }: AnalyticsTabProps) {
                   return (
                     <div 
                       key={metric.id} 
-                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border rounded-lg"
+                      className="flex :flex-row items-start items-center justify-between gap-4 p-0 lg:p-4 border rounded-lg"
                       data-testid={`performance-metric-${metric.id}`}
                     >
                       <div className="flex items-center gap-4 min-w-0 flex-1">
