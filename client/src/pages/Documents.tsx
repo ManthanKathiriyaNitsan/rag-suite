@@ -24,61 +24,6 @@ import {
 // 📄 Import API and types
 import { documentAPI, Document, DocumentMetadata } from "@/lib/api";
 
-// todo: remove mock functionality
-const mockDocuments = [
-  {
-    id: "doc-001",
-    title: "Authentication Setup Guide",
-    type: "HTML",
-    source: "docs.company.com",
-    language: "English",
-    status: "Indexed",
-    chunks: 12,
-    lastIndexed: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    url: "https://docs.company.com/auth-setup",
-    checksum: "a1b2c3d4e5f6",
-    size: "24 KB",
-  },
-  {
-    id: "doc-002",
-    title: "API Rate Limits Documentation",
-    type: "PDF",
-    source: "api.company.com",
-    language: "English",
-    status: "Processing",
-    chunks: 8,
-    lastIndexed: new Date(Date.now() - 4 * 60 * 60 * 1000),
-    url: "https://api.company.com/rate-limits.pdf",
-    checksum: "f6e5d4c3b2a1",
-    size: "156 KB",
-  },
-  {
-    id: "doc-003",
-    title: "Deployment Best Practices",
-    type: "DOC",
-    source: "help.company.com",
-    language: "English",
-    status: "Error",
-    chunks: 0,
-    lastIndexed: new Date(Date.now() - 24 * 60 * 60 * 1000),
-    url: "https://help.company.com/deployment",
-    checksum: "b2a1c3d4e5f6",
-    size: "89 KB",
-  },
-  {
-    id: "doc-004",
-    title: "Troubleshooting Common Issues",
-    type: "TXT",
-    source: "support.company.com",
-    language: "English", 
-    status: "Indexed",
-    chunks: 15,
-    lastIndexed: new Date(Date.now() - 6 * 60 * 60 * 1000),
-    url: "https://support.company.com/troubleshooting.txt",
-    checksum: "c3d4e5f6a1b2",
-    size: "67 KB",
-  },
-];
 
 export default function Documents() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -116,14 +61,6 @@ export default function Documents() {
     loadDocuments();
   }, []);
 
-  // 📄 Fallback to mock documents if API fails (for testing)
-  React.useEffect(() => {
-    if (documentsError && documents.length === 0) {
-      console.log('📄 Using mock documents as fallback');
-      setDocuments(mockDocuments);
-      setDocumentsError(false);
-    }
-  }, [documentsError, documents.length]);
 
   // 📄 Simple stats
   const stats = {
