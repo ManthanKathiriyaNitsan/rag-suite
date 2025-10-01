@@ -232,25 +232,25 @@ class ViewController: UIViewController {
                   data-testid="input-public-id"
                 />
                 <div className="flex gap-2 flex-col sm:flex-row w-full">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleCopyPublicId}
-                    data-testid="button-copy-public-id"
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleCopyPublicId}
+                  data-testid="button-copy-public-id"
                     className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10"
-                  >
+                >
                     <Copy className="h-3 w-3 sm:h-4 sm:w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleRegeneratePublicId}
-                    data-testid="button-regenerate-public-id"
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleRegeneratePublicId}
+                  data-testid="button-regenerate-public-id"
                     className="flex-1 sm:flex-none h-8 sm:h-10 text-xs sm:text-sm"
-                  >
+                >
                     <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                     <span className="hidden sm:inline">Regenerate</span>
                     <span className="sm:hidden">Regen</span>
-                  </Button>
+                </Button>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
@@ -349,8 +349,8 @@ class ViewController: UIViewController {
         <CardContent className="p-0">
           <div className="overflow-x-auto max-w-full min-w-0 mx-2 sm:mx-0" style={{ maxWidth: 'calc(100% - 1rem)' }}>
             <Table className="min-w-[700px] sm:min-w-[800px] w-full table-fixed">
-              <TableHeader>
-                <TableRow>
+      <TableHeader>
+        <TableRow>
                   <TableHead className="w-[20%]">Label</TableHead>
                   <TableHead className="w-[25%]">Prefix</TableHead>
                   <TableHead className="w-[15%]">Environment</TableHead>
@@ -358,134 +358,134 @@ class ViewController: UIViewController {
                   <TableHead className="w-[12%]">Created</TableHead>
                   <TableHead className="w-[12%]">Last Used</TableHead>
                   <TableHead className="w-[7%]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {keys.map((key) => (
-                  <TableRow key={key.id} data-testid={`row-key-${key.id}`}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {keys.map((key) => (
+          <TableRow key={key.id} data-testid={`row-key-${key.id}`}>
+            <TableCell>
+              <div className="flex items-center gap-2">
                         <span className="font-medium truncate">{key.label}</span>
-                        {!key.isActive && (
+                {!key.isActive && (
                           <Badge variant="destructive" className="text-xs flex-shrink-0">
-                            Revoked
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
+                    Revoked
+                  </Badge>
+                )}
+              </div>
+            </TableCell>
+            <TableCell>
                       <code className="text-sm break-all font-mono">{key.keyPrefix}...</code>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          key.environment === "production" ? "default" : "secondary"
-                        }
+            </TableCell>
+            <TableCell>
+              <Badge
+                variant={
+                  key.environment === "production" ? "default" : "secondary"
+                }
                         className="text-xs"
-                      >
-                        {key.environment}
-                      </Badge>
-                    </TableCell>
+              >
+                {key.environment}
+              </Badge>
+            </TableCell>
                     <TableCell className="text-sm">
                       {key.rateLimit.toLocaleString()}/hr
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-                        Math.floor(
-                          (key.createdAt.getTime() - Date.now()) /
-                            (1000 * 60 * 60 * 24)
-                        ),
-                        "day"
-                      )}
-                    </TableCell>
+              {new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
+                Math.floor(
+                  (key.createdAt.getTime() - Date.now()) /
+                    (1000 * 60 * 60 * 24)
+                ),
+                "day"
+              )}
+            </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {key.lastUsedAt
-                        ? new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-                            Math.floor(
-                              (key.lastUsedAt.getTime() - Date.now()) / (1000 * 60 * 60)
-                            ),
-                            "hour"
-                          )
-                        : "Never"}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            data-testid={`button-key-actions-${key.id}`}
+              {key.lastUsedAt
+                ? new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
+                    Math.floor(
+                      (key.lastUsedAt.getTime() - Date.now()) / (1000 * 60 * 60)
+                    ),
+                    "hour"
+                  )
+                : "Never"}
+            </TableCell>
+            <TableCell>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    data-testid={`button-key-actions-${key.id}`}
                             className="h-8 w-8 p-0"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => console.log("Rotate key:", key.id)}
-                            data-testid={`action-rotate-${key.id}`}
-                          >
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                            Rotate
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleRevokeKey(key.id)}
-                            disabled={!key.isActive}
-                            data-testid={`action-revoke-${key.id}`}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Revoke
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => console.log("Rotate key:", key.id)}
+                    data-testid={`action-rotate-${key.id}`}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Rotate
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleRevokeKey(key.id)}
+                    disabled={!key.isActive}
+                    data-testid={`action-revoke-${key.id}`}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Revoke
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </div>
+</CardContent>
 
       </Card>
 
       {/* Generated Key Modal */}
       <Dialog open={showGeneratedKey} onOpenChange={setShowGeneratedKey}>
         <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-md md:max-w-lg lg:max-w-xl max-h-[80vh] overflow-x-auto mx-2 sm:mx-0">
-          <DialogHeader>
-            <DialogTitle>API Key Generated</DialogTitle>
-            <DialogDescription>
-              Copy your API key now. For security reasons, we cannot show it again.
-            </DialogDescription>
-          </DialogHeader>
+    <DialogHeader>
+      <DialogTitle>API Key Generated</DialogTitle>
+      <DialogDescription>
+        Copy your API key now. For security reasons, we cannot show it again.
+      </DialogDescription>
+    </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="p-2 sm:p-4 bg-muted rounded-lg">
-              <div className="flex items-center justify-between gap-2">
-                <code className="text-sm flex-1 break-words whitespace-pre-wrap">
-                  {generatedKey}
-                </code>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => handleCopyKey(generatedKey)}
-                  data-testid="button-copy-generated-key"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
+    <div className="space-y-4">
+      <div className="p-2 sm:p-4 bg-muted rounded-lg">
+        <div className="flex items-center justify-between gap-2">
+          <code className="text-sm flex-1 break-words whitespace-pre-wrap">
+            {generatedKey}
+          </code>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => handleCopyKey(generatedKey)}
+            data-testid="button-copy-generated-key"
+          >
+            <Copy className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
 
-          <DialogFooter>
-            <Button
-              onClick={() => setShowGeneratedKey(false)}
-              data-testid="button-close-generated-key"
-            >
-              I've copied the key
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+    <DialogFooter>
+      <Button
+        onClick={() => setShowGeneratedKey(false)}
+        data-testid="button-close-generated-key"
+      >
+        I've copied the key
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
 
       {/* Embed Code Section */}
       <Card className="w-full overflow-hidden">
@@ -563,7 +563,7 @@ class ViewController: UIViewController {
             </TabsContent>
           </Tabs>
         </CardContent>
-      </Card> 
+      </Card>
     </div>
   );
 }

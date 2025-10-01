@@ -13,6 +13,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+// 🔐 Import authentication context
+import { useAuthContext } from "@/contexts/AuthContext";
 
 interface UserDropdownProps {
   user?: {
@@ -26,21 +28,22 @@ interface UserDropdownProps {
 export const UserDropdown = React.memo(function UserDropdown({ user }: UserDropdownProps) {
   const [, setLocation] = useLocation();
   
-  // Mock user data for design purposes
-  const currentUser = user || {
+  // 🔐 Use authentication context
+  const { user: authUser, logout } = useAuthContext();
+  
+  // Use auth user if available, otherwise fall back to prop or mock data
+  const currentUser = authUser || user || {
     name: "Sarah Chen",
     email: "sarah.chen@company.com",
     avatar: "", // No avatar for fallback display
     role: "Admin"
   };
 
+  // 🔐 Updated logout handler using auth context
   const handleLogout = useCallback(() => {
-    // Clear any session data (this would be implemented with real auth)
-    localStorage.removeItem("auth_token"); // Example of session cleanup
-    
-    // Navigate to login page
+    logout(); // Use auth context logout function
     setLocation("/login");
-  }, [setLocation]);
+  }, [logout, setLocation]);
 
 
   const userInitials = useMemo(() => {

@@ -18,37 +18,90 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Upload, FileText, X } from "lucide-react";
+import { Upload, FileText, X, Loader2 } from "lucide-react";
+// 📄 Import API and types
+import { documentAPI, DocumentMetadata } from "@/lib/api";
 
 interface UploadDocumentFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: any) => void;
+  onSubmit?: (data: any) => void;
 }
 
 export function UploadDocumentForm({ open, onOpenChange, onSubmit }: UploadDocumentFormProps) {
   const [files, setFiles] = useState<FileList | null>(null);
+  
+  // 📄 Simple state for upload
+  const [isUploading, setIsUploading] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [language, setLanguage] = useState("en");
   const [source, setSource] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // 📄 Updated handleSubmit using real API
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
-      files,
-      title,
-      description,
-      language,
-      source,
-    });
-    onOpenChange(false);
-    // Reset form
-    setFiles(null);
-    setTitle("");
-    setDescription("");
-    setLanguage("en");
-    setSource("");
+    
+    if (!files || files.length === 0) {
+      return;
+    }
+
+    // Create metadata object
+    const metadata: DocumentMetadata = {
+      title: title || undefined,
+      description: description || undefined,
+      language: language,
+      source: source || undefined,
+    };
+
+    try {
+      setIsUploading(true);
+      
+      // Upload each file to API
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        await documentAPI.uploadDocument(file, metadata);
+      }
+      
+      // Call optional onSubmit callback (for refresh, not duplicate upload)
+      if (onSubmit) {
+        onSubmit({ files, metadata });
+      }
+      
+      onOpenChange(false);
+      
+      // Reset form
+      setFiles(null);
+      setTitle("");
+      setDescription("");
+      setLanguage("en");
+      setSource("");
+      
+    } catch (error: any) {
+      console.error('Upload failed:', error);
+      
+      // Show specific error message from API
+      let errorMessage = 'Upload failed. Please try again.';
+      
+      if (error.response?.data?.detail) {
+        // Handle validation errors from FastAPI
+        if (Array.isArray(error.response.data.detail)) {
+          errorMessage = error.response.data.detail.map((err: any) => 
+            `${err.loc ? err.loc.join('.') : 'Field'}: ${err.msg || err.message || 'Invalid value'}`
+          ).join(', ');
+        } else {
+          errorMessage = error.response.data.detail;
+        }
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(`Upload failed: ${errorMessage}`);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -151,9 +204,22 @@ export function UploadDocumentForm({ open, onOpenChange, onSubmit }: UploadDocum
             <Button type="button" className="my-2" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!files} data-testid="button-upload-documents">
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Documents
+            <Button 
+              type="submit" 
+              disabled={!files || isUploading} 
+              data-testid="button-upload-documents"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Documents
+                </>
+              )}
             </Button>
           </DialogFooter>
         </form>

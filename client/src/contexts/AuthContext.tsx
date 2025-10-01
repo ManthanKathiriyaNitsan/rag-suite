@@ -1,0 +1,118 @@
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { User, AuthState } from '@/lib/api';
+
+// 🔐 Authentication Context
+interface AuthContextType {
+  // Auth state
+  isAuthenticated: boolean;
+  user: User | null;
+  token: string | null;
+  isLoading: boolean;
+  error: string | null;
+  
+  // Auth actions
+  login: (credentials: { username: string; password: string }) => void;
+  logout: () => void;
+  clearError: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// 🔐 Authentication Provider
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const {
+    login: loginMutation,
+    logout: logoutMutation,
+    isLoggingIn,
+    isLoggingOut,
+    loginError,
+    logoutError,
+    isAuthenticated,
+    user,
+    token,
+    resetLogin,
+  } = useAuth();
+
+  const [error, setError] = useState<string | null>(null);
+
+  // Clear error when it changes
+  useEffect(() => {
+    if (loginError) {
+      setError(loginError.message || 'Login failed');
+    } else if (logoutError) {
+      setError(logoutError.message || 'Logout failed');
+    } else {
+      setError(null);
+    }
+  }, [loginError, logoutError]);
+
+  // 🔐 Debug authentication state changes
+  useEffect(() => {
+    console.log('🔐 Auth state changed:', {
+      isAuthenticated,
+      user: user?.username,
+      token: token ? 'present' : 'missing',
+      isLoading: isLoggingIn || isLoggingOut,
+      error
+    });
+  }, [isAuthenticated, user, token, isLoggingIn, isLoggingOut, error]);
+
+  // Clear error function
+  const clearError = () => {
+    setError(null);
+    resetLogin();
+  };
+
+  // Login function
+  const login = (credentials: { username: string; password: string }) => {
+    setError(null);
+    loginMutation(credentials);
+  };
+
+  // Logout function
+  const logout = () => {
+    setError(null);
+    logoutMutation();
+  };
+
+  const value: AuthContextType = {
+    // Auth state
+    isAuthenticated,
+    user,
+    token,
+    isLoading: isLoggingIn || isLoggingOut,
+    error,
+    
+    // Auth actions
+    login,
+    logout,
+    clearError,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+// 🔐 Use Auth Hook
+export function useAuthContext() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuthContext must be used within an AuthProvider');
+  }
+  return context;
+}
+
+// 🔐 Auth Guard Hook
+export function useAuthGuard() {
+  const { isAuthenticated, isLoading } = useAuthContext();
+  
+  return {
+    isAuthenticated,
+    isLoading,
+    shouldRedirect: !isAuthenticated && !isLoading,
+  };
+}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Send, Copy, Settings, Zap, Loader2 } from "lucide-react";
+import { Send, Copy, Settings, Zap, Loader2, Trash2, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { SearchBar } from "@/components/SearchBar";
 import { ChatMessage } from "@/components/ChatMessage";
-// 🌐 Import our global API hook
+// 🌐 Import our global API hooks
 import { useSearch } from "@/hooks/useSearch";
+import { useChat, useChatSessions } from "@/hooks/useChat";
 
 interface Message {
   type: "user" | "assistant";
@@ -34,13 +35,20 @@ export default function RAGTuning() {
 
   // 🌐 Use our global search hook
   const { searchAsync, isSearching, searchData, searchError } = useSearch();
+  
+  // 💬 Use our chat hooks
+  const { sendMessageAsync, isSending } = useChat();
+  const { sessions, deleteSession, isDeleting } = useChatSessions();
+  
+  // 📋 Current session state
+  const [currentSessionId, setCurrentSessionId] = useState<string | undefined>();
 
 
   // 🗑️ Old fetchMessages function removed - now using global API
 
 // console.log(messages)
 
-  // 🎯 New handleQuery using global API
+  // 🔍 RAG Query - ONLY uses search API for document search
   const handleQuery = async (query: string) => {
     console.log("🔍 RAG Query - User submitted query:", query);
     console.log("⚙️ RAG Settings:", { 
@@ -60,15 +68,15 @@ export default function RAGTuning() {
     setMessages(prev => [...prev, userMessage]);
 
     try {
-      // 🌐 Use global API - much simpler!
-      const apiResponse = await searchAsync(query);
-      console.log("📦 Global API Response:", apiResponse);
+      // 🌐 Use ONLY search API for RAG functionality
+      const searchResponse = await searchAsync(query);
+      console.log("📦 Search Response:", searchResponse);
 
-      // Create assistant message with real API response
+      // Create assistant message with search response
       const assistantMessage: Message = {
         type: "assistant",
-        content: apiResponse.answer || "No answer from API",
-        citations: apiResponse.sources?.map((source: any) => ({
+        content: searchResponse.answer || "No answer from API",
+        citations: searchResponse.sources?.map((source: any) => ({
           title: source.title || "Unknown Source",
           url: source.url || "#",
           snippet: source.snippet || "No snippet available",
@@ -77,10 +85,10 @@ export default function RAGTuning() {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      console.log("✅ RAG Query processed successfully with global API");
+      console.log("✅ RAG Query processed successfully with search API only");
 
     } catch (error) {
-      console.error("❌ Global API call failed:", error);
+      console.error("❌ Search API call failed:", error);
       
       // Add error message
       const errorMessage: Message = {
@@ -93,6 +101,26 @@ export default function RAGTuning() {
     }
   };
 
+  // 🗑️ Clear chat function
+  const clearChat = () => {
+    setMessages([
+      {
+        type: "assistant",
+        content: "Welcome to the RAG Tuning Playground! Ask me anything about your documentation to test different retrieval and generation settings.",
+        timestamp: new Date(),
+      }
+    ]);
+    setCurrentSessionId(undefined);
+  };
+
+  // 🗑️ Delete session function
+  const handleDeleteSession = (sessionId: string) => {
+    deleteSession(sessionId);
+    if (currentSessionId === sessionId) {
+      setCurrentSessionId(undefined);
+    }
+  };
+
   const exampleQueries = [
     "How do I configure authentication?",
     "What are the API rate limits?",
@@ -102,11 +130,35 @@ export default function RAGTuning() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">RAG Tuning Playground</h1>
-        <p className="text-muted-foreground">
-          Test and optimize your retrieval-augmented generation settings
-        </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">RAG Tuning Playground</h1>
+          <p className="text-muted-foreground">
+            Test and optimize your retrieval-augmented generation settings
+          </p>
+        </div>
+        
+        {/* 💬 Chat Session Management */}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearChat}
+            className="flex items-center gap-2"
+          >
+            <Trash2 className="h-4 w-4" />
+            Clear Chat
+          </Button>
+          
+          {sessions.length > 0 && (
+            <div className="flex items-center gap-2">
+              <History className="h-4 w-4" />
+              <span className="text-sm text-muted-foreground">
+                {sessions.length} session{sessions.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -127,12 +179,12 @@ export default function RAGTuning() {
                 data-testid="rag-query-input"
               />
               
-              {/* 🌐 Loading indicator for global API */}
+              {/* 🔍 Loading indicator for search API only */}
               {isSearching && (
                 <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span className="text-sm text-muted-foreground">
-                    Searching with global API...
+                    Searching documentation...
                   </span>
                 </div>
               )}

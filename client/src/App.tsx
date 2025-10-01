@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { AuthProvider, useAuthContext } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AppSidebar } from "@/components/AppSidebar";
 import { EmbeddableWidget } from "@/components/EmbeddableWidget";
@@ -14,7 +15,7 @@ import { HelpSystem } from "@/components/HelpSystem";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { UserDropdown } from "@/components/UserDropdown";
 import { useOnboarding } from "@/hooks/useOnboarding";
-import { Bell, HelpCircle, Search } from "lucide-react";
+import { Bell, HelpCircle, Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NotFound } from "@/pages/ErrorPages";
@@ -31,6 +32,28 @@ import Onboarding from "@/pages/Onboarding";
 import Profile from "@/pages/Profile";
 import { useState } from "react";
 import Signup from "./pages/SignUp";
+
+// 🔐 Protected Route Component
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuthContext();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+
+  return <>{children}</>;
+}
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [widgetOpen, setWidgetOpen] = useState(false);
@@ -139,22 +162,24 @@ function Router() {
       <Route path="/signup" component={Signup} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/" nest>
-        <DashboardLayout>
-          <Switch>
-            <Route path="/" component={Overview} />
-            <Route path="/crawl" component={Crawl} />
-            <Route path="/rag-tuning" component={RAGTuning} />
-            <Route path="/documents" component={Documents} />
-            <Route path="/analytics" component={Analytics} />
-            <Route path="/feedback" component={Feedback} />
-            <Route path="/integrations" component={Integrations} />
-            <Route path="/profile" component={Profile} />
-            <Route path="/settings" component={Settings} />
-            <Route path="/api-keys" component={Settings} />
-            <Route path="/system-health" component={Settings} />
-            <Route component={NotFound} />
-          </Switch>
-        </DashboardLayout>
+     
+          <DashboardLayout>
+            <Switch>
+              <Route path="/" component={Overview} />
+              <Route path="/crawl" component={Crawl} />
+              <Route path="/rag-tuning" component={RAGTuning} />
+              <Route path="/documents" component={Documents} />
+              <Route path="/analytics" component={Analytics} />
+              <Route path="/feedback" component={Feedback} />
+              <Route path="/integrations" component={Integrations} />
+              <Route path="/profile" component={Profile} />
+              <Route path="/settings" component={Settings} />
+              <Route path="/api-keys" component={Settings} />
+              <Route path="/system-health" component={Settings} />
+              <Route component={NotFound} />
+            </Switch>
+          </DashboardLayout>
+ 
       </Route>
     </Switch>
   );
@@ -163,12 +188,14 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TooltipProvider>
-          <Router />
-          <Toaster />
-        </TooltipProvider>
-      </ThemeProvider>
+      <AuthProvider>
+        <ThemeProvider>
+          <TooltipProvider>
+            <Router />
+            <Toaster />
+          </TooltipProvider>
+        </ThemeProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

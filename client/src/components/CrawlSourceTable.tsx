@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreHorizontal, Eye, Edit, Play, Pause } from "lucide-react";
+import { MoreHorizontal, Eye, Edit, Play, Pause, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Table,
@@ -17,24 +17,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { CrawlSite } from "@/lib/api";
 
-interface CrawlSource {
-  id: string;
-  url: string;
-  depth: number;
-  cadence: "Hourly" | "Daily" | "Weekly";
-  headless: "Auto" | "On" | "Off";
-  status: "Active" | "Paused" | "Error";
-  lastCrawl: Date;
-  documents: number;
-}
-
+// 🕷️ Updated interface to match API data
 interface CrawlSourceTableProps {
-  sources?: CrawlSource[];
+  sites: CrawlSite[];
+  isLoading: boolean;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+  onStartCrawl: (id: string) => void;
+  isStarting: boolean;
+  isDeleting: boolean;
 }
 
-// todo: remove mock functionality
-const mockSources: CrawlSource[] = [
+// todo: remove mock functionality - keeping for reference
+const mockSources = [
   {
     id: "1",
     url: "https://docs.company.com",
@@ -67,7 +64,15 @@ const mockSources: CrawlSource[] = [
   },
 ];
 
-export function CrawlSourceTable({ sources = mockSources }: CrawlSourceTableProps) {
+export function CrawlSourceTable({ 
+  sites, 
+  isLoading, 
+  onEdit, 
+  onDelete, 
+  onStartCrawl, 
+  isStarting, 
+  isDeleting 
+}: CrawlSourceTableProps) {
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const { toast } = useToast();
 
@@ -84,6 +89,7 @@ export function CrawlSourceTable({ sources = mockSources }: CrawlSourceTableProp
     }
   };
 
+  // 🕷️ Updated action handlers using real API functions
   const handleAction = (action: string, sourceId: string) => {
     console.log(`${action} action for source:`, sourceId);
     
@@ -95,16 +101,13 @@ export function CrawlSourceTable({ sources = mockSources }: CrawlSourceTableProp
         });
         break;
       case "edit":
-        toast({
-          title: "Edit Source",
-          description: "Opening edit form for source configuration",
-        });
+        onEdit(sourceId);
         break;
       case "crawl":
-        toast({
-          title: "Crawl Started",
-          description: "Crawl job has been queued and will start shortly",
-        });
+        onStartCrawl(sourceId);
+        break;
+      case "delete":
+        onDelete(sourceId);
         break;
       default:
         console.log("Unknown action:", action);
@@ -127,68 +130,112 @@ export function CrawlSourceTable({ sources = mockSources }: CrawlSourceTableProp
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sources.map((source) => (
-            <TableRow key={source.id} data-testid={`row-source-${source.id}`}>
-              <TableCell className="font-medium max-w-[200px] truncate">
-                {source.url}
+          {isLoading ? (
+            <TableRow>
+              <TableCell colSpan={8} className="text-center py-8">
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Loading sites...</span>
+                </div>
               </TableCell>
-              <TableCell>{source.depth}</TableCell>
-              <TableCell>{source.cadence}</TableCell>
-              <TableCell>
-                <Badge variant="outline" className="text-xs">
-                  {source.headless}
-                </Badge>
+            </TableRow>
+          ) : sites.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={8} className="text-center py-8">
+                <div className="text-muted-foreground">
+                  No crawl sites found. Add your first site to get started.
+                </div>
               </TableCell>
-              <TableCell>
-                <Badge variant={getStatusColor(source.status)} className="text-xs">
-                  {source.status}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-                  Math.floor((source.lastCrawl.getTime() - Date.now()) / (1000 * 60 * 60)),
-                  "hour"
-                )}
-              </TableCell>
-              <TableCell>{source.documents}</TableCell>
+            </TableRow>
+          ) : (
+            sites.map((site) => (
+              <TableRow key={site.id} data-testid={`row-source-${site.id}`}>
+                <TableCell className="font-medium max-w-[200px] truncate">
+                  <div className="flex flex-col">
+                    <span className="font-medium">{site.name}</span>
+                    <span className="text-xs text-muted-foreground truncate">
+                      {site.url}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>{site.crawlDepth || 'Auto'}</TableCell>
+                <TableCell>Manual</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="text-xs">
+                    {site.respectRobotsTxt ? 'Respect' : 'Ignore'}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={getStatusColor(site.status)} className="text-xs">
+                    {site.status}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {site.lastCrawled ? 
+                    new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
+                      Math.floor((new Date(site.lastCrawled).getTime() - Date.now()) / (1000 * 60 * 60)),
+                      "hour"
+                    ) : 'Never'
+                  }
+                </TableCell>
+                <TableCell>{site.pagesCrawled || 0}</TableCell>
               <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
                       size="sm"
-                      data-testid={`button-actions-${source.id}`}
+                      data-testid={`button-actions-${site.id}`}
                     >
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
-                      onClick={() => handleAction("preview", source.id)}
-                      data-testid={`action-preview-${source.id}`}
+                      onClick={() => handleAction("preview", site.id)}
+                      data-testid={`action-preview-${site.id}`}
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       Preview Render
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => handleAction("edit", source.id)}
-                      data-testid={`action-edit-${source.id}`}
+                      onClick={() => handleAction("edit", site.id)}
+                      data-testid={`action-edit-${site.id}`}
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Edit
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => handleAction("crawl", source.id)}
-                      data-testid={`action-crawl-${source.id}`}
+                      onClick={() => handleAction("crawl", site.id)}
+                      data-testid={`action-crawl-${site.id}`}
+                      disabled={isStarting}
                     >
-                      <Play className="h-4 w-4 mr-2" />
+                      {isStarting ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Play className="h-4 w-4 mr-2" />
+                      )}
                       Start Crawl
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleAction("delete", site.id)}
+                      data-testid={`action-delete-${site.id}`}
+                      disabled={isDeleting}
+                      className="text-destructive"
+                    >
+                      {isDeleting ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 mr-2" />
+                      )}
+                      Delete
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
             </TableRow>
-          ))}
+          ))
+          )}
         </TableBody>
       </Table>
     </div>

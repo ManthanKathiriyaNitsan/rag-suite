@@ -6,8 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SearchBar } from "./SearchBar";
 import { ChatMessage } from "./ChatMessage";
 import { Badge } from "@/components/ui/badge";
-// 🌐 Import our global API hook
+// 🌐 Import our global API hooks
 import { useSearch } from "@/hooks/useSearch";
+import { useChat } from "@/hooks/useChat";
 
 interface Message {
   type: "user" | "assistant";
@@ -40,8 +41,14 @@ export function EmbeddableWidget({
 
   // 🌐 Use our global search hook - same as RAGTuning!
   const { searchAsync, isSearching, searchData, searchError } = useSearch();
+  
+  // 💬 Use our chat hook for enhanced functionality
+  const { sendMessageAsync, isSending } = useChat();
+  
+  // 📋 Current session state
+  const [currentSessionId, setCurrentSessionId] = useState<string | undefined>();
 
-  // 🎯 Updated handleSearch using global API - same as RAGTuning!
+  // 🔍 Search function - ONLY uses search API
   const handleSearch = async (query: string) => {
     console.log("🔍 Widget Search - User submitted query:", query);
 
@@ -55,15 +62,15 @@ export function EmbeddableWidget({
     setMessages(prev => [...prev, userMessage]);
 
     try {
-      // 🌐 Use global API - exactly like RAGTuning!
-      const apiResponse = await searchAsync(query);
-      console.log("📦 Widget API Response:", apiResponse);
+      // 🌐 Use ONLY search API for search functionality
+      const searchResponse = await searchAsync(query);
+      console.log("📦 Widget Search Response:", searchResponse);
 
-      // Create assistant message with real API response
+      // Create assistant message with search response
       const assistantMessage: Message = {
         type: "assistant",
-        content: apiResponse.answer || "No answer from API",
-        citations: apiResponse.sources?.map((source: any) => ({
+        content: searchResponse.answer || "No answer from API",
+        citations: searchResponse.sources?.map((source: any) => ({
           title: source.title || "Unknown Source",
           url: source.url || "#",
           snippet: source.snippet || "No snippet available",
@@ -72,15 +79,67 @@ export function EmbeddableWidget({
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      console.log("✅ Widget search completed with global API");
+      console.log("✅ Widget search completed with search API only");
 
     } catch (error) {
-      console.error("❌ Widget API call failed:", error);
+      console.error("❌ Widget search failed:", error);
       
       // Add error message
       const errorMessage: Message = {
         type: "assistant",
         content: `Sorry, I encountered an error while searching: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, errorMessage]);
+    }
+  };
+
+  // 💬 Chat function - ONLY uses chat API
+  const handleChat = async (query: string) => {
+    console.log("💬 Widget Chat - User submitted message:", query);
+
+    // Add user message immediately
+    const userMessage: Message = {
+      type: "user",
+      content: query,
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+
+    try {
+      // 🌐 Use ONLY chat API for chat functionality
+      const chatResponse = await sendMessageAsync({ message: query, sessionId: currentSessionId });
+      console.log("💬 Widget Chat Response:", chatResponse);
+
+      // Update session ID if we got one from chat
+      if (chatResponse?.sessionId && !currentSessionId) {
+        setCurrentSessionId(chatResponse.sessionId);
+      }
+
+      // Create assistant message with chat response
+      const assistantMessage: Message = {
+        type: "assistant",
+        content: chatResponse?.response || "No response from chat API",
+        citations: chatResponse?.sources?.map((source: any) => ({
+          title: source.title || "Unknown Source",
+          url: source.url || "#",
+          snippet: source.snippet || "No snippet available",
+        })) || [],
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+      console.log("✅ Widget chat completed with chat API only");
+
+    } catch (error) {
+      console.error("❌ Widget chat failed:", error);
+      
+      // Add error message
+      const errorMessage: Message = {
+        type: "assistant",
+        content: `Sorry, I encountered an error while chatting: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
         timestamp: new Date(),
       };
 
@@ -102,7 +161,10 @@ export function EmbeddableWidget({
   }
 
   return (
-    <Card className="fixed md:bottom-6 bottom-1 w-[100%] md:right-6 mx-1  md:mx-0 md:w-96 h-[600px] shadow-xl z-50 flex flex-col">
+    <Card 
+      className="fixed md:bottom-6 bottom-1 w-[100%] md:right-6 mx-1  md:mx-0 md:w-96 h-[600px] shadow-xl z-50 flex flex-col overflow-hidden"
+      style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+    >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle className="text-base font-medium">{title}</CardTitle>
         <div className="flex items-center gap-1">
@@ -149,12 +211,12 @@ export function EmbeddableWidget({
                 showSendButton
               />
               
-              {/* 🌐 Loading indicator for global API */}
+              {/* 🔍 Loading indicator for search API only */}
               {isSearching && (
                 <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span className="text-sm text-muted-foreground">
-                    Searching with global API...
+                    Searching documentation...
                   </span>
                 </div>
               )}
@@ -167,7 +229,7 @@ export function EmbeddableWidget({
 
           <TabsContent value="chat" className="flex-1 flex flex-col px-4 mt-0">
             <div 
-              className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-0 max-h-[400px]"
+              className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-0 max-h-[400px] w-full"
               style={{
                 scrollbarWidth: 'thin',
                 scrollbarColor: '#d1d5db transparent'
@@ -187,16 +249,16 @@ export function EmbeddableWidget({
             <div className="flex-shrink-0">
               <SearchBar
                 placeholder="Type your message..."
-                onSearch={handleSearch}
+                onSearch={handleChat}
                 showSendButton
               />
               
-              {/* 🌐 Loading indicator for chat */}
-              {isSearching && (
+              {/* 💬 Loading indicator for chat API only */}
+              {isSending && (
                 <div className="flex items-center gap-2 p-2 bg-muted rounded-lg mt-2">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   <span className="text-xs text-muted-foreground">
-                    Searching...
+                    Sending message...
                   </span>
                 </div>
               )}
@@ -205,7 +267,7 @@ export function EmbeddableWidget({
 
           <TabsContent value="auto" className="flex-1 flex flex-col px-4 mt-0">
             <div 
-              className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-0 max-h-[400px]"
+              className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-0 max-h-[400px] w-full"
               style={{
                 scrollbarWidth: 'thin',
                 scrollbarColor: '#d1d5db transparent'
@@ -225,17 +287,17 @@ export function EmbeddableWidget({
             <div className="flex-shrink-0">
               <SearchBar
                 placeholder="Ask anything or search..."
-                onSearch={handleSearch}
+                onSearch={handleChat}
                 showSendButton
                 showMicButton
               />
               
-              {/* 🌐 Loading indicator for auto */}
-              {isSearching && (
+              {/* 💬 Loading indicator for auto (uses chat) */}
+              {isSending && (
                 <div className="flex items-center gap-2 p-2 bg-muted rounded-lg mt-2">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   <span className="text-xs text-muted-foreground">
-                    Searching...
+                    Processing...
                   </span>
                 </div>
               )}

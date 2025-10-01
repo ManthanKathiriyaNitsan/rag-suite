@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+// 💬 Import feedback hook
+import { useChatFeedback } from "@/hooks/useChat";
 
 interface Citation {
   title: string;
@@ -18,6 +20,7 @@ interface ChatMessageProps {
   citations?: Citation[];
   timestamp?: Date;
   showFeedback?: boolean;
+  messageId?: string; // 💬 Add message ID for feedback
 }
 
 export const ChatMessage = React.memo(function ChatMessage({
@@ -26,8 +29,12 @@ export const ChatMessage = React.memo(function ChatMessage({
   citations = [],
   timestamp,
   showFeedback = false,
+  messageId,
 }: ChatMessageProps) {
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
+  
+  // 💬 Use feedback hook
+  const { submitFeedback, isSubmitting } = useChatFeedback();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(() => {
@@ -36,9 +43,20 @@ export const ChatMessage = React.memo(function ChatMessage({
     setTimeout(() => setCopied(false), 2000);
   }, [content]);
 
+  // 💬 Enhanced feedback handler with API call
   const handleFeedback = useCallback((type: "up" | "down") => {
-    setFeedback(feedback === type ? null : type);
-  }, [feedback]);
+    const newFeedback = feedback === type ? null : type;
+    setFeedback(newFeedback);
+    
+    // Submit feedback to API if we have a messageId
+    if (messageId && newFeedback) {
+      submitFeedback({
+        messageId: messageId,
+        feedback: newFeedback === "up" ? "positive" : "negative"
+      });
+      console.log(`👍 Feedback submitted: ${newFeedback} for message ${messageId}`);
+    }
+  }, [feedback, messageId, submitFeedback]);
 
   return (
     <div
@@ -53,17 +71,27 @@ export const ChatMessage = React.memo(function ChatMessage({
         </Avatar>
       )}
 
-      <div className={`max-w-[80%] ${type === "user" ? "order-first" : ""}`}>
+      <div className={`max-w-[80%] min-w-0 ${type === "user" ? "order-first" : ""}`}>
         <Card
-          className={`p-4 overflow-hidden ${
+          className={`p-4 ${
             type === "user"
               ? "bg-primary   ml-auto"
               : "bg-card"
           }`}
         >
           <div className="space-y-3">
-            <div className="opacity-90 max-w-none">
-              <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere hyphens-auto">{content}</p>
+            <div className="opacity-90 w-full min-w-0">
+              <p 
+                className="whitespace-pre-wrap break-words overflow-wrap-anywhere hyphens-auto word-break-break-word text-wrap"
+                style={{
+                  wordBreak: 'break-word',
+                  overflowWrap: 'anywhere',
+                  whiteSpace: 'pre-wrap',
+                  hyphens: 'auto'
+                }}
+              >
+                {content}
+              </p>
             </div>
 
             {citations.length > 0 && (
@@ -74,9 +102,10 @@ export const ChatMessage = React.memo(function ChatMessage({
                     <Badge
                       key={index}
                       variant="outline"
-                      className="text-xs cursor-pointer hover-elevate"
+                      className="text-xs cursor-pointer hover-elevate max-w-full truncate"
                       onClick={() => {/* Citation clicked */}}
                       data-testid={`citation-${index}`}
+                      title={citation.title}
                     >
                       {citation.title}
                     </Badge>
@@ -107,6 +136,7 @@ export const ChatMessage = React.memo(function ChatMessage({
                       size="sm"
                       onClick={() => handleFeedback("up")}
                       data-testid="button-feedback-up"
+                      disabled={isSubmitting}
                       className={`h-8 px-2 ${
                         feedback === "up" ? "bg-accent" : ""
                       }`}
@@ -118,12 +148,18 @@ export const ChatMessage = React.memo(function ChatMessage({
                       size="sm"
                       onClick={() => handleFeedback("down")}
                       data-testid="button-feedback-down"
+                      disabled={isSubmitting}
                       className={`h-8 px-2 ${
                         feedback === "down" ? "bg-accent" : ""
                       }`}
                     >
                       <ThumbsDown className="h-3 w-3" />
                     </Button>
+                    {isSubmitting && (
+                      <span className="text-xs text-muted-foreground">
+                        Submitting feedback...
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

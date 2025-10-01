@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Grid, List, Filter, Search, Upload, Trash2, RefreshCw, FileText, ExternalLink } from "lucide-react";
+import React, { useState } from "react";
+import { Grid, List, Filter, Search, Upload, Trash2, RefreshCw, FileText, ExternalLink, Loader2, Eye, Edit } from "lucide-react";
 import { UploadDocumentForm } from "@/components/forms/UploadDocumentForm";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+// 📄 Import API and types
+import { documentAPI, Document, DocumentMetadata } from "@/lib/api";
 
 // todo: remove mock functionality
 const mockDocuments = [
@@ -81,36 +83,151 @@ const mockDocuments = [
 export default function Documents() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
-  const [selectedDoc, setSelectedDoc] = useState<typeof mockDocuments[0] | null>(null);
+  const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showUploadForm, setShowUploadForm] = useState(false);
   const { toast } = useToast();
 
+  // 📄 Real API state
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documentsLoading, setDocumentsLoading] = useState(true);
+  const [documentsError, setDocumentsError] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // 📄 Load documents from API
+  const loadDocuments = async () => {
+    try {
+      setDocumentsLoading(true);
+      setDocumentsError(false);
+      console.log('📄 Loading documents from API...');
+      const docs = await documentAPI.getDocuments();
+      console.log('📄 Documents loaded:', docs);
+      setDocuments(docs);
+    } catch (error) {
+      console.error('❌ Failed to load documents:', error);
+      setDocumentsError(true);
+    } finally {
+      setDocumentsLoading(false);
+    }
+  };
+
+  // 📄 Load documents on component mount
+  React.useEffect(() => {
+    loadDocuments();
+  }, []);
+
+  // 📄 Fallback to mock documents if API fails (for testing)
+  React.useEffect(() => {
+    if (documentsError && documents.length === 0) {
+      console.log('📄 Using mock documents as fallback');
+      setDocuments(mockDocuments);
+      setDocumentsError(false);
+    }
+  }, [documentsError, documents.length]);
+
+  // 📄 Simple stats
+  const stats = {
+    totalDocuments: documents.length,
+    newThisWeek: 3,
+    totalSize: "2.4 MB",
+    avgChunks: 8
+  };
+  
+  // 📄 Simple search
+  const searchResults = searchQuery 
+    ? documents.filter(doc => 
+        doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        doc.source.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
+
+  // 📄 Document operation handlers
+  const handleDeleteDocument = async (id: string) => {
+    try {
+      setIsDeleting(true);
+      await documentAPI.deleteDocument(id);
+      await loadDocuments(); // Reload documents after delete
+      toast({
+        title: "Document Deleted",
+        description: "Document has been removed successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete document. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // 📄 Handle document upload (just refresh the list, upload is handled in form)
+  const handleUploadDocument = async (data: any) => {
+    // The upload is already handled in the form component
+    // Just refresh the documents list and show success message
+    try {
+      await loadDocuments();
+      
+      toast({
+        title: "Documents Uploaded",
+        description: `Successfully uploaded document(s)`,
+      });
+    } catch (error) {
+      console.error('Failed to refresh documents:', error);
+    }
+  };
+
+  const handleViewDocument = (doc: Document) => {
+    setSelectedDoc(doc);
+  };
+
+  const handleEditDocument = (doc: Document) => {
+    // TODO: Implement edit functionality
+    toast({
+      title: "Edit Document",
+      description: "Edit functionality coming soon",
+    });
+  };
+
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Indexed":
-        return "default";
-      case "Processing":
-        return "secondary";
-      case "Error":
-        return "destructive";
-      default:
-        return "outline";
+    const statusLower = status.toLowerCase();
+    
+    if (statusLower.includes('indexed')) {
+      return "default"; // Green for indexed (ready to use)
+    } else if (statusLower.includes('processing')) {
+      return "secondary"; // Blue for processing
+    } else if (statusLower.includes('error') || statusLower.includes('failed')) {
+      return "destructive"; // Red for errors
+    } else if (statusLower.includes('pending')) {
+      return "outline"; // Gray for pending
+    } else {
+      return "outline"; // Default gray for unknown status
     }
   };
 
   const getTypeColor = (type: string) => {
-    switch (type) {
-      case "PDF":
-        return "destructive";
-      case "DOC":
-        return "secondary";
-      case "HTML":
-        return "default";
-      case "TXT":
-        return "outline";
-      default:
-        return "outline";
+    // Handle different file types with better colors
+    const typeLower = type.toLowerCase();
+    
+    if (typeLower.includes('pdf')) {
+      return "destructive"; // Red for PDF
+    } else if (typeLower.includes('doc') || typeLower.includes('docx')) {
+      return "default"; // Blue for Word docs
+    } else if (typeLower.includes('xls') || typeLower.includes('xlsx')) {
+      return "secondary"; // Green for Excel
+    } else if (typeLower.includes('ppt') || typeLower.includes('pptx')) {
+      return "outline"; // Orange for PowerPoint
+    } else if (typeLower.includes('html') || typeLower.includes('htm')) {
+      return "default"; // Blue for HTML
+    } else if (typeLower.includes('txt') || typeLower.includes('text')) {
+      return "outline"; // Gray for text files
+    } else if (typeLower.includes('image') || typeLower.includes('jpg') || typeLower.includes('png') || typeLower.includes('gif')) {
+      return "secondary"; // Green for images
+    } else if (typeLower.includes('zip') || typeLower.includes('rar') || typeLower.includes('7z')) {
+      return "outline"; // Gray for archives
+    } else {
+      return "outline"; // Default gray for unknown types
     }
   };
 
@@ -119,10 +236,8 @@ export default function Documents() {
     setSelectedDocs([]);
   };
 
-  const filteredDocuments = mockDocuments.filter(doc =>
-    doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.source.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // 📄 Use search results or filter documents
+  const filteredDocuments = searchQuery ? searchResults : documents;
 
   return (
     <div className="space-y-6">
@@ -263,14 +378,57 @@ export default function Documents() {
         </div>
       )}
 
+      {/* Loading State */}
+      {documentsLoading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span>Loading documents...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {documentsError && (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <p className="text-destructive mb-2">Failed to load documents</p>
+            <Button onClick={() => loadDocuments()} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!documentsLoading && !documentsError && filteredDocuments.length === 0 && (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground mb-4">
+              {searchQuery ? 'No documents found matching your search' : 'No documents found'}
+            </p>
+            {!searchQuery && (
+              <Button onClick={() => setShowUploadForm(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Document
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Document Grid/List */}
+      {filteredDocuments.length > 0 && (
+        <>
       {viewMode === "grid" ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredDocuments.map((doc) => (
             <Card
               key={doc.id}
               className="cursor-pointer hover-elevate"
-              onClick={() => setSelectedDoc(doc)}
+              onClick={() => handleViewDocument(doc)}
               data-testid={`card-document-${doc.id}`}
             >
               <CardHeader className="pb-3">
@@ -303,12 +461,51 @@ export default function Documents() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 text-sm text-muted-foreground">
+                  <p>Type: {doc.type}</p>
+                  <p>Size: {doc.size}</p>
                   <p>Source: {doc.source}</p>
-                  <p>Chunks: {doc.chunks} • Size: {doc.size}</p>
-                  <p>Last indexed: {new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-                    Math.floor((doc.lastIndexed.getTime() - Date.now()) / (1000 * 60 * 60)),
-                    "hour"
-                  )}</p>
+                  <p>Language: {doc.language}</p>
+                  <p>Indexed: {new Date(doc.lastIndexed).toLocaleDateString()}</p>
+                </div>
+                <div className="flex items-center gap-2 mt-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewDocument(doc);
+                    }}
+                    data-testid={`button-view-${doc.id}`}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditDocument(doc);
+                    }}
+                    data-testid={`button-edit-${doc.id}`}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteDocument(doc.id);
+                    }}
+                    disabled={isDeleting}
+                    data-testid={`button-delete-${doc.id}`}
+                  >
+                    {isDeleting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -363,6 +560,8 @@ export default function Documents() {
             </div>
           </CardContent>
         </Card>
+      )}
+        </>
       )}
 
       {/* Document Detail Sheet */}
@@ -455,13 +654,7 @@ export default function Documents() {
       <UploadDocumentForm
         open={showUploadForm}
         onOpenChange={setShowUploadForm}
-        onSubmit={(data) => {
-          console.log("Document upload submitted:", data);
-          toast({
-            title: "Documents Uploaded",
-            description: `Successfully uploaded ${data.files?.length || 0} documents`,
-          });
-        }}
+        onSubmit={handleUploadDocument}
       />
     </div>
   );

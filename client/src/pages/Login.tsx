@@ -1,47 +1,55 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Bot, Eye, EyeOff, Shield, Zap, BarChart3 } from "lucide-react";
+import { Bot, Eye, EyeOff, Shield, Zap, BarChart3, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+// 🔐 Import authentication context
+import { useAuthContext } from "@/contexts/AuthContext";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
+  
+  // 🔐 Use authentication context
+  const { login, isLoading, error, clearError, isAuthenticated } = useAuthContext();
 
+  // 🔐 Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('🔐 User is authenticated, redirecting to dashboard');
+      setLocation("/");
+    }
+  }, [isAuthenticated, setLocation]);
+
+  // 🔐 Handle successful login redirect
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      console.log('🔐 Login successful, redirecting to dashboard');
+      setLocation("/");
+    }
+  }, [isAuthenticated, isLoading, setLocation]);
+
+  // 🔐 Updated handleSubmit using authentication context
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError("");
-
+    clearError(); // Clear any previous errors
+    
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // Important for cookies
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Successful login - redirect to dashboard
+      // Call login function from auth context
+      await login({ username, password });
+      
+      // Force redirect after successful login
+      setTimeout(() => {
+        console.log('🔐 Forcing redirect after login');
         setLocation("/");
-      } else {
-        setError(data.message || "Login failed");
-      }
+      }, 100);
     } catch (error) {
-      setError("Network error. Please try again.");
-    } finally {
-      setIsLoading(false);
+      console.error('Login error:', error);
     }
   };
 
@@ -138,14 +146,14 @@ export default function Login() {
                 )}
                 
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium">Email address</Label>
+                  <Label htmlFor="username" className="text-sm font-medium">Username</Label>
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    data-testid="input-email"
+                    id="username"
+                    type="text"
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    data-testid="input-username"
                     className="h-11"
                     required
                   />
@@ -195,14 +203,21 @@ export default function Login() {
                   disabled={isLoading}
                   data-testid="button-sign-in"
                 >
-                  {isLoading ? "Signing in..." : "Sign in"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    "Sign in"
+                  )}
                 </Button>
               </form>
               
               <div className="pt-4 border-t">
                 <div className="bg-muted/30 rounded-lg p-3 text-center">
                   <p className="text-xs text-muted-foreground mb-1">Demo Account</p>
-                  <p className="text-sm font-mono text-foreground">admin@ragsuite.com / demo123</p>
+                  <p className="text-sm font-mono text-foreground">admin / demo123</p>
                 </div>
               </div>
 

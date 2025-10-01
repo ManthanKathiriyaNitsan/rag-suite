@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Filter } from "lucide-react";
+import { Plus, Filter, Play, Pause, Trash2, Edit, Eye, Loader2 } from "lucide-react";
 import { AddSourceForm } from "@/components/forms/AddSourceForm";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+// 🕷️ Import crawl hooks
+import { useCrawlSites, useCrawlOperations, useCrawlStats } from "@/hooks/useCrawl";
+import { CrawlSiteData } from "@/lib/api";
 
 // todo: remove mock functionality
 const crawlJobs = [
@@ -50,16 +53,112 @@ export default function Crawl() {
   const [activeTab, setActiveTab] = useState("sources");
   const [showAddSourceForm, setShowAddSourceForm] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [editingSite, setEditingSite] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // 🕷️ Use crawl hooks
+  const {
+    sites,
+    isLoading: sitesLoading,
+    error: sitesError,
+    addSite,
+    updateSite,
+    deleteSite,
+    isAdding,
+    isUpdating,
+    isDeleting,
+  } = useCrawlSites();
+
+  const {
+    startCrawl,
+    isStarting,
+    getCrawlStatus,
+  } = useCrawlOperations();
+
+  const {
+    stats,
+    isLoading: statsLoading,
+  } = useCrawlStats();
+
+  // 🕷️ Crawl operation handlers
+  const handleAddSite = async (siteData: CrawlSiteData) => {
+    try {
+      await addSite(siteData);
+      toast({
+        title: "Site Added",
+        description: `Successfully added ${siteData.name}`,
+      });
+      setShowAddSourceForm(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add site. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateSite = async (id: string, siteData: CrawlSiteData) => {
+    try {
+      await updateSite({ id, siteData });
+      toast({
+        title: "Site Updated",
+        description: "Site configuration updated successfully",
+      });
+      setEditingSite(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update site. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteSite = async (id: string) => {
+    try {
+      await deleteSite(id);
+      toast({
+        title: "Site Deleted",
+        description: "Site removed successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete site. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleStartCrawl = async (id: string) => {
+    try {
+      await startCrawl(id);
+      toast({
+        title: "Crawl Started",
+        description: "Crawling job has been initiated",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to start crawl. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Completed":
+      case "completed":
         return "default";
-      case "Running":
+      case "running":
+      case "crawling":
         return "secondary";
-      case "Failed":
+      case "failed":
+      case "error":
         return "destructive";
+      case "active":
+        return "outline";
       default:
         return "outline";
     }
@@ -152,7 +251,15 @@ export default function Crawl() {
             </Button>
           </div>
 
-          <CrawlSourceTable />
+          <CrawlSourceTable 
+            sites={sites}
+            isLoading={sitesLoading}
+            onEdit={setEditingSite}
+            onDelete={handleDeleteSite}
+            onStartCrawl={handleStartCrawl}
+            isStarting={isStarting}
+            isDeleting={isDeleting}
+          />
         </TabsContent>
 
 
@@ -232,13 +339,7 @@ export default function Crawl() {
       <AddSourceForm
         open={showAddSourceForm}
         onOpenChange={setShowAddSourceForm}
-        onSubmit={(data) => {
-          console.log("Source form submitted:", data);
-          toast({
-            title: "Source Created",
-            description: `Successfully created ${data.name}`,
-          });
-        }}
+        onSubmit={handleAddSite}
       />
     </div>
   );
