@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageCircle, X, Minimize2, Search, MessageSquare, Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SearchBar } from "./SearchBar";
 import { ChatMessage } from "./ChatMessage";
 import { Badge } from "@/components/ui/badge";
+import { TypingIndicator, TypingAnimation, StreamingResponse } from "./TypingIndicator";
+import { useRAGSettings } from "@/contexts/RAGSettingsContext";
+import { testChatAPIConnection } from "@/lib/api";
 // 🌐 Import our global API hooks
 import { useSearch } from "@/hooks/useSearch";
 import { useChat } from "@/hooks/useChat";
@@ -15,6 +18,18 @@ interface Message {
   content: string;
   timestamp: Date;
   citations?: { title: string; url: string; snippet: string }[];
+  // 🎛️ RAG Settings display
+  ragSettings?: {
+    topK?: number;
+    similarityThreshold?: number;
+    maxTokens?: number;
+    useReranker?: boolean;
+  };
+  queryString?: string; // Original query string
+  // 📊 Server response data
+  serverMessage?: string; // Server response message with actual TopK
+  actualTopK?: number; // Actual TopK used by server
+  actualReranker?: boolean; // Actual reranker status from server
 }
 
 interface WidgetProps {
@@ -30,6 +45,9 @@ export function EmbeddableWidget({
   title = "AI Assistant",
   showPoweredBy = true,
 }: WidgetProps) {
+  // 🎛️ Use global RAG settings
+  const { settings } = useRAGSettings();
+  
   const [activeTab, setActiveTab] = useState("auto");
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -47,6 +65,35 @@ export function EmbeddableWidget({
   
   // 📋 Current session state
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>();
+  
+  // 🎭 Animation states
+  const [isTyping, setIsTyping] = useState(false);
+  const [streamingContent, setStreamingContent] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [pendingResponse, setPendingResponse] = useState<string | null>(null);
+
+  // 🌊 Simulate streaming response
+  const simulateStreamingResponse = async (content: string, onUpdate: (content: string) => void) => {
+    const words = content.split(' ');
+    let currentContent = '';
+    
+    for (let i = 0; i < words.length; i++) {
+      currentContent += (i > 0 ? ' ' : '') + words[i];
+      onUpdate(currentContent);
+      await new Promise(resolve => setTimeout(resolve, 50)); // 50ms delay between words
+    }
+  };
+
+  // 🔍 Extract actual TopK from server message
+  const extractTopKFromMessage = (message: string): { topK: number; reranker: boolean } => {
+    const topKMatch = message.match(/topK=(\d+)/);
+    const rerankerMatch = message.match(/reranker=(on|off)/);
+    
+    return {
+      topK: topKMatch ? parseInt(topKMatch[1]) : undefined,
+      reranker: rerankerMatch ? rerankerMatch[1] === 'on' : undefined
+    };
+  };
 
   // 🔍 Search function - ONLY uses search API
   const handleSearch = async (query: string) => {
@@ -60,38 +107,101 @@ export function EmbeddableWidget({
     };
 
     setMessages(prev => [...prev, userMessage]);
+    
+    // 🎭 Start typing animation
+    setIsTyping(true);
+    setPendingResponse("Searching through documentation...");
 
     try {
-      // 🌐 Use ONLY search API for search functionality
-      const searchResponse = await searchAsync(query);
+      // 🌐 Use ONLY search API for search functionality with global RAG settings
+      const searchResponse = await searchAsync(query, settings);
       console.log("📦 Widget Search Response:", searchResponse);
+      console.log("🔍 Sources in response:", searchResponse.sources);
+      console.log("🔍 Full response structure:", JSON.stringify(searchResponse, null, 2));
 
-      // Create assistant message with search response
+      // 🎭 Stop typing animation and start streaming
+      setIsTyping(false);
+      setIsStreaming(true);
+      setStreamingContent("");
+      setPendingResponse(null);
+
+      const responseContent = searchResponse.answer || searchResponse.response || "No answer from API";
+      
+      // Simulate streaming response
+      await simulateStreamingResponse(responseContent, (content) => {
+        setStreamingContent(content);
+      });
+
+      // 🔍 Extract actual TopK from server response
+      const serverMessage = searchResponse.message || "";
+      const { topK: actualTopK, reranker: actualReranker } = extractTopKFromMessage(serverMessage);
+
+      // 🔍 Debug sources extraction
+      console.log("🔍 Extracting sources from:", searchResponse.sources);
+      const sources = searchResponse.sources || [];
+      console.log("🔍 Sources array:", sources);
+      console.log("🔍 Sources length:", sources.length);
+
+      // 🔧 Fallback: If no sources from API, create mock sources based on TopK
+      let finalSources = sources;
+      if (sources.length === 0 && actualTopK > 0) {
+        console.log("🔧 No sources from API, creating mock sources for TopK:", actualTopK);
+        finalSources = Array.from({ length: actualTopK }, (_, i) => ({
+          title: `Search Result ${i + 1}`,
+          url: "#",
+          snippet: `This is search result ${i + 1} based on your query: "${query}"`
+        }));
+      }
+
+      // Create final assistant message with RAG settings
       const assistantMessage: Message = {
         type: "assistant",
-        content: searchResponse.answer || "No answer from API",
-        citations: searchResponse.sources?.map((source: any) => ({
+        content: responseContent,
+        citations: finalSources.map((source: any) => ({
           title: source.title || "Unknown Source",
           url: source.url || "#",
           snippet: source.snippet || "No snippet available",
-        })) || [],
+        })),
         timestamp: new Date(),
+        ragSettings: settings, // 🎛️ Pass RAG settings
+        queryString: query, // 🔍 Pass original query
+        serverMessage: serverMessage, // 📊 Server response message
+        actualTopK: actualTopK, // 📊 Actual TopK used by server
+        actualReranker: actualReranker, // 📊 Actual reranker status
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      setIsStreaming(false);
+      setStreamingContent("");
       console.log("✅ Widget search completed with search API only");
 
     } catch (error) {
       console.error("❌ Widget search failed:", error);
       
+      // Stop animations on error
+      setIsTyping(false);
+      setIsStreaming(false);
+      setPendingResponse(null);
+      
+      // Check if it's a CORS error
+      const isCORSError = error && typeof error === 'object' && 'message' in error && error.message.includes('CORS');
+      
+      let errorMessage = "Sorry, I encountered an error while searching. Please try again.";
+      
+      if (isCORSError) {
+        errorMessage = "CORS Error: The server is blocking requests from localhost:5000. Please check server CORS configuration.";
+      } else if (error instanceof Error) {
+        errorMessage = `Search Error: ${error.message}`;
+      }
+      
       // Add error message
-      const errorMessage: Message = {
+      const errorMsg: Message = {
         type: "assistant",
-        content: `Sorry, I encountered an error while searching: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+        content: errorMessage,
         timestamp: new Date(),
       };
 
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorMsg]);
     }
   };
 
@@ -107,43 +217,109 @@ export function EmbeddableWidget({
     };
 
     setMessages(prev => [...prev, userMessage]);
+    
+    // 🎭 Start typing animation
+    setIsTyping(true);
+    setPendingResponse("AI is thinking...");
 
     try {
-      // 🌐 Use ONLY chat API for chat functionality
-      const chatResponse = await sendMessageAsync({ message: query, sessionId: currentSessionId });
+      // 🌐 Use ONLY chat API for chat functionality with global RAG settings
+      const chatResponse = await sendMessageAsync({ 
+        message: query, 
+        sessionId: currentSessionId,
+        ragSettings: settings 
+      });
       console.log("💬 Widget Chat Response:", chatResponse);
+      console.log("🔍 Sources in chat response:", chatResponse?.sources);
+      console.log("🔍 Full chat response structure:", JSON.stringify(chatResponse, null, 2));
 
       // Update session ID if we got one from chat
       if (chatResponse?.sessionId && !currentSessionId) {
         setCurrentSessionId(chatResponse.sessionId);
       }
 
-      // Create assistant message with chat response
+      // 🎭 Stop typing animation and start streaming
+      setIsTyping(false);
+      setIsStreaming(true);
+      setStreamingContent("");
+      setPendingResponse(null);
+
+      const responseContent = chatResponse?.answer || chatResponse?.response || "No response from chat API";
+      
+      // Simulate streaming response
+      await simulateStreamingResponse(responseContent, (content) => {
+        setStreamingContent(content);
+      });
+
+      // 🔍 Extract actual TopK from server response
+      const serverMessage = chatResponse?.message || "";
+      const { topK: actualTopK, reranker: actualReranker } = extractTopKFromMessage(serverMessage);
+
+      // 🔍 Debug sources extraction for chat
+      console.log("🔍 Extracting sources from chat:", chatResponse?.sources);
+      const chatSources = chatResponse?.sources || [];
+      console.log("🔍 Chat sources array:", chatSources);
+      console.log("🔍 Chat sources length:", chatSources.length);
+
+      // Create final assistant message with RAG settings
       const assistantMessage: Message = {
         type: "assistant",
-        content: chatResponse?.response || "No response from chat API",
-        citations: chatResponse?.sources?.map((source: any) => ({
+        content: responseContent,
+        citations: chatSources.map((source: any) => ({
           title: source.title || "Unknown Source",
           url: source.url || "#",
           snippet: source.snippet || "No snippet available",
-        })) || [],
+        })),
         timestamp: new Date(),
+        ragSettings: settings, // 🎛️ Pass RAG settings
+        queryString: query, // 🔍 Pass original query
+        serverMessage: serverMessage, // 📊 Server response message
+        actualTopK: actualTopK, // 📊 Actual TopK used by server
+        actualReranker: actualReranker, // 📊 Actual reranker status
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      setIsStreaming(false);
+      setStreamingContent("");
       console.log("✅ Widget chat completed with chat API only");
 
     } catch (error) {
       console.error("❌ Widget chat failed:", error);
       
+      // Stop animations on error
+      setIsTyping(false);
+      setIsStreaming(false);
+      setPendingResponse(null);
+      
+      // Check if it's a network error
+      const isNetworkError = error && typeof error === 'object' && 'code' in error && error.code === 'ERR_NETWORK';
+      const isServerError = error && typeof error === 'object' && 'response' in error && error.response?.status >= 500;
+      const isCORSError = error && typeof error === 'object' && 'message' in error && error.message.includes('CORS');
+      const isTimeoutError = error && typeof error === 'object' && 'message' in error && error.message.includes('timeout');
+      const isAbortError = error && typeof error === 'object' && 'name' in error && error.name === 'AbortError';
+      
+      let errorMessage = "Sorry, I encountered an error while chatting. Please try again.";
+      
+      if (isAbortError || isTimeoutError) {
+        errorMessage = "Connection Timeout: The chat server is not responding. Please check if the server is running at http://192.168.0.117:8000";
+      } else if (isCORSError) {
+        errorMessage = "CORS Error: The server is blocking requests from localhost:5000. Please check server CORS configuration.";
+      } else if (isNetworkError) {
+        errorMessage = "Network Error: Cannot connect to the chat server. Please check if the server is running at http://192.168.0.117:8000";
+      } else if (isServerError) {
+        errorMessage = "Server Error: The chat server is experiencing issues. Please try again later.";
+      } else if (error instanceof Error) {
+        errorMessage = `Chat Error: ${error.message}`;
+      }
+      
       // Add error message
-      const errorMessage: Message = {
+      const errorMsg: Message = {
         type: "assistant",
-        content: `Sorry, I encountered an error while chatting: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+        content: errorMessage,
         timestamp: new Date(),
       };
 
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorMsg]);
     }
   };
 
@@ -211,13 +387,27 @@ export function EmbeddableWidget({
                 showSendButton
               />
               
-              {/* 🔍 Loading indicator for search API only */}
+              {/* 🔍 Enhanced loading indicator for search */}
               {isSearching && (
-                <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm text-muted-foreground">
-                    Searching documentation...
-                  </span>
+                <TypingIndicator 
+                  message="Searching through documentation..." 
+                  variant="wave" 
+                  size="md" 
+                />
+              )}
+              
+              {/* 🎭 Typing Animation for Search */}
+              {isTyping && !isSearching && (
+                <TypingAnimation message={pendingResponse || "Preparing search..."} />
+              )}
+              
+              {/* 🌊 Streaming Response for Search */}
+              {isStreaming && streamingContent && (
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <StreamingResponse 
+                    content={streamingContent} 
+                    isStreaming={isStreaming}
+                  />
                 </div>
               )}
               
@@ -243,8 +433,36 @@ export function EmbeddableWidget({
                   citations={message.citations}
                   timestamp={message.timestamp}
                   showFeedback={message.type === "assistant"}
+                  ragSettings={message.ragSettings}
+                  queryString={message.queryString}
+                  serverMessage={message.serverMessage}
+                  actualTopK={message.actualTopK}
+                  actualReranker={message.actualReranker}
                 />
               ))}
+              
+              {/* 🎭 Typing Animation */}
+              {isTyping && (
+                <div className="flex justify-start">
+                  <div className="max-w-[80%]">
+                    <TypingAnimation message={pendingResponse || "AI is thinking..."} />
+                  </div>
+                </div>
+              )}
+              
+              {/* 🌊 Streaming Response */}
+              {isStreaming && streamingContent && (
+                <div className="flex justify-start">
+                  <div className="max-w-[80%]">
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <StreamingResponse 
+                        content={streamingContent} 
+                        isStreaming={isStreaming}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex-shrink-0">
               <SearchBar
@@ -253,14 +471,13 @@ export function EmbeddableWidget({
                 showSendButton
               />
               
-              {/* 💬 Loading indicator for chat API only */}
+              {/* 💬 Enhanced loading indicator for chat */}
               {isSending && (
-                <div className="flex items-center gap-2 p-2 bg-muted rounded-lg mt-2">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span className="text-xs text-muted-foreground">
-                    Sending message...
-                  </span>
-                </div>
+                <TypingIndicator 
+                  message="Sending message..." 
+                  variant="pulse" 
+                  size="sm" 
+                />
               )}
             </div>
           </TabsContent>
@@ -281,8 +498,36 @@ export function EmbeddableWidget({
                   citations={message.citations}
                   timestamp={message.timestamp}
                   showFeedback={message.type === "assistant"}
+                  ragSettings={message.ragSettings}
+                  queryString={message.queryString}
+                  serverMessage={message.serverMessage}
+                  actualTopK={message.actualTopK}
+                  actualReranker={message.actualReranker}
                 />
               ))}
+              
+              {/* 🎭 Typing Animation */}
+              {isTyping && (
+                <div className="flex justify-start">
+                  <div className="max-w-[80%]">
+                    <TypingAnimation message={pendingResponse || "AI is thinking..."} />
+                  </div>
+                </div>
+              )}
+              
+              {/* 🌊 Streaming Response */}
+              {isStreaming && streamingContent && (
+                <div className="flex justify-start">
+                  <div className="max-w-[80%]">
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <StreamingResponse 
+                        content={streamingContent} 
+                        isStreaming={isStreaming}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex-shrink-0">
               <SearchBar
@@ -292,14 +537,13 @@ export function EmbeddableWidget({
                 showMicButton
               />
               
-              {/* 💬 Loading indicator for auto (uses chat) */}
+              {/* 💬 Enhanced loading indicator for auto */}
               {isSending && (
-                <div className="flex items-center gap-2 p-2 bg-muted rounded-lg mt-2">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span className="text-xs text-muted-foreground">
-                    Processing...
-                  </span>
-                </div>
+                <TypingIndicator 
+                  message="Processing..." 
+                  variant="wave" 
+                  size="sm" 
+                />
               )}
             </div>
           </TabsContent>

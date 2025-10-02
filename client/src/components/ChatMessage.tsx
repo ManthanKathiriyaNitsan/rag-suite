@@ -21,6 +21,18 @@ interface ChatMessageProps {
   timestamp?: Date;
   showFeedback?: boolean;
   messageId?: string; // 💬 Add message ID for feedback
+  // 🎛️ RAG Settings display
+  ragSettings?: {
+    topK?: number;
+    similarityThreshold?: number;
+    maxTokens?: number;
+    useReranker?: boolean;
+  };
+  queryString?: string; // Original query string
+  // 📊 Server response data
+  serverMessage?: string; // Server response message with actual TopK
+  actualTopK?: number; // Actual TopK used by server
+  actualReranker?: boolean; // Actual reranker status from server
 }
 
 export const ChatMessage = React.memo(function ChatMessage({
@@ -30,6 +42,11 @@ export const ChatMessage = React.memo(function ChatMessage({
   timestamp,
   showFeedback = false,
   messageId,
+  ragSettings,
+  queryString,
+  serverMessage,
+  actualTopK,
+  actualReranker,
 }: ChatMessageProps) {
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
   
@@ -94,21 +111,39 @@ export const ChatMessage = React.memo(function ChatMessage({
               </p>
             </div>
 
-            {citations.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium opacity-70">Sources:</p>
-                <div className="flex flex-wrap gap-1">
-                  {citations.map((citation, index) => (
-                    <Badge
-                      key={index}
-                      variant="outline"
-                      className="text-xs cursor-pointer hover-elevate max-w-full truncate"
-                      onClick={() => {/* Citation clicked */}}
-                      data-testid={`citation-${index}`}
-                      title={citation.title}
-                    >
-                      {citation.title}
-                    </Badge>
+        
+
+            {/* 🎛️ RAG Settings Display */}
+            {type === "assistant" && citations && citations.length > 0 && (
+              <div className="space-y-3 pt-3 border-t border-border/20">
+                <p className="text-xs font-medium opacity-70">Sources ({citations.length}):</p>
+                <div className="space-y-2">
+                  {citations.map((source, index) => (
+                    <div key={index} className="p-2 bg-muted/30 rounded-md border border-border/20">
+                      <div className="flex items-start gap-2">
+                        <Badge variant="outline" className="text-xs shrink-0">
+                          {index + 1}
+                        </Badge>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground mb-1">
+                            {source.title || `Source ${index + 1}`}
+                          </p>
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            {source.snippet}
+                          </p>
+                          {source.url && source.url !== "#" && (
+                            <a 
+                              href={source.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary hover:underline mt-1 inline-block"
+                            >
+                              View Source →
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -175,7 +210,7 @@ export const ChatMessage = React.memo(function ChatMessage({
       </div>
 
       {type === "user" && (
-        <Avatar className="h-8 w-8 mt-1">
+        <Avatar className="h-8 w-8 mr-2 mt-1">
           <AvatarFallback className="bg-secondary">
             <User className="h-4 w-4" />
           </AvatarFallback>

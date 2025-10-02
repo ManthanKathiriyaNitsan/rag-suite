@@ -17,14 +17,24 @@ export const useCrawlSites = () => {
   const addSiteMutation = useMutation({
     mutationFn: (siteData: CrawlSiteData) => crawlAPI.addSite(siteData),
     
-    onSuccess: () => {
-      console.log('✅ Site added successfully');
+    onSuccess: (data) => {
+      console.log('✅ Site added successfully:', data);
       // Refresh sites list
       queryClient.invalidateQueries({ queryKey: ['crawl-sites'] });
     },
     
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('❌ Add site failed:', error);
+      // Show user-friendly error message
+      if (error.response?.status === 401) {
+        console.error('🔐 Authentication required. Please log in again.');
+      } else if (error.response?.status === 400) {
+        console.error('📝 Invalid site data. Please check your input.');
+      } else if (error.response?.status === 409) {
+        console.error('🔄 Site already exists. Please choose a different name.');
+      } else {
+        console.error('🌐 Network error. Please check your connection.');
+      }
     },
   });
 
@@ -33,14 +43,24 @@ export const useCrawlSites = () => {
     mutationFn: ({ id, siteData }: { id: string; siteData: CrawlSiteData }) => 
       crawlAPI.updateSite(id, siteData),
     
-    onSuccess: () => {
-      console.log('✅ Site updated successfully');
+    onSuccess: (data) => {
+      console.log('✅ Site updated successfully:', data);
       // Refresh sites list
       queryClient.invalidateQueries({ queryKey: ['crawl-sites'] });
     },
     
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('❌ Update site failed:', error);
+      // Show user-friendly error message
+      if (error.response?.status === 401) {
+        console.error('🔐 Authentication required. Please log in again.');
+      } else if (error.response?.status === 404) {
+        console.error('🔍 Site not found. It may have been deleted.');
+      } else if (error.response?.status === 400) {
+        console.error('📝 Invalid site data. Please check your input.');
+      } else {
+        console.error('🌐 Network error. Please check your connection.');
+      }
     },
   });
 
@@ -48,14 +68,24 @@ export const useCrawlSites = () => {
   const deleteSiteMutation = useMutation({
     mutationFn: (id: string) => crawlAPI.deleteSite(id),
     
-    onSuccess: () => {
-      console.log('✅ Site deleted successfully');
+    onSuccess: (data) => {
+      console.log('✅ Site deleted successfully:', data);
       // Refresh sites list
       queryClient.invalidateQueries({ queryKey: ['crawl-sites'] });
     },
     
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('❌ Delete site failed:', error);
+      // Show user-friendly error message
+      if (error.response?.status === 401) {
+        console.error('🔐 Authentication required. Please log in again.');
+      } else if (error.response?.status === 404) {
+        console.error('🔍 Site not found. It may have been deleted.');
+      } else if (error.response?.status === 403) {
+        console.error('🚫 Permission denied. You cannot delete this site.');
+      } else {
+        console.error('🌐 Network error. Please check your connection.');
+      }
     },
   });
 

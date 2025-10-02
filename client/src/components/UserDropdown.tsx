@@ -31,13 +31,28 @@ export const UserDropdown = React.memo(function UserDropdown({ user }: UserDropd
   // 🔐 Use authentication context
   const { user: authUser, logout } = useAuthContext();
   
-  // Use auth user if available, otherwise fall back to prop or mock data
-  const currentUser = authUser || user || {
-    name: "Sarah Chen",
-    email: "sarah.chen@company.com",
-    avatar: "", // No avatar for fallback display
-    role: "Admin"
+  // 🔧 FIXED: Use only auth user or prop user, no static fallback
+  const currentUser = authUser || user;
+
+  // 🔧 FIXED: Only show user data if user is actually logged in
+  if (!currentUser) {
+    console.log('🔍 UserDropdown - No user found, not rendering');
+    return null; // Don't render if no user is logged in
+  }
+
+  // 🔧 FIXED: Ensure all user properties have fallback values (but no static data)
+  const safeUser = {
+    name: (currentUser as any)?.name || (currentUser as any)?.username || "User",
+    email: (currentUser as any)?.email || "user@example.com",
+    avatar: (currentUser as any)?.avatar || "",
+    role: (currentUser as any)?.role || "User"
   };
+
+  // 🔧 DEBUG: Log current user data (moved after safeUser definition)
+  console.log('🔍 UserDropdown - currentUser:', currentUser);
+  console.log('🔍 UserDropdown - authUser:', authUser);
+  console.log('🔍 UserDropdown - user prop:', user);
+  console.log('🔍 UserDropdown - safeUser:', safeUser);
 
   // 🔐 Updated logout handler using auth context
   const handleLogout = useCallback(() => {
@@ -45,15 +60,15 @@ export const UserDropdown = React.memo(function UserDropdown({ user }: UserDropd
     setLocation("/login");
   }, [logout, setLocation]);
 
-
   const userInitials = useMemo(() => {
-    return currentUser.name
+    // 🔧 FIXED: Use safeUser with guaranteed name property
+    return safeUser.name
       .split(" ")
-      .map(n => n[0])
+      .map((n: string) => n[0])
       .join("")
       .toUpperCase()
       .slice(0, 2);
-  }, [currentUser.name]);
+  }, [safeUser.name]);
 
   return (
     <DropdownMenu>
@@ -64,7 +79,7 @@ export const UserDropdown = React.memo(function UserDropdown({ user }: UserDropd
           data-testid="user-menu-trigger"
         >
           <Avatar className="h-9 w-9">
-            <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
+            <AvatarImage src={safeUser.avatar} alt={safeUser.name} />
             <AvatarFallback className="bg-primary/10 text-primary font-medium">
               {userInitials}
             </AvatarFallback>
@@ -76,19 +91,19 @@ export const UserDropdown = React.memo(function UserDropdown({ user }: UserDropd
         {/* User Info Header */}
         <div className="flex items-center gap-3 p-4 border-b">
           <Avatar className="h-12 w-12">
-            <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
+            <AvatarImage src={safeUser.avatar} alt={safeUser.name} />
             <AvatarFallback className="bg-primary/10 text-primary font-medium text-base">
               {userInitials}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <p className="font-semibold text-foreground">{currentUser.name}</p>
+              <p className="font-semibold text-foreground">{safeUser.name}</p>
               <Badge variant="secondary" className="text-xs">
-                {currentUser.role}
+                {safeUser.role}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">{currentUser.email}</p>
+            <p className="text-sm text-muted-foreground">{safeUser.email}</p>
           </div>
         </div>
 

@@ -4,12 +4,12 @@ import axios from 'axios';
 const API_BASE_URL = 'http://192.168.0.117:8000/api/v1';
 
 // 🕷️ Crawl API Configuration - Separate base URL for crawl functionality
-const CRAWL_API_BASE_URL = 'http://192.168.0.136:8000/api/v1/';
+const CRAWL_API_BASE_URL = 'http://192.168.0.136:8000/api/v1';
 
 // 📡 Create axios instance - This is your API client
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,           // Your API base URL
-  timeout: 150000,                  // 15 seconds timeout
+  timeout: 1500000,                  // 15 seconds timeout
   headers: {
     'Content-Type': 'application/json',  // Tell server we're sending JSON
   },
@@ -62,25 +62,88 @@ apiClient.interceptors.response.use(
 // 🕷️ Create crawl axios instance - Separate client for crawl functionality
 export const crawlApiClient = axios.create({
   baseURL: CRAWL_API_BASE_URL,     // Crawl API base URL
-  timeout: 300000,                  // 30 seconds timeout (crawling can take longer)
+  timeout: 3000000,                  // 30 seconds timeout (crawling can take longer)
   headers: {
     'Content-Type': 'application/json',  // Tell server we're sending JSON
   },
 });
 
+// 🔐 Add request interceptor for authentication
+crawlApiClient.interceptors.request.use(
+  (config) => {
+    // Add authentication token if available
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    console.log('🕷️ Crawl API Request:', {
+      method: config.method?.toUpperCase(),
+      url: config.url,
+      baseURL: config.baseURL,
+      fullURL: `${config.baseURL}${config.url}`,
+      hasAuth: !!config.headers.Authorization,
+    });
+    return config;
+  },
+  (error) => {
+    console.error('❌ Crawl Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// 🔧 Add response interceptor for debugging
+crawlApiClient.interceptors.response.use(
+  (response) => {
+    console.log('✅ Crawl API Response:', {
+      status: response.status,
+      url: response.config.url,
+      data: response.data,
+    });
+    return response;
+  },
+  (error) => {
+    console.error('❌ Crawl API Error:', {
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      url: error.config?.url,
+      fullURL: error.config ? `${error.config.baseURL}${error.config.url}` : 'unknown',
+    });
+    
+    if (error.code === 'ERR_NETWORK') {
+      console.error('🌐 Network Error: Cannot reach the crawl server. Check if the API server is running at:', CRAWL_API_BASE_URL);
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
 // 🔍 Search API function - This calls your search endpoint
 export const searchAPI = {
   // This function sends a search query to your API
-  search: async (query: string) => {
+  search: async (query: string, ragSettings?: {
+    topK?: number;
+    similarityThreshold?: number;
+    useReranker?: boolean;
+    maxTokens?: number;
+  }) => {
     console.log('🚀 API Call - Searching for:', query);
+    console.log('⚙️ RAG Settings:', ragSettings);
     
     try {
-      // Send POST request to /search endpoint
+      // Send POST request to /search endpoint with RAG settings
       const response = await apiClient.post('/search', {
         query: query,  // Send the user's question
+        topK: ragSettings?.topK || 5,
+        similarityThreshold: ragSettings?.similarityThreshold || 0.2,
+        useReranker: ragSettings?.useReranker || false,
+        maxTokens: ragSettings?.maxTokens || 0,
       });
       
       console.log('✅ API Response:', response.data);
+      console.log('🔍 API Sources:', response.data.sources);
+      console.log('🔍 API Response structure:', JSON.stringify(response.data, null, 2));
       return response.data;  // Return the answer from API
     } catch (error) {
       console.error('❌ API Error:', error);
@@ -92,13 +155,23 @@ export const searchAPI = {
 // 💬 Chat API functions - This handles chat functionality
 export const chatAPI = {
   // Send a chat message
-  sendMessage: async (message: string, sessionId?: string) => {
+  sendMessage: async (message: string, sessionId?: string, ragSettings?: {
+    topK?: number;
+    similarityThreshold?: number;
+    useReranker?: boolean;
+    maxTokens?: number;
+  }) => {
     console.log('💬 Chat API - Sending message:', message);
+    console.log('⚙️ Chat RAG Settings:', ragSettings);
     
     try {
       const response = await apiClient.post('/chat/message', {
         message: message,
-        sessionId: sessionId,  // Optional session ID
+        session_id: sessionId,  // Fixed: server expects session_id
+        topK: ragSettings?.topK || 5,
+        similarityThreshold: ragSettings?.similarityThreshold || 0.2,
+        useReranker: ragSettings?.useReranker || false,
+        maxTokens: ragSettings?.maxTokens || 0,
       });
       
       console.log('✅ Chat Response:', response.data);
@@ -162,7 +235,19 @@ export const crawlAPI = {
     console.log('🕷️ Crawl API - Adding site:', siteData);
     
     try {
-      const response = await crawlApiClient.post('/crawl/sites', siteData);
+      // Transform frontend data to backend schema
+      const backendData = {
+        name: siteData.name,
+        base_url: siteData.url,
+        description: siteData.description || '',
+        depth: siteData.crawlDepth || 2,
+        cadence: siteData.cadence || 'ONCE',
+        headless_mode: siteData.headlessMode || 'AUTO',
+        allowlist: siteData.includePatterns || [],
+        denylist: siteData.excludePatterns || []
+      };
+      
+      const response = await crawlApiClient.post('/crawl/sites', backendData);
       console.log('✅ Site added successfully:', response.data);
       return response.data;
     } catch (error) {
@@ -178,7 +263,30 @@ export const crawlAPI = {
     try {
       const response = await crawlApiClient.get('/crawl/sites');
       console.log('✅ Sites retrieved successfully:', response.data);
-      return response.data;
+      
+      // Transform backend response to frontend format
+      return response.data.map((site: any) => ({
+        id: site.id,
+        name: site.name,
+        url: site.base_url,
+        description: site.description,
+        status: site.status === 'READY' ? 'active' : 
+                site.status === 'PENDING' ? 'pending' : 
+                site.status === 'DISABLED' ? 'inactive' : 'error',
+        lastCrawled: site.last_crawl_at,
+        pagesFound: 0, // Will be updated from crawl status
+        pagesCrawled: site.documents_count || 0,
+        createdAt: site.created_at,
+        updatedAt: site.updated_at,
+        crawlDepth: site.depth,
+        maxPages: site.max_pages,
+        includePatterns: site.allowlist || [],
+        excludePatterns: site.denylist || [],
+        crawlDelay: site.delay_seconds,
+        respectRobotsTxt: true,
+        followRedirects: true,
+        customHeaders: {}
+      }));
     } catch (error) {
       console.error('❌ Get sites failed:', error);
       throw error;
@@ -190,7 +298,19 @@ export const crawlAPI = {
     console.log('🕷️ Crawl API - Updating site:', id, siteData);
     
     try {
-      const response = await crawlApiClient.put(`/crawl/sites/${id}`, siteData);
+      // Transform frontend data to backend schema
+      const backendData = {
+        name: siteData.name,
+        base_url: siteData.url,
+        description: siteData.description || '',
+        depth: siteData.crawlDepth || 2,
+        cadence: siteData.cadence || 'ONCE',
+        headless_mode: siteData.headlessMode || 'AUTO',
+        allowlist: siteData.includePatterns || [],
+        denylist: siteData.excludePatterns || []
+      };
+      
+      const response = await crawlApiClient.put(`/crawl/sites/${id}`, backendData);
       console.log('✅ Site updated successfully:', response.data);
       return response.data;
     } catch (error) {
@@ -234,7 +354,22 @@ export const crawlAPI = {
     try {
       const response = await crawlApiClient.get(`/crawl/status/${id}`);
       console.log('✅ Crawl status retrieved:', response.data);
-      return response.data;
+      
+      // Transform backend response to frontend format
+      return {
+        id: response.data.job_id,
+        status: response.data.status === 'PENDING' ? 'pending' :
+                response.data.status === 'RUNNING' ? 'running' :
+                response.data.status === 'COMPLETED' ? 'completed' :
+                response.data.status === 'FAILED' ? 'failed' : 'cancelled',
+        progress: response.data.pages_fetched || 0,
+        pagesFound: response.data.pages_fetched || 0,
+        pagesCrawled: response.data.pages_fetched || 0,
+        startedAt: response.data.started_at || response.data.queued_at,
+        completedAt: response.data.finished_at,
+        error: response.data.errors?.[0] || null,
+        logs: response.data.errors || []
+      };
     } catch (error) {
       console.error('❌ Get crawl status failed:', error);
       throw error;
@@ -248,7 +383,19 @@ export const crawlAPI = {
     try {
       const response = await crawlApiClient.put('/crawl/preview', { url });
       console.log('✅ URL preview retrieved:', response.data);
-      return response.data;
+      
+      // Transform backend response to frontend format
+      return {
+        url: response.data.url,
+        title: response.data.meta?.title || 'No Title',
+        content: response.data.html_sample || '',
+        text: response.data.text_sample || '',
+        links: [],
+        images: [],
+        metadata: response.data.meta || {},
+        status: response.data.meta?.status_code || 200,
+        responseTime: 0
+      };
     } catch (error) {
       console.error('❌ Preview URL failed:', error);
       throw error;
@@ -263,13 +410,25 @@ export const authAPI = {
     console.log('🔐 Auth API - Attempting login:', credentials.username);
     
     try {
-      const response = await crawlApiClient.post('/auth/login', {
+      const response = await crawlApiClient.post('/crawl/auth/login', {
         username: credentials.username,
         password: credentials.password,
       });
       
       console.log('✅ Login successful:', response.data);
-      return response.data;
+      
+      // Transform response to match expected format
+      return {
+        token: response.data.access_token,
+        user: {
+          id: response.data.user?.id || '1',
+          username: response.data.user?.username || credentials.username,
+          email: response.data.user?.email || '',
+          role: 'admin',
+          permissions: ['read', 'write', 'admin']
+        },
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutes from now
+      };
     } catch (error) {
       console.error('❌ Login failed:', error);
       throw error;
@@ -281,7 +440,7 @@ export const authAPI = {
     console.log('🔐 Auth API - Logging out');
     
     try {
-      const response = await crawlApiClient.post('/auth/logout');
+      const response = await crawlApiClient.post('/crawl/auth/logout');
       console.log('✅ Logout successful:', response.data);
       return response.data;
     } catch (error) {
@@ -295,7 +454,7 @@ export const authAPI = {
     console.log('🔐 Auth API - Verifying token');
     
     try {
-      const response = await crawlApiClient.get('/auth/verify', {
+      const response = await crawlApiClient.get('/crawl/auth/verify', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -352,7 +511,8 @@ export const documentAPI = {
       
       // Log the FormData contents for debugging
       console.log('📄 FormData contents:');
-      for (let [key, value] of formData.entries()) {
+      const entries = Array.from(formData.entries());
+      for (const [key, value] of entries) {
         console.log(`${key}:`, value);
         if (value instanceof File) {
           console.log(`  File details: name=${value.name}, size=${value.size}, type=${value.type}`);
@@ -438,10 +598,15 @@ export const testAPIConnection = async () => {
   
   try {
     // Try to reach the server with a simple request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
     const response = await fetch(`${API_BASE_URL}/health`, {
       method: 'GET',
-      timeout: 5000,
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
     
     if (response.ok) {
       console.log('✅ API server is reachable');
@@ -462,7 +627,62 @@ export const testAPIConnection = async () => {
     
     return { 
       success: false, 
-      message: `Connection failed: ${error.message}` 
+      message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+    };
+  }
+};
+
+// 🔧 Test Chat API connection specifically
+export const testChatAPIConnection = async () => {
+  console.log('🔧 Testing Chat API connection to:', API_BASE_URL);
+  
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // Reduced timeout to 3 seconds
+    
+    const response = await fetch(`${API_BASE_URL}/chat/message`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: "test",
+        topK: 5,
+        maxTokens: 100,
+        useReranker: false,
+        similarityThreshold: 0.2
+      }),
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (response.ok) {
+      console.log('✅ Chat API connection successful');
+      return { 
+        success: true, 
+        message: 'Chat API is accessible and working' 
+      };
+    } else {
+      console.log('❌ Chat API connection failed:', response.status);
+      return { 
+        success: false, 
+        message: `Chat API returned status ${response.status}` 
+      };
+    }
+  } catch (error) {
+    console.error('❌ Chat API connection error:', error);
+    
+    if (error instanceof Error && error.name === 'AbortError') {
+      return { 
+        success: false, 
+        message: `Chat API timeout: Cannot reach server at ${API_BASE_URL}. Please check if the server is running.` 
+      };
+    }
+    
+    return { 
+      success: false, 
+      message: `Chat API connection failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
     };
   }
 };
@@ -517,6 +737,8 @@ export interface CrawlSiteData {
   respectRobotsTxt?: boolean;
   followRedirects?: boolean;
   customHeaders?: Record<string, string>;
+  cadence?: 'ONCE' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
+  headlessMode?: 'AUTO' | 'ON' | 'OFF';
 }
 
 export interface CrawlSite {

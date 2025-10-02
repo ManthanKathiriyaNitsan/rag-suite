@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, Mail, Shield, Key, Bell, Globe, Save, Upload, Camera } from "lucide-react";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,19 +14,34 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 export default function Profile() {
-  // Mock user data for design purposes
+  // 🔐 Get real user data from authentication context
+  const { user: authUser } = useAuthContext();
+  
+  // 🔧 FIXED: Use real user data with fallbacks
   const [userData, setUserData] = useState({
-    name: "Sarah Chen",
-    email: "sarah.chen@company.com",
-    title: "Senior Product Manager",
-    department: "Engineering",
+    name: (authUser as any)?.name || authUser?.username || "User",
+    email: (authUser as any)?.email || "user@example.com",
+    title: "Senior Product Manager", // Default title
+    department: "Engineering", // Default department
     bio: "Passionate about building AI-powered solutions that enhance user experience and drive business growth.",
-    avatar: "",
-    phone: "+1 (555) 123-4567",
-    location: "San Francisco, CA",
-    timezone: "America/Los_Angeles",
-    joinDate: "March 2023"
+    avatar: (authUser as any)?.avatar || "",
+    phone: "+1 (555) 123-4567", // Default phone
+    location: "San Francisco, CA", // Default location
+    timezone: "America/Los_Angeles", // Default timezone
+    joinDate: "March 2023" // Default join date
   });
+
+  // 🔧 FIXED: Update user data when auth user changes
+  useEffect(() => {
+    if (authUser) {
+      setUserData(prev => ({
+        ...prev,
+        name: (authUser as any)?.name || authUser?.username || prev.name,
+        email: (authUser as any)?.email || prev.email,
+        avatar: (authUser as any)?.avatar || prev.avatar,
+      }));
+    }
+  }, [authUser]);
 
   const [notifications, setNotifications] = useState({
     emailUpdates: true,
@@ -94,7 +110,7 @@ export default function Profile() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
                   <h2 className="text-2xl font-semibold text-foreground">{userData.name}</h2>
-                  <Badge variant="secondary">Admin</Badge>
+                  <Badge variant="secondary">{(authUser as any)?.role || "User"}</Badge>
                 </div>
                 <p className="text-lg text-muted-foreground mb-1">{userData.title}</p>
                 <p className="text-sm text-muted-foreground">{userData.department} • Joined {userData.joinDate}</p>

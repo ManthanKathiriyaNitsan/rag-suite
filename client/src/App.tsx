@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuthContext } from "@/contexts/AuthContext";
+import { RAGSettingsProvider } from "@/contexts/RAGSettingsContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AppSidebar } from "@/components/AppSidebar";
 import { EmbeddableWidget } from "@/components/EmbeddableWidget";
@@ -31,7 +32,7 @@ import Login from "@/pages/Login";
 import Onboarding from "@/pages/Onboarding";
 import Profile from "@/pages/Profile";
 import { useState } from "react";
-import Signup from "./pages/SignUp";
+import Signup from "./pages/Signup";
 
 // 🔐 Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -69,7 +70,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex h-screen w-full">
+      <div className="flex h-screen manthan w-full">
         <AppSidebar data-testid="sidebar" />
         <div className="flex flex-col flex-1">
           <header className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -162,7 +163,7 @@ function Router() {
       <Route path="/signup" component={Signup} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/" nest>
-     
+        <ProtectedRoute>
           <DashboardLayout>
             <Switch>
               <Route path="/" component={Overview} />
@@ -179,8 +180,10 @@ function Router() {
               <Route component={NotFound} />
             </Switch>
           </DashboardLayout>
- 
+        </ProtectedRoute>
       </Route>
+      {/* 🔧 FIXED: Default route - redirect to login if no match */}
+      <Route component={Login} />
     </Switch>
   );
 }
@@ -189,12 +192,14 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ThemeProvider>
-          <TooltipProvider>
-            <Router />
-            <Toaster />
-          </TooltipProvider>
-        </ThemeProvider>
+        <RAGSettingsProvider>
+          <ThemeProvider>
+            <TooltipProvider>
+              <Router />
+              <Toaster />
+            </TooltipProvider>
+          </ThemeProvider>
+        </RAGSettingsProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

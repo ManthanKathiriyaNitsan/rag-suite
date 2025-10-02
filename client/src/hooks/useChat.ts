@@ -7,8 +7,17 @@ export const useChat = () => {
 
   // Send a chat message
   const sendMessageMutation = useMutation({
-    mutationFn: ({ message, sessionId }: { message: string; sessionId?: string }) =>
-      chatAPI.sendMessage(message, sessionId),
+    mutationFn: ({ message, sessionId, ragSettings }: { 
+      message: string; 
+      sessionId?: string;
+      ragSettings?: {
+        topK?: number;
+        similarityThreshold?: number;
+        useReranker?: boolean;
+        maxTokens?: number;
+      };
+    }) =>
+      chatAPI.sendMessage(message, sessionId, ragSettings),
     
     onSuccess: (data: ChatResponse) => {
       console.log('✅ Chat message sent successfully:', data);

@@ -1,9 +1,44 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { authAPI, LoginCredentials, LoginResponse, User } from '@/lib/api';
 
 // 🔐 Authentication hook for login functionality
 export const useAuth = () => {
   const queryClient = useQueryClient();
+  
+  // 🔧 FIXED: Add reactive state for auth data
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  // 🔧 FIXED: Sync with localStorage on mount and storage changes
+  useEffect(() => {
+    const syncAuthState = () => {
+      const currentUser = getCurrentUser();
+      const currentToken = getCurrentToken();
+      const isAuth = !!(currentUser && currentToken);
+      
+      setUser(currentUser);
+      setToken(currentToken);
+      setIsAuthenticated(isAuth);
+    };
+
+    // Initial sync
+    syncAuthState();
+
+    // Listen for storage changes (logout from other tabs)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'auth_token' || e.key === 'user_data' || e.key === 'token_expires') {
+        syncAuthState();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   // Login mutation
   const loginMutation = useMutation({
@@ -23,8 +58,21 @@ export const useAuth = () => {
         expiresAt: data.expiresAt
       });
       
+      // 🔧 FIXED: Update reactive state immediately
+      // Ensure user object has all required fields
+      const userWithCreatedAt: User = {
+        ...data.user,
+        createdAt: (data.user as any).createdAt || new Date().toISOString()
+      };
+      setUser(userWithCreatedAt);
+      setToken(data.token);
+      setIsAuthenticated(true);
+      
       // Invalidate and refetch user queries
       queryClient.invalidateQueries({ queryKey: ['auth-user'] });
+      
+      // Force a page reload to update authentication state
+      window.location.reload();
     },
     
     onError: (error) => {
@@ -33,6 +81,11 @@ export const useAuth = () => {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user_data');
       localStorage.removeItem('token_expires');
+      
+      // 🔧 FIXED: Update reactive state on error
+      setUser(null);
+      setToken(null);
+      setIsAuthenticated(false);
     },
   });
 
@@ -47,6 +100,11 @@ export const useAuth = () => {
       localStorage.removeItem('user_data');
       localStorage.removeItem('token_expires');
       
+      // 🔧 FIXED: Update reactive state immediately
+      setUser(null);
+      setToken(null);
+      setIsAuthenticated(false);
+      
       // Invalidate all queries
       queryClient.clear();
     },
@@ -57,6 +115,12 @@ export const useAuth = () => {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user_data');
       localStorage.removeItem('token_expires');
+      
+      // 🔧 FIXED: Update reactive state on error
+      setUser(null);
+      setToken(null);
+      setIsAuthenticated(false);
+      
       queryClient.clear();
     },
   });
@@ -125,12 +189,12 @@ export const useAuth = () => {
     return token;
   };
 
-  // Check if user is authenticated
-  const isAuthenticated = (): boolean => {
-    const user = getCurrentUser();
-    const token = getCurrentToken();
-    return !!(user && token);
-  };
+  // Check if user is authenticated (legacy function - now using reactive state)
+  // const isAuthenticated = (): boolean => {
+  //   const user = getCurrentUser();
+  //   const token = getCurrentToken();
+  //   return !!(user && token);
+  // };
 
   return {
     // Login
@@ -146,10 +210,10 @@ export const useAuth = () => {
     isLoggingOut: logoutMutation.isPending,
     logoutError: logoutMutation.error,
     
-    // Auth state
-    isAuthenticated: isAuthenticated(),
-    user: getCurrentUser(),
-    token: getCurrentToken(),
+    // 🔧 FIXED: Use reactive state instead of functions
+    isAuthenticated: isAuthenticated,
+    user,
+    token,
     
     // Reset login state
     resetLogin: loginMutation.reset,

@@ -160,24 +160,24 @@ export function CrawlSourceTable({
                 </TableCell>
                 <TableCell>{site.crawlDepth || 'Auto'}</TableCell>
                 <TableCell>Manual</TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="text-xs">
+              <TableCell>
+                <Badge variant="outline" className="text-xs">
                     {site.respectRobotsTxt ? 'Respect' : 'Ignore'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
+                </Badge>
+              </TableCell>
+              <TableCell>
                   <Badge variant={getStatusColor(site.status)} className="text-xs">
                     {site.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
+                </Badge>
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground">
                   {site.lastCrawled ? 
                     new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
                       Math.floor((new Date(site.lastCrawled).getTime() - Date.now()) / (1000 * 60 * 60)),
-                      "hour"
+                  "hour"
                     ) : 'Never'
                   }
-                </TableCell>
+              </TableCell>
                 <TableCell>{site.pagesCrawled || 0}</TableCell>
               <TableCell>
                 <DropdownMenu>
@@ -213,7 +213,7 @@ export function CrawlSourceTable({
                       {isStarting ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
-                        <Play className="h-4 w-4 mr-2" />
+                      <Play className="h-4 w-4 mr-2" />
                       )}
                       Start Crawl
                     </DropdownMenuItem>

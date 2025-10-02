@@ -1,12 +1,21 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import cors from "cors";
 
 const app = express();
 
+// Enable CORS for all routes
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:5000', 'http://192.168.0.117:8000', 'http://192.168.0.136:8000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
 // Basic middleware for static app
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Simple request logging
 app.use((req, res, next) => {

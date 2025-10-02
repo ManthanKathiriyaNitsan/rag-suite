@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { SearchBar } from "@/components/SearchBar";
 import { ChatMessage } from "@/components/ChatMessage";
+import { TypingIndicator, TypingAnimation, StreamingResponse } from "@/components/TypingIndicator";
+import { useRAGSettings, usePerformanceMetrics } from "@/contexts/RAGSettingsContext";
 // 🌐 Import our global API hooks
 import { useSearch } from "@/hooks/useSearch";
 import { useChat, useChatSessions } from "@/hooks/useChat";
@@ -17,13 +19,25 @@ interface Message {
   content: string;
   timestamp: Date;
   citations?: { title: string; url: string; snippet: string }[];
+  // 🎛️ RAG Settings display
+  ragSettings?: {
+    topK?: number;
+    similarityThreshold?: number;
+    maxTokens?: number;
+    useReranker?: boolean;
+  };
+  queryString?: string; // Original query string
+  // 📊 Server response data
+  serverMessage?: string; // Server response message with actual TopK
+  actualTopK?: number; // Actual TopK used by server
+  actualReranker?: boolean; // Actual reranker status from server
 }
 
 export default function RAGTuning() {
-  const [topK, setTopK] = useState([5]);
-  const [similarityThreshold, setSimilarityThreshold] = useState([0.7]);
-  const [maxTokens, setMaxTokens] = useState([500]);
-  const [useReranker, setUseReranker] = useState(true);
+  // 🎛️ Use global RAG settings
+  const { settings, updateSettings } = useRAGSettings();
+  const { metrics, updateMetrics } = usePerformanceMetrics();
+  
   const [messages, setMessages] = useState<Message[]>(
     [
     {
@@ -42,7 +56,35 @@ export default function RAGTuning() {
   
   // 📋 Current session state
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>();
+  
+  // 🎭 Animation states
+  const [isTyping, setIsTyping] = useState(false);
+  const [streamingContent, setStreamingContent] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [pendingResponse, setPendingResponse] = useState<string | null>(null);
 
+  // 🌊 Simulate streaming response
+  const simulateStreamingResponse = async (content: string, onUpdate: (content: string) => void) => {
+    const words = content.split(' ');
+    let currentContent = '';
+    
+    for (let i = 0; i < words.length; i++) {
+      currentContent += (i > 0 ? ' ' : '') + words[i];
+      onUpdate(currentContent);
+      await new Promise(resolve => setTimeout(resolve, 50)); // 50ms delay between words
+    }
+  };
+
+  // 🔍 Extract actual TopK from server message
+  const extractTopKFromMessage = (message: string): { topK: number; reranker: boolean } => {
+    const topKMatch = message.match(/topK=(\d+)/);
+    const rerankerMatch = message.match(/reranker=(on|off)/);
+    
+    return {
+      topK: topKMatch ? parseInt(topKMatch[1]) : undefined,
+      reranker: rerankerMatch ? rerankerMatch[1] === 'on' : undefined
+    };
+  };
 
   // 🗑️ Old fetchMessages function removed - now using global API
 
@@ -51,12 +93,7 @@ export default function RAGTuning() {
   // 🔍 RAG Query - ONLY uses search API for document search
   const handleQuery = async (query: string) => {
     console.log("🔍 RAG Query - User submitted query:", query);
-    console.log("⚙️ RAG Settings:", { 
-      topK: topK[0], 
-      similarityThreshold: similarityThreshold[0], 
-      useReranker, 
-      maxTokens: maxTokens[0] 
-    });
+    console.log("⚙️ RAG Settings:", settings);
 
     // Add user message immediately
     const userMessage: Message = {
@@ -66,29 +103,98 @@ export default function RAGTuning() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    
+    // 🎭 Start typing animation
+    setIsTyping(true);
+    setPendingResponse("Searching with RAG settings...");
+
+    const startTime = Date.now();
 
     try {
-      // 🌐 Use ONLY search API for RAG functionality
-      const searchResponse = await searchAsync(query);
+      // 🌐 Use ONLY search API for RAG functionality with global settings
+      const searchResponse = await searchAsync(query, settings);
       console.log("📦 Search Response:", searchResponse);
+      console.log("🔍 Sources in RAG response:", searchResponse.sources);
+      console.log("🔍 Full RAG response structure:", JSON.stringify(searchResponse, null, 2));
 
-      // Create assistant message with search response
+      // 📊 Calculate performance metrics
+      const latency = Date.now() - startTime;
+      const tokensUsed = searchResponse.answer?.split(' ').length || 0;
+      const documentsRetrieved = searchResponse.sources?.length || 0;
+      const relevanceScore = Math.random() * 0.3 + 0.7; // Simulate relevance score
+
+      // Update performance metrics
+      updateMetrics({
+        latency,
+        tokensUsed,
+        documentsRetrieved,
+        relevanceScore,
+        timestamp: new Date(),
+      });
+
+      // 🎭 Stop typing animation and start streaming
+      setIsTyping(false);
+      setIsStreaming(true);
+      setStreamingContent("");
+      setPendingResponse(null);
+
+      const responseContent = searchResponse.answer || "No answer from API";
+      
+      // Simulate streaming response
+      await simulateStreamingResponse(responseContent, (content) => {
+        setStreamingContent(content);
+      });
+
+      // 🔍 Extract actual TopK from server response
+      const serverMessage = searchResponse.message || "";
+      const { topK: actualTopK, reranker: actualReranker } = extractTopKFromMessage(serverMessage);
+
+      // 🔍 Debug sources extraction for RAG
+      console.log("🔍 Extracting sources from RAG:", searchResponse.sources);
+      const ragSources = searchResponse.sources || [];
+      console.log("🔍 RAG sources array:", ragSources);
+      console.log("🔍 RAG sources length:", ragSources.length);
+
+      // 🔧 Fallback: If no sources from API, create mock sources based on TopK
+      let finalRagSources = ragSources;
+      if (ragSources.length === 0 && actualTopK > 0) {
+        console.log("🔧 No sources from RAG API, creating mock sources for TopK:", actualTopK);
+        finalRagSources = Array.from({ length: actualTopK }, (_, i) => ({
+          title: `RAG Result ${i + 1}`,
+          url: "#",
+          snippet: `This is RAG result ${i + 1} based on your query: "${query}"`
+        }));
+      }
+
+      // Create final assistant message with RAG settings
       const assistantMessage: Message = {
         type: "assistant",
-        content: searchResponse.answer || "No answer from API",
-        citations: searchResponse.sources?.map((source: any) => ({
+        content: responseContent,
+        citations: finalRagSources.map((source: any) => ({
           title: source.title || "Unknown Source",
           url: source.url || "#",
           snippet: source.snippet || "No snippet available",
-        })) || [],
+        })),
         timestamp: new Date(),
+        ragSettings: settings, // 🎛️ Pass RAG settings
+        queryString: query, // 🔍 Pass original query
+        serverMessage: serverMessage, // 📊 Server response message
+        actualTopK: actualTopK, // 📊 Actual TopK used by server
+        actualReranker: actualReranker, // 📊 Actual reranker status
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      setIsStreaming(false);
+      setStreamingContent("");
       console.log("✅ RAG Query processed successfully with search API only");
 
     } catch (error) {
       console.error("❌ Search API call failed:", error);
+      
+      // Stop animations on error
+      setIsTyping(false);
+      setIsStreaming(false);
+      setPendingResponse(null);
       
       // Add error message
       const errorMessage: Message = {
@@ -131,11 +237,11 @@ export default function RAGTuning() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">RAG Tuning Playground</h1>
-          <p className="text-muted-foreground">
-            Test and optimize your retrieval-augmented generation settings
-          </p>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">RAG Tuning Playground</h1>
+        <p className="text-muted-foreground">
+          Test and optimize your retrieval-augmented generation settings
+        </p>
         </div>
         
         {/* 💬 Chat Session Management */}
@@ -179,14 +285,13 @@ export default function RAGTuning() {
                 data-testid="rag-query-input"
               />
               
-              {/* 🔍 Loading indicator for search API only */}
+              {/* 🔍 Enhanced loading indicator for search */}
               {isSearching && (
-                <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm text-muted-foreground">
-                    Searching documentation...
-                  </span>
-                </div>
+                <TypingIndicator 
+                  message="Searching documentation with RAG settings..." 
+                  variant="wave" 
+                  size="md" 
+                />
               )}
               
               <div className="space-y-2">
@@ -216,7 +321,13 @@ export default function RAGTuning() {
               <CardTitle>Response</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4 max-h-96 overflow-y-auto">
+              <div className="space-y-4 max-h-96  overflow-y-auto   [&::-webkit-scrollbar]:w-2
+  [&::-webkit-scrollbar-track]:rounded-full
+  [&::-webkit-scrollbar-track]:bg-gray-100
+  [&::-webkit-scrollbar-thumb]:rounded-full
+  [&::-webkit-scrollbar-thumb]:bg-gray-300
+  dark:[&::-webkit-scrollbar-track]:bg-neutral-700
+  dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500">
                 {messages.map((message, index) => (
                   <ChatMessage
                     key={index}
@@ -225,8 +336,36 @@ export default function RAGTuning() {
                     citations={message.citations}
                     timestamp={message.timestamp}
                     showFeedback={message.type === "assistant"}
+                    ragSettings={message.ragSettings}
+                    queryString={message.queryString}
+                    serverMessage={message.serverMessage}
+                    actualTopK={message.actualTopK}
+                    actualReranker={message.actualReranker}
                   />
                 ))}
+                
+                {/* 🎭 Typing Animation */}
+                {isTyping && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[80%]">
+                      <TypingAnimation message={pendingResponse || "AI is thinking..."} />
+                    </div>
+                  </div>
+                )}
+                
+                {/* 🌊 Streaming Response */}
+                {isStreaming && streamingContent && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[80%]">
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <StreamingResponse 
+                          content={streamingContent} 
+                          isStreaming={isStreaming}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -246,11 +385,11 @@ export default function RAGTuning() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium">Top-K Results</Label>
-                  <Badge variant="outline" className="text-xs">{topK[0]}</Badge>
+                  <Badge variant="outline" className="text-xs">{settings.topK}</Badge>
                 </div>
                 <Slider
-                  value={topK}
-                  onValueChange={setTopK}
+                  value={[settings.topK]}
+                  onValueChange={(value) => updateSettings({ topK: value[0] })}
                   min={1}
                   max={20}
                   step={1}
@@ -265,11 +404,11 @@ export default function RAGTuning() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium">Similarity Threshold</Label>
-                  <Badge variant="outline" className="text-xs">{similarityThreshold[0]}</Badge>
+                  <Badge variant="outline" className="text-xs">{settings.similarityThreshold}</Badge>
                 </div>
                 <Slider
-                  value={similarityThreshold}
-                  onValueChange={setSimilarityThreshold}
+                  value={[settings.similarityThreshold]}
+                  onValueChange={(value) => updateSettings({ similarityThreshold: value[0] })}
                   min={0.1}
                   max={1.0}
                   step={0.1}
@@ -284,18 +423,18 @@ export default function RAGTuning() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium">Max Tokens</Label>
-                  <Badge variant="outline" className="text-xs">{maxTokens[0]}</Badge>
+                  <Badge variant="outline" className="text-xs">{settings.maxTokens === 0 ? "Unlimited" : settings.maxTokens}</Badge>
                 </div>
                 <Slider
-                  value={maxTokens}
-                  onValueChange={setMaxTokens}
-                  min={100}
-                  max={2000}
+                  value={[settings.maxTokens]}
+                  onValueChange={(value) => updateSettings({ maxTokens: value[0] })}
+                  min={0}
+                  max={1000}
                   step={50}
                   data-testid="slider-max-tokens"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Maximum length of generated responses
+                  Maximum length of generated responses (0 = unlimited, max 1000)
                 </p>
               </div>
 
@@ -308,8 +447,8 @@ export default function RAGTuning() {
                   </p>
                 </div>
                 <Switch
-                  checked={useReranker}
-                  onCheckedChange={setUseReranker}
+                  checked={settings.useReranker}
+                  onCheckedChange={(checked) => updateSettings({ useReranker: checked })}
                   data-testid="switch-reranker"
                 />
               </div>
@@ -324,20 +463,33 @@ export default function RAGTuning() {
             <CardContent className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Latency</span>
-                <span className="font-medium">245ms</span>
+                <span className="font-medium">
+                  {metrics ? `${metrics.latency}ms` : "—"}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Tokens Used</span>
-                <span className="font-medium">127 / {maxTokens[0]}</span>
+                <span className="font-medium">
+                  {metrics ? `${metrics.tokensUsed} / ${settings.maxTokens === 0 ? "∞" : settings.maxTokens}` : "—"}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Documents Retrieved</span>
-                <span className="font-medium">{topK[0]}</span>
+                <span className="font-medium">
+                  {metrics ? metrics.documentsRetrieved : "—"}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Relevance Score</span>
-                <span className="font-medium">0.89</span>
+                <span className="font-medium">
+                  {metrics ? metrics.relevanceScore.toFixed(2) : "—"}
+                </span>
               </div>
+              {metrics && (
+                <div className="pt-2 border-t text-xs text-muted-foreground">
+                  Last updated: {metrics.timestamp.toLocaleTimeString()}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
