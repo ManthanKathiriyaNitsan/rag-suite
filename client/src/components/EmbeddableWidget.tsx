@@ -13,6 +13,7 @@ import { testChatAPIConnection } from "@/lib/api";
 import { useSearch } from "@/hooks/useSearch";
 import { useChat } from "@/hooks/useChat";
 
+
 interface Message {
   type: "user" | "assistant";
   content: string;
@@ -62,6 +63,7 @@ export function EmbeddableWidget({
   
   // 💬 Use our chat hook for enhanced functionality
   const { sendMessageAsync, isSending } = useChat();
+  // 🧾 Session history removed per request
   
   // 📋 Current session state
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>();
@@ -386,6 +388,7 @@ export function EmbeddableWidget({
                 onSearch={handleSearch}
                 showSendButton
               />
+              {/* 🔎 Recent Search History removed */}
               
               {/* 🔍 Enhanced loading indicator for search */}
               {isSearching && (
@@ -470,6 +473,7 @@ export function EmbeddableWidget({
                 onSearch={handleChat}
                 showSendButton
               />
+              {/* 💬 Recent Chat History removed */}
               
               {/* 💬 Enhanced loading indicator for chat */}
               {isSending && (

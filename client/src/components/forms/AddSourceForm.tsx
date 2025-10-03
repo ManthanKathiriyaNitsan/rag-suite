@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,51 +21,73 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Plus, X } from "lucide-react";
+import { CrawlSite, CrawlSiteData } from "@/lib/api";
 
 interface AddSourceFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: any) => void;
-  editData?: any;
+  onSubmit: (data: CrawlSiteData) => void;
+  editData?: CrawlSite;
 }
 
 export function AddSourceForm({ open, onOpenChange, onSubmit, editData }: AddSourceFormProps) {
   const [url, setUrl] = useState(editData?.url || "");
   const [name, setName] = useState(editData?.name || "");
   const [description, setDescription] = useState(editData?.description || "");
-  const [depth, setDepth] = useState(editData?.depth || 2);
-  const [cadence, setCadence] = useState(editData?.cadence || "daily");
-  const [headless, setHeadless] = useState(editData?.headless || false);
-  const [allowPatterns, setAllowPatterns] = useState<string[]>(editData?.allowPatterns || []);
-  const [denyPatterns, setDenyPatterns] = useState<string[]>(editData?.denyPatterns || []);
+  const [crawlDepth, setCrawlDepth] = useState<number>(editData?.crawlDepth || 2);
+  // UI cadence values: "hourly" | "daily" | "weekly" (mapped to API on submit)
+  const [cadenceUI, setCadenceUI] = useState<string>("daily");
+  // Use a simple boolean toggle for headless, map to API headlessMode on submit
+  const [headless, setHeadless] = useState<boolean>(false);
+  const [includePatterns, setIncludePatterns] = useState<string[]>(editData?.includePatterns || []);
+  const [excludePatterns, setExcludePatterns] = useState<string[]>(editData?.excludePatterns || []);
   const [newAllowPattern, setNewAllowPattern] = useState("");
   const [newDenyPattern, setNewDenyPattern] = useState("");
 
+  // Keep form in sync when switching between add and edit
+  useEffect(() => {
+    setUrl(editData?.url || "");
+    setName(editData?.name || "");
+    setDescription(editData?.description || "");
+    setCrawlDepth(editData?.crawlDepth || 2);
+    // Defaults for fields not present in site object
+    setCadenceUI("daily");
+    setHeadless(false);
+    setIncludePatterns(editData?.includePatterns || []);
+    setExcludePatterns(editData?.excludePatterns || []);
+  }, [editData, open]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
-      url,
+    // Map UI fields to CrawlSiteData expected by API layer
+    const mappedCadence: CrawlSiteData["cadence"] =
+      cadenceUI === "daily" ? "DAILY" : cadenceUI === "weekly" ? "WEEKLY" : "ONCE";
+
+    const payload: CrawlSiteData = {
       name,
+      url,
       description,
-      depth,
-      cadence,
-      headless,
-      allowPatterns,
-      denyPatterns,
-    });
+      crawlDepth,
+      cadence: mappedCadence,
+      headlessMode: headless ? "ON" : "OFF",
+      includePatterns,
+      excludePatterns,
+    };
+
+    onSubmit(payload);
     onOpenChange(false);
   };
 
   const addAllowPattern = () => {
     if (newAllowPattern.trim()) {
-      setAllowPatterns([...allowPatterns, newAllowPattern.trim()]);
+      setIncludePatterns([...includePatterns, newAllowPattern.trim()]);
       setNewAllowPattern("");
     }
   };
 
   const addDenyPattern = () => {
     if (newDenyPattern.trim()) {
-      setDenyPatterns([...denyPatterns, newDenyPattern.trim()]);
+      setExcludePatterns([...excludePatterns, newDenyPattern.trim()]);
       setNewDenyPattern("");
     }
   };
@@ -121,7 +143,7 @@ export function AddSourceForm({ open, onOpenChange, onSubmit, editData }: AddSou
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <Label htmlFor="crawl-depth">Crawl Depth</Label>
-              <Select value={depth.toString()} onValueChange={(value) => setDepth(parseInt(value))}>
+              <Select value={crawlDepth.toString()} onValueChange={(value) => setCrawlDepth(parseInt(value))}>
                 <SelectTrigger data-testid="select-crawl-depth">
                   <SelectValue />
                 </SelectTrigger>
@@ -137,14 +159,14 @@ export function AddSourceForm({ open, onOpenChange, onSubmit, editData }: AddSou
 
             <div>
               <Label htmlFor="cadence">Crawl Frequency</Label>
-              <Select value={cadence} onValueChange={setCadence}>
+              <Select value={cadenceUI} onValueChange={setCadenceUI}>
                 <SelectTrigger data-testid="select-cadence">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="hourly">Every Hour</SelectItem>
                   <SelectItem value="daily">Daily</SelectItem>
                   <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="once">Once</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -183,7 +205,7 @@ export function AddSourceForm({ open, onOpenChange, onSubmit, editData }: AddSou
                 </Button>
               </div>
               <div className="flex flex-wrap gap-1">
-                {allowPatterns.map((pattern, index) => (
+                {includePatterns.map((pattern, index) => (
                   <Badge key={index} variant="outline" className="flex items-center gap-1">
                     {pattern}
                     <Button
@@ -191,7 +213,7 @@ export function AddSourceForm({ open, onOpenChange, onSubmit, editData }: AddSou
                       variant="ghost"
                       size="sm"
                       className="h-4 w-4 p-0"
-                      onClick={() => setAllowPatterns(allowPatterns.filter((_, i) => i !== index))}
+                      onClick={() => setIncludePatterns(includePatterns.filter((_, i) => i !== index))}
                       data-testid={`button-remove-allow-${index}`}
                     >
                       <X className="h-3 w-3" />
@@ -218,7 +240,7 @@ export function AddSourceForm({ open, onOpenChange, onSubmit, editData }: AddSou
                 </Button>
               </div>
               <div className="flex flex-wrap gap-1">
-                {denyPatterns.map((pattern, index) => (
+                {excludePatterns.map((pattern, index) => (
                   <Badge key={index} variant="outline" className="flex items-center gap-1">
                     {pattern}
                     <Button
@@ -226,7 +248,7 @@ export function AddSourceForm({ open, onOpenChange, onSubmit, editData }: AddSou
                       variant="ghost"
                       size="sm"
                       className="h-4 w-4 p-0"
-                      onClick={() => setDenyPatterns(denyPatterns.filter((_, i) => i !== index))}
+                      onClick={() => setExcludePatterns(excludePatterns.filter((_, i) => i !== index))}
                       data-testid={`button-remove-deny-${index}`}
                     >
                       <X className="h-3 w-3" />

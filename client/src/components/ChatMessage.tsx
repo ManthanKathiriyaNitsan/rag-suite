@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 // 💬 Import feedback hook
 import { useChatFeedback } from "@/hooks/useChat";
+import { linkifyTextToNodes } from "@/lib/linkify";
 
 interface Citation {
   title: string;
@@ -107,7 +108,7 @@ export const ChatMessage = React.memo(function ChatMessage({
                   hyphens: 'auto'
                 }}
               >
-                {content}
+                {type === "assistant" ? linkifyTextToNodes(content) : content}
               </p>
             </div>
 

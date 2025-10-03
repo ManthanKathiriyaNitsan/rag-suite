@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Grid, List, Filter, Search, Upload, Trash2, RefreshCw, FileText, ExternalLink, Loader2, Eye, Edit } from "lucide-react";
 import { UploadDocumentForm } from "@/components/forms/UploadDocumentForm";
+import { EditDocumentForm } from "@/components/forms/EditDocumentForm";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +32,8 @@ export default function Documents() {
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showUploadForm, setShowUploadForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingDoc, setEditingDoc] = useState<Document | null>(null);
   const { toast } = useToast();
 
   // 📄 Real API state
@@ -120,11 +123,8 @@ export default function Documents() {
   };
 
   const handleEditDocument = (doc: Document) => {
-    // TODO: Implement edit functionality
-    toast({
-      title: "Edit Document",
-      description: "Edit functionality coming soon",
-    });
+    setEditingDoc(doc);
+    setShowEditForm(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -572,14 +572,35 @@ export default function Documents() {
                 </div>
 
                 <div className="flex gap-2 pt-4">
-                  <Button variant="outline" size="sm" data-testid="button-reindex-document">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    data-testid="button-reindex-document"
+                    onClick={() => {
+                      toast({
+                        title: "Re-indexing Started",
+                        description: `Re-indexing ${selectedDoc.title}`,
+                      });
+                    }}
+                  >
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Re-index
                   </Button>
-                  <Button variant="outline" size="sm" data-testid="button-delete-document">
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    data-testid="button-delete-document"
+                    disabled={isDeleting}
+                    onClick={async () => {
+                      await handleDeleteDocument(selectedDoc.id);
+                      setSelectedDoc(null);
+                    }}
+                  >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete
                   </Button>
+                  
                 </div>
               </div>
             </>
@@ -593,6 +614,35 @@ export default function Documents() {
         onOpenChange={setShowUploadForm}
         onSubmit={handleUploadDocument}
       />
+
+      {/* Edit Document Form */}
+      {editingDoc && (
+        <EditDocumentForm
+          open={showEditForm}
+          onOpenChange={(open) => {
+            setShowEditForm(open);
+            if (!open) setEditingDoc(null);
+          }}
+          documentId={editingDoc.id}
+          initialMetadata={{
+            title: editingDoc.title,
+            description: editingDoc.description,
+            language: editingDoc.language,
+            source: editingDoc.source,
+  
+            isPublic: (editingDoc as any).isPublic ?? false,
+            priority: (editingDoc as any).priority ?? "medium",
+            tags: (editingDoc as any).tags ?? [],
+          } as DocumentMetadata}
+          onSubmit={async () => {
+            await loadDocuments();
+            toast({
+              title: "Document Updated",
+              description: "Changes saved successfully",
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

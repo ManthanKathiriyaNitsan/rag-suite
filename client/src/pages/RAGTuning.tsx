@@ -284,6 +284,7 @@ export default function RAGTuning() {
                 showSendButton
                 data-testid="rag-query-input"
               />
+              {/* 🧾 Recent Query History removed */}
               
               {/* 🔍 Enhanced loading indicator for search */}
               {isSearching && (

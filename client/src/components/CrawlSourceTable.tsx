@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CrawlSite } from "@/lib/api";
+import { CrawlSite, crawlAPI } from "@/lib/api";
 
 // 🕷️ Updated interface to match API data
 interface CrawlSourceTableProps {
@@ -76,16 +76,24 @@ export function CrawlSourceTable({
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const { toast } = useToast();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return "default";
-      case "Paused":
-        return "secondary";
-      case "Error":
-        return "destructive";
+  const getStatusBadge = (status: string): { variant: "default" | "secondary" | "destructive" | "outline"; className: string } => {
+    const s = (status || "").toLowerCase();
+    switch (s) {
+      case "active":
+        // User request: Active should be blue with white text
+        return { variant: "outline", className: "bg-blue-600 text-white border-blue-600" };
+      case "pending":
+        return { variant: "outline", className: "bg-yellow-50 text-yellow-700 border-yellow-200" };
+      case "inactive":
+        return { variant: "secondary", className: "bg-gray-100 text-gray-700" };
+      case "crawling":
+      case "running":
+        return { variant: "outline", className: "bg-blue-50 text-blue-700 border-blue-200" };
+      case "error":
+        // User request: Error should be red with white text
+        return { variant: "destructive", className: "bg-red-600 text-white border-red-600" };
       default:
-        return "secondary";
+        return { variant: "secondary", className: "bg-gray-100 text-gray-700" };
     }
   };
 
@@ -122,7 +130,7 @@ export function CrawlSourceTable({
             <TableHead>URL</TableHead>
             <TableHead>Depth</TableHead>
             <TableHead>Cadence</TableHead>
-            <TableHead>Headless</TableHead>
+            <TableHead>Headless Mode</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Last Crawl</TableHead>
             <TableHead>Documents</TableHead>
@@ -154,21 +162,26 @@ export function CrawlSourceTable({
                   <div className="flex flex-col">
                     <span className="font-medium">{site.name}</span>
                     <span className="text-xs text-muted-foreground truncate">
-                      {site.url}
+                      {crawlAPI.normalizeUrl(site.url)}
                     </span>
                   </div>
                 </TableCell>
                 <TableCell>{site.crawlDepth || 'Auto'}</TableCell>
-                <TableCell>Manual</TableCell>
+                <TableCell>{site.cadence ?? 'ONCE'}</TableCell>
               <TableCell>
                 <Badge variant="outline" className="text-xs">
-                    {site.respectRobotsTxt ? 'Respect' : 'Ignore'}
+                    {site.headlessMode ?? 'AUTO'}
                 </Badge>
               </TableCell>
               <TableCell>
-                  <Badge variant={getStatusColor(site.status)} className="text-xs">
-                    {site.status}
-                </Badge>
+                {(() => {
+                  const badge = getStatusBadge(site.status);
+                  return (
+                    <Badge variant={badge.variant} className={`text-xs ${badge.className}`}>
+                      {site.status}
+                    </Badge>
+                  );
+                })()}
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
                   {site.lastCrawled ? 

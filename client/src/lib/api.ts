@@ -230,6 +230,16 @@ export const chatAPI = {
 
 // 🕷️ Crawl API functions - This handles all crawl functionality
 export const crawlAPI = {
+  // Helper to clean up URLs from stray quotes/backticks/whitespace
+  normalizeUrl(input: string) {
+    if (!input) return '';
+    const trimmed = String(input).trim();
+    // Remove enclosing quotes/backticks if present
+    const unquoted = trimmed.replace(/^([`"'])(.*)\1$/, '$2');
+    // Collapse internal whitespace
+    const collapsed = unquoted.replace(/\s+/g, ' ');
+    return collapsed;
+  },
   // Add a new crawling target
   addSite: async (siteData: CrawlSiteData) => {
     console.log('🕷️ Crawl API - Adding site:', siteData);
@@ -238,7 +248,7 @@ export const crawlAPI = {
       // Transform frontend data to backend schema
       const backendData = {
         name: siteData.name,
-        base_url: siteData.url,
+        base_url: crawlAPI.normalizeUrl(siteData.url),
         description: siteData.description || '',
         depth: siteData.crawlDepth || 2,
         cadence: siteData.cadence || 'ONCE',
@@ -268,7 +278,7 @@ export const crawlAPI = {
       return response.data.map((site: any) => ({
         id: site.id,
         name: site.name,
-        url: site.base_url,
+        url: crawlAPI.normalizeUrl(site.base_url),
         description: site.description,
         status: site.status === 'READY' ? 'active' : 
                 site.status === 'PENDING' ? 'pending' : 
@@ -283,6 +293,8 @@ export const crawlAPI = {
         includePatterns: site.allowlist || [],
         excludePatterns: site.denylist || [],
         crawlDelay: site.delay_seconds,
+        cadence: site.cadence,
+        headlessMode: site.headless_mode,
         respectRobotsTxt: true,
         followRedirects: true,
         customHeaders: {}
@@ -301,7 +313,7 @@ export const crawlAPI = {
       // Transform frontend data to backend schema
       const backendData = {
         name: siteData.name,
-        base_url: siteData.url,
+        base_url: crawlAPI.normalizeUrl(siteData.url),
         description: siteData.description || '',
         depth: siteData.crawlDepth || 2,
         cadence: siteData.cadence || 'ONCE',
@@ -757,6 +769,8 @@ export interface CrawlSite {
   includePatterns?: string[];
   excludePatterns?: string[];
   crawlDelay?: number;
+  cadence?: 'ONCE' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
+  headlessMode?: 'AUTO' | 'ON' | 'OFF';
   respectRobotsTxt?: boolean;
   followRedirects?: boolean;
   customHeaders?: Record<string, string>;

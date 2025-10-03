@@ -1,5 +1,6 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
+import { linkifyTextToNodes } from "@/lib/linkify";
 
 interface TypingIndicatorProps {
   message?: string;
@@ -139,7 +140,7 @@ export function StreamingResponse({
   return (
     <div className="space-y-2">
       <div className="text-sm">
-        {displayContent}
+        {linkifyTextToNodes(displayContent)}
         {isStreaming && <span className="animate-pulse">|</span>}
       </div>
     </div>

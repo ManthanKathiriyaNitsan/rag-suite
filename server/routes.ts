@@ -46,6 +46,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ message: "Logout successful" });
   });
 
+  // In-memory mock documents for demo purposes
+  type Doc = {
+    id: string;
+    title: string;
+    description?: string;
+    type: string;
+    source: string;
+    language: string;
+    status: string;
+    chunks: number;
+    lastIndexed: string;
+    url: string;
+    checksum: string;
+    size: string;
+  };
+
+  const documents: Doc[] = [
+    {
+      id: "doc-001",
+      title: "Getting Started Guide",
+      description: "Introductory documentation",
+      type: "pdf",
+      source: "docs.company.com",
+      language: "en",
+      status: "indexed",
+      chunks: 12,
+      lastIndexed: new Date().toISOString(),
+      url: "https://docs.company.com/getting-started.pdf",
+      checksum: "abc123",
+      size: "452 KB",
+    },
+    {
+      id: "doc-002",
+      title: "API Reference",
+      description: "REST API endpoints and usage",
+      type: "html",
+      source: "api.company.com",
+      language: "en",
+      status: "indexed",
+      chunks: 34,
+      lastIndexed: new Date().toISOString(),
+      url: "https://api.company.com/docs",
+      checksum: "def456",
+      size: "1.2 MB",
+    },
+  ];
+
+  const documentContents: Record<string, any> = {
+    "doc-001": {
+      id: "doc-001",
+      content: "Welcome to the Getting Started Guide...",
+      metadata: { category: "onboarding" },
+      extractedText: "Getting started content...",
+      summary: "High-level overview of product onboarding",
+      keywords: ["onboarding", "setup"],
+    },
+    "doc-002": {
+      id: "doc-002",
+      content: "API endpoints include /auth, /search, /documents...",
+      metadata: { category: "api" },
+      extractedText: "API details and examples...",
+      summary: "Complete API reference",
+      keywords: ["api", "reference"],
+    },
+  };
+
+  // Documents: list
+  app.get("/api/documents", (_req, res) => {
+    res.json(documents);
+  });
+
+  // Documents: update metadata
+  app.put("/api/documents/:id", (req, res) => {
+    const { id } = req.params;
+    const idx = documents.findIndex((d) => d.id === id);
+    if (idx === -1) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    const { title, description, source, language } = req.body || {};
+    const current = documents[idx];
+    const updated: Doc = {
+      ...current,
+      title: title ?? current.title,
+      description: description ?? current.description,
+      source: source ?? current.source,
+      language: language ?? current.language,
+      lastIndexed: new Date().toISOString(),
+    };
+    documents[idx] = updated;
+    return res.json(updated);
+  });
+
+  // Documents: delete
+  app.delete("/api/documents/:id", (req, res) => {
+    const { id } = req.params;
+    const idx = documents.findIndex((d) => d.id === id);
+    if (idx === -1) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+    documents.splice(idx, 1);
+    return res.json({ message: "Document deleted successfully" });
+  });
+
+  // Documents: get content
+  app.get("/api/documents/:id/content", (req, res) => {
+    const { id } = req.params;
+    const content = documentContents[id];
+    if (!content) {
+      return res.status(404).json({ message: "Content not found" });
+    }
+    return res.json(content);
+  });
+
+  // Documents: upload (mock)
+  app.post("/api/documents/upload", (req, res) => {
+    const { title, description, source, language } = req.body || {};
+    const id = `doc-${Date.now()}`;
+    const newDoc: Doc = {
+      id,
+      title: title || `Uploaded Document ${id}`,
+      description,
+      type: "pdf",
+      source: source || "uploads",
+      language: language || "en",
+      status: "indexed",
+      chunks: Math.floor(Math.random() * 10) + 1,
+      lastIndexed: new Date().toISOString(),
+      url: `https://uploads.local/${id}`,
+      checksum: Math.random().toString(36).slice(2),
+      size: `${Math.floor(Math.random() * 900) + 100} KB`,
+    };
+    documents.push(newDoc);
+    documentContents[id] = {
+      id,
+      content: "Uploaded content placeholder",
+      metadata: {},
+      extractedText: "Extracted text placeholder",
+    };
+    return res.status(201).json({ id, message: "Upload successful", status: "success" });
+  });
+
   // Mock crawl endpoints for testing
   app.get("/api/crawl/sites", (req, res) => {
     res.json([

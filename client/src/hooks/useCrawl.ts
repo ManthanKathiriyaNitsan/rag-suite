@@ -9,8 +9,11 @@ export const useCrawlSites = () => {
   const sitesQuery = useQuery({
     queryKey: ['crawl-sites'],
     queryFn: crawlAPI.getSites,
-    staleTime: 30000, // 30 seconds
-    refetchInterval: 10000, // Refetch every 10 seconds for live updates
+    // Disable automatic polling/refresh; fetch once unless manually invalidated
+    staleTime: Infinity,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // Add a new site
@@ -140,8 +143,11 @@ export const useCrawlOperations = () => {
       queryKey: ['crawl-status', id],
       queryFn: () => crawlAPI.getCrawlStatus(id),
       enabled: !!id,
-      refetchInterval: 2000, // Refetch every 2 seconds for live status
-      staleTime: 1000, // Consider data stale after 1 second
+      // Disable automatic polling for status as requested
+      refetchInterval: false,
+      staleTime: Infinity,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
     });
   };
 
@@ -180,32 +186,33 @@ export const useUrlPreview = () => {
 
 // 📊 Crawl statistics hook - Get crawl statistics
 export const useCrawlStats = () => {
-  const statsQuery = useQuery({
-    queryKey: ['crawl-stats'],
-    queryFn: async () => {
-      // This would be a separate endpoint for statistics
-      // For now, we'll calculate from sites data
-      const sites = await crawlAPI.getSites();
-      return {
-        totalSites: sites.length,
-        activeSites: sites.filter((site: CrawlSite) => site.status === 'active').length,
-        crawlingSites: sites.filter((site: CrawlSite) => site.status === 'crawling').length,
-        totalPages: sites.reduce((sum: number, site: CrawlSite) => sum + (site.pagesCrawled || 0), 0),
-        lastCrawled: sites
-          .filter((site: CrawlSite) => site.lastCrawled)
-          .sort((a: CrawlSite, b: CrawlSite) => 
-            new Date(b.lastCrawled || '').getTime() - new Date(a.lastCrawled || '').getTime()
-          )[0]?.lastCrawled,
-      };
-    },
-    staleTime: 60000, // 1 minute
-    refetchInterval: 30000, // Refetch every 30 seconds
+  // Reuse the crawl-sites query cache to derive stats without additional network calls
+  const sitesQuery = useQuery({
+    queryKey: ['crawl-sites'],
+    queryFn: crawlAPI.getSites,
+    staleTime: Infinity,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
+  const sites = (sitesQuery.data || []) as CrawlSite[];
+  const stats = {
+    totalSites: sites.length,
+    activeSites: sites.filter((site: CrawlSite) => site.status === 'active').length,
+    crawlingSites: sites.filter((site: CrawlSite) => site.status === 'crawling').length,
+    totalPages: sites.reduce((sum: number, site: CrawlSite) => sum + (site.pagesCrawled || 0), 0),
+    lastCrawled: sites
+      .filter((site: CrawlSite) => site.lastCrawled)
+      .sort((a: CrawlSite, b: CrawlSite) => 
+        new Date(b.lastCrawled || '').getTime() - new Date(a.lastCrawled || '').getTime()
+      )[0]?.lastCrawled,
+  };
+
   return {
-    stats: statsQuery.data,
-    isLoading: statsQuery.isLoading,
-    error: statsQuery.error,
-    refetch: statsQuery.refetch,
+    stats,
+    isLoading: sitesQuery.isLoading,
+    error: sitesQuery.error,
+    refetch: sitesQuery.refetch,
   };
 };

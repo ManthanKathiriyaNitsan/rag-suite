@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CrawlSourceTable } from "@/components/CrawlSourceTable";
+import { CrawlJobs } from "@/components/CrawlJobs";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -290,48 +291,7 @@ export default function Crawl() {
               </SelectContent>
             </Select>
           </div>
-
-          <Card className="w-full overflow-hidden">
-            <CardHeader>
-              <CardTitle>Crawl Jobs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {crawlJobs.map((job) => (
-                  <div
-                    key={job.id}
-                    className="flex items-center justify-between p-4 rounded-lg border hover-elevate cursor-pointer"
-                    data-testid={`job-${job.id}`}
-                    onClick={() => {
-                      setSelectedJobId(job.id);
-                      toast({
-                        title: "Job Details",
-                        description: `Viewing details for crawl job ${job.id}`,
-                      });
-                    }}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-sm">{job.id}</p>
-                        <Badge variant={getStatusColor(job.status)} className="text-xs">
-                          {job.status}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {job.source} • Started {job.started.toLocaleTimeString()}
-                      </p>
-                    </div>
-                    <div className="text-right space-y-1">
-                      <p className="text-sm font-medium">{job.pages} pages</p>
-                      <p className="text-xs text-muted-foreground">
-                        {job.duration} • {job.errors} errors
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <CrawlJobs sites={sites} />
         </TabsContent>
       </Tabs>
 
@@ -341,6 +301,18 @@ export default function Crawl() {
         onOpenChange={setShowAddSourceForm}
         onSubmit={handleAddSite}
       />
+
+      {/* Edit Source Form */}
+      {editingSite && (
+        <AddSourceForm
+          open={!!editingSite}
+          onOpenChange={(open) => {
+            if (!open) setEditingSite(null);
+          }}
+          onSubmit={(data) => handleUpdateSite(editingSite, data)}
+          editData={sites.find((s) => s.id === editingSite)}
+        />
+      )}
     </div>
   );
 }
