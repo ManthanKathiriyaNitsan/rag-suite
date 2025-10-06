@@ -34,12 +34,6 @@ export const UserDropdown = React.memo(function UserDropdown({ user }: UserDropd
   // 🔧 FIXED: Use only auth user or prop user, no static fallback
   const currentUser = authUser || user;
 
-  // 🔧 FIXED: Only show user data if user is actually logged in
-  if (!currentUser) {
-    console.log('🔍 UserDropdown - No user found, not rendering');
-    return null; // Don't render if no user is logged in
-  }
-
   // 🔧 FIXED: Ensure all user properties have fallback values (but no static data)
   const safeUser = {
     name: (currentUser as any)?.name || (currentUser as any)?.username || "User",
@@ -54,14 +48,14 @@ export const UserDropdown = React.memo(function UserDropdown({ user }: UserDropd
   console.log('🔍 UserDropdown - user prop:', user);
   console.log('🔍 UserDropdown - safeUser:', safeUser);
 
-  // 🔐 Updated logout handler using auth context
+  // 🔐 Updated logout handler using auth context (must be declared unconditionally)
   const handleLogout = useCallback(() => {
     logout(); // Use auth context logout function
     setLocation("/login");
   }, [logout, setLocation]);
 
+  // 🔧 FIXED: Compute initials unconditionally to preserve hook order
   const userInitials = useMemo(() => {
-    // 🔧 FIXED: Use safeUser with guaranteed name property
     return safeUser.name
       .split(" ")
       .map((n: string) => n[0])
@@ -69,6 +63,12 @@ export const UserDropdown = React.memo(function UserDropdown({ user }: UserDropd
       .toUpperCase()
       .slice(0, 2);
   }, [safeUser.name]);
+
+  // 🔧 FIXED: Only control rendering, never conditionally call hooks
+  if (!currentUser) {
+    console.log('🔍 UserDropdown - No user found, not rendering');
+    return null; // Don't render if no user is logged in
+  }
 
   return (
     <DropdownMenu>

@@ -4,7 +4,7 @@ import axios from 'axios';
 const API_BASE_URL = 'http://192.168.0.117:8000/api/v1';
 
 // 🕷️ Crawl API Configuration - Separate base URL for crawl functionality
-const CRAWL_API_BASE_URL = 'http://192.168.0.136:8000/api/v1';
+const CRAWL_API_BASE_URL = 'http://192.168.0.103:8000/api/v1';
 
 // 📡 Create axios instance - This is your API client
 export const apiClient = axios.create({

@@ -33,6 +33,9 @@ import Onboarding from "@/pages/Onboarding";
 import Profile from "@/pages/Profile";
 import { useState } from "react";
 import Signup from "./pages/Signup";
+import { BrandingProvider } from "@/contexts/BrandingContext";
+// import { useBranding } from "@/contexts/BrandingContext";
+import { I18nProvider } from "@/contexts/I18nContext";
 
 // 🔐 Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -182,7 +185,7 @@ function Router() {
           </DashboardLayout>
         </ProtectedRoute>
       </Route>
-      {/* 🔧 FIXED: Default route - redirect to login if no match */}
+      {/* Default route ensures redirect to login when no match */}
       <Route component={Login} />
     </Switch>
   );
@@ -192,14 +195,18 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <RAGSettingsProvider>
-          <ThemeProvider>
-            <TooltipProvider>
-              <Router />
-              <Toaster />
-            </TooltipProvider>
-          </ThemeProvider>
-        </RAGSettingsProvider>
+        <BrandingProvider>
+          <RAGSettingsProvider>
+            <ThemeProvider>
+              <TooltipProvider>
+                <I18nProvider>
+                  <Router />
+                  <Toaster />
+                </I18nProvider>
+              </TooltipProvider>
+            </ThemeProvider>
+          </RAGSettingsProvider>
+        </BrandingProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

@@ -38,6 +38,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { useBranding } from "@/contexts/BrandingContext";
 
 const menuItems = [
   {
@@ -120,6 +121,7 @@ export function AppSidebar() {
   const [location] = useLocation();
   const [selectedProject, setSelectedProject] = useState(projects[0]);
   const [isMobile, setIsMobile] = useState(false);
+  const { orgName, logoDataUrl } = useBranding();
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -136,8 +138,12 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="px-6 py-4">
         <div className="flex items-center gap-2">
-          <Bot className="h-6 w-6 text-primary" />
-          <span className="font-semibold text-lg">RAGSuite</span>
+          {logoDataUrl ? (
+            <img src={logoDataUrl} alt={`${orgName} logo`} className="h-6 w-6 rounded-sm" />
+          ) : (
+            <Bot className="h-6 w-6 text-[var(--primary)]" />
+          )}
+          <span className="font-semibold text-lg">{orgName || "RAGSuite"}</span>
         </div>
       </SidebarHeader>
 

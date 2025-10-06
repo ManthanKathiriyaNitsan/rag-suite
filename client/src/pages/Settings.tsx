@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Upload, Palette, Globe, Key, Activity, Eye, EyeOff, Copy, Trash2, Plus } from "lucide-react";
 import { CreateApiKeyForm } from "@/components/forms/CreateApiKeyForm";
 import { useToast } from "@/hooks/use-toast";
@@ -31,6 +31,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useI18n } from "@/contexts/I18nContext";
+import { useBranding } from "@/contexts/BrandingContext";
 
 // todo: remove mock functionality
 const apiKeys = [
@@ -63,10 +65,12 @@ const systemServices = [
 ];
 
 export default function Settings() {
-  const [orgName, setOrgName] = useState("Acme Corporation");
-  const [primaryColor, setPrimaryColor] = useState("#1F6FEB");
+  const { orgName: orgNameGlobal, primaryColor: primaryColorGlobal, logoDataUrl: logoGlobal, setBranding, resetBranding } = useBranding();
+  const [orgName, setOrgName] = useState(orgNameGlobal || "Acme Corporation");
+  const [primaryColor, setPrimaryColor] = useState(primaryColorGlobal || "#1F6FEB");
   const [retentionDays, setRetentionDays] = useState(90);
-  const [locale, setLocale] = useState("en");
+  // const [locale, setLocale] = useState("en");
+  const { locale, setLocale, t } = useI18n();
   const [showApiKey, setShowApiKey] = useState<string | null>(null);
   const [showCreateKeyForm, setShowCreateKeyForm] = useState(false);
   const { toast } = useToast();
@@ -104,6 +108,71 @@ export default function Settings() {
   const handleCopyKey = (key: string) => {
     navigator.clipboard.writeText(key);
     console.log("API key copied to clipboard");
+  };
+
+  // Branding: logo upload + persistence
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("branding");
+      if (saved) {
+        const b = JSON.parse(saved) as { orgName?: string; primaryColor?: string; logoDataUrl?: string | null };
+        if (typeof b.orgName !== "undefined") setOrgName(b.orgName ?? "");
+        if (typeof b.primaryColor !== "undefined") setPrimaryColor(b.primaryColor ?? "");
+        if (typeof b.logoDataUrl !== "undefined") setLogoDataUrl(b.logoDataUrl ?? null);
+      }
+    } catch (e) {
+      console.warn("Failed to load branding from localStorage", e);
+    }
+  }, []);
+
+  const handleLogoChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setLogoDataUrl(result);
+      toast({ title: "Logo uploaded", description: "Your logo preview has been updated." });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoDataUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleSaveBranding = () => {
+    try {
+      const data = { orgName, primaryColor, logoDataUrl };
+      localStorage.setItem("branding", JSON.stringify(data));
+      setBranding(data); // update global context so all pages reflect immediately
+      toast({ title: "Branding saved", description: "Organization name, color, and logo were saved." });
+    } catch (e) {
+      toast({ title: "Save failed", description: "Could not save branding settings.", variant: "destructive" });
+    }
+  };
+
+  const handleResetBranding = () => {
+    setOrgName("Acme Corporation");
+    setPrimaryColor("#1F6FEB");
+    setLogoDataUrl(null);
+    resetBranding();
+    localStorage.removeItem("branding");
+    toast({ title: "Branding reset", description: "Branding settings were reset to defaults." });
+  };
+
+  const handleSaveLocale = () => {
+    // I18nProvider already persists the locale; provide UX feedback only
+    toast({ title: t("settings.i18n.save"), description: `${locale} selected as default language.` });
+  };
+
+  const handleResetLocale = () => {
+    setLocale("en");
+    toast({ title: "Language reset", description: "Default language set to English (US)." });
   };
 
   return (
@@ -148,38 +217,73 @@ export default function Settings() {
 
                   <div>
                     <Label htmlFor="logo-upload">Logo Upload</Label>
+                    <input
+                      id="logo-upload"
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleLogoChange}
+                      data-testid="input-logo-file"
+                    />
                     <div className="mt-2 flex items-center gap-4">
-                      <div className="h-16 w-16 bg-secondary rounded-lg flex items-center justify-center">
-                        <Upload className="h-6 w-6 text-muted-foreground" />
+                      <div className="h-16 w-16 bg-secondary rounded-lg flex items-center justify-center overflow-hidden">
+                        {logoDataUrl ? (
+                          <img src={logoDataUrl} alt="Logo preview" className="h-full w-full object-contain" />
+                        ) : (
+                          <Upload className="h-6 w-6 text-muted-foreground" />
+                        )}
                       </div>
-                      <Button variant="outline" data-testid="button-upload-logo">
+                      <Button
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        data-testid="button-upload-logo"
+                      >
                         <Upload className="h-4 w-4 mr-2" />
                         Upload Logo
                       </Button>
+                      {logoDataUrl && (
+                        <Button variant="ghost" onClick={handleRemoveLogo} data-testid="button-remove-logo">
+                          Remove
+                        </Button>
+                      )}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Recommended: 64x64px PNG or SVG
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Recommended: 64x64px PNG or SVG</p>
                   </div>
 
                   <div>
                     <Label htmlFor="primary-color">Primary Color</Label>
                     <div className="mt-2 flex items-center gap-4">
-                      <div
-                        className="h-10 w-20 rounded border"
-                        style={{ backgroundColor: primaryColor }}
-                      />
+                      <div className="h-10 w-20 rounded border" style={{ backgroundColor: primaryColor }} />
                       <Input
                         id="primary-color"
                         type="color"
                         value={primaryColor}
-                        onChange={(e) => setPrimaryColor(e.target.value)}
+                        onChange={(e) => { const v = e.target.value; setPrimaryColor(v); setBranding({ primaryColor: v }); }}
                         className="w-20"
                         data-testid="input-primary-color"
                       />
                       <Input
+                        type="text"
+                        placeholder="#1F6FEB"
                         value={primaryColor}
-                        onChange={(e) => setPrimaryColor(e.target.value)}
+                        onChange={(e) => {
+                          let v = e.target.value.trim();
+                          if (/^[0-9a-fA-F]{6}$/.test(v)) v = '#' + v; // add # for 6-char hex
+                          setPrimaryColor(v);
+                          if (v.startsWith('#') || v.startsWith('rgb(') || v.startsWith('hsl(')) {
+                            setBranding({ primaryColor: v });
+                          }
+                        }}
+                        onBlur={(e) => {
+                          let v = e.target.value.trim();
+                          if (/^[0-9a-fA-F]{3}$/.test(v)) v = '#' + v; // add # for 3-char hex
+                          if (/^[0-9a-fA-F]{6}$/.test(v)) v = '#' + v; // add # for 6-char hex
+                          setPrimaryColor(v);
+                          if (v.startsWith('#') || v.startsWith('rgb(') || v.startsWith('hsl(')) {
+                            setBranding({ primaryColor: v });
+                          }
+                        }}
                         className="font-mono"
                         data-testid="input-primary-color-hex"
                       />
@@ -192,7 +296,7 @@ export default function Settings() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setPrimaryColor("#1F6FEB")}
+                        onClick={() => { const v = "#1F6FEB"; setPrimaryColor(v); setBranding({ primaryColor: v }); }}
                         data-testid="button-preset-blue"
                       >
                         <div className="w-4 h-4 bg-blue-500 rounded mr-2" />
@@ -201,7 +305,7 @@ export default function Settings() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setPrimaryColor("#22C55E")}
+                        onClick={() => { const v = "#22C55E"; setPrimaryColor(v); setBranding({ primaryColor: v }); }}
                         data-testid="button-preset-green"
                       >
                         <div className="w-4 h-4 bg-green-500 rounded mr-2" />
@@ -210,7 +314,7 @@ export default function Settings() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setPrimaryColor("#8B5CF6")}
+                        onClick={() => { const v = "#8B5CF6"; setPrimaryColor(v); setBranding({ primaryColor: v }); }}
                         data-testid="button-preset-purple"
                       >
                         <div className="w-4 h-4 bg-purple-500 rounded mr-2" />
@@ -225,8 +329,12 @@ export default function Settings() {
                   <Card className="p-4">
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 bg-secondary rounded flex items-center justify-center">
-                          <Upload className="h-4 w-4" />
+                        <div className="h-8 w-8 bg-secondary rounded flex items-center justify-center overflow-hidden">
+                          {logoDataUrl ? (
+                            <img src={logoDataUrl} alt="Logo preview" className="h-full w-full object-contain" />
+                          ) : (
+                            <Upload className="h-4 w-4" />
+                          )}
                         </div>
                         <span className="font-semibold">{orgName}</span>
                       </div>
@@ -242,8 +350,8 @@ export default function Settings() {
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline">Reset</Button>
-                <Button data-testid="button-save-branding">Save Changes</Button>
+                <Button variant="outline" onClick={handleResetBranding}>Reset</Button>
+                <Button onClick={handleSaveBranding} data-testid="button-save-branding">Save Changes</Button>
               </div>
             </CardContent>
           </Card>
@@ -343,8 +451,8 @@ export default function Settings() {
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline">Reset to Default</Button>
-                <Button data-testid="button-save-locale">Save Language</Button>
+                <Button variant="outline" onClick={handleResetLocale}>Reset to Default</Button>
+                <Button data-testid="button-save-locale" onClick={handleSaveLocale}>{t("settings.i18n.save")}</Button>
               </div>
             </CardContent>
           </Card>
@@ -407,15 +515,15 @@ export default function Settings() {
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {key.createdAt.toLocaleDateString()}
+                        {key.createdAt.toLocaleDateString(locale)}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
+                        {new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
                           Math.floor((key.lastUsed.getTime() - Date.now()) / (1000 * 60)),
                           "minute"
                         )}
                       </TableCell>
-                      <TableCell>{key.requests.toLocaleString()}</TableCell>
+                      <TableCell>{key.requests.toLocaleString(locale)}</TableCell>
                       <TableCell>{key.rateLimit}/hour</TableCell>
                       <TableCell>
                         <Button
@@ -464,8 +572,8 @@ export default function Settings() {
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Last Heartbeat</span>
                         <span className="font-medium">
-                          {new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-                            Math.floor((service.lastHeartbeat.getTime() - Date.now()) / (1000)),
+                          {new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
+                            Math.floor((service.lastHeartbeat.getTime() - Date.now()) / 1000),
                             "second"
                           )}
                         </span>
