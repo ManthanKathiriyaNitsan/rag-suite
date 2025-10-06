@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,6 +35,7 @@ import ABTestingTab from "./tabs/ABTestingTab";
 import PermissionsTab from "./tabs/PermissionsTab";
 import AuditLogsTab from "./tabs/AuditLogsTab";
 import SecurityComplianceTab from "./tabs/SecurityComplianceTab";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface IntegrationCreateEditProps {
   integrationId?: string;
@@ -57,9 +58,86 @@ export default function IntegrationCreateEdit({
   onBack, 
   onSave 
 }: IntegrationCreateEditProps) {
+  const { setTypography, setLayout } = useTheme();
   const [activeTab, setActiveTab] = useState("overview");
   const [isDraftSaved, setIsDraftSaved] = useState(false);
   
+  // Load typography settings from localStorage
+  const loadTypographyFromStorage = () => {
+    try {
+      const saved = localStorage.getItem("theme-typography");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          fontFamily: parsed.fontFamily || "Inter, system-ui, sans-serif",
+          fontSize: parsed.fontSize || {
+            xs: "0.75rem",
+            sm: "0.875rem",
+            base: "1rem",
+            lg: "1.125rem",
+            xl: "1.25rem",
+            "2xl": "1.5rem",
+          },
+        };
+      }
+    } catch (error) {
+      console.warn("Failed to load typography from localStorage:", error);
+    }
+    return {
+      fontFamily: "Inter, system-ui, sans-serif",
+      fontSize: {
+        xs: "0.75rem",
+        sm: "0.875rem", 
+        base: "1rem",
+        lg: "1.125rem",
+        xl: "1.25rem",
+        "2xl": "1.5rem",
+      },
+    };
+  };
+
+  // Load layout settings from localStorage
+  const loadLayoutFromStorage = () => {
+    try {
+      const saved = localStorage.getItem("theme-layout");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const layoutData = {
+          borderRadius: parsed.borderRadius || {
+            sm: "0.125rem",
+            md: "0.375rem",
+            lg: "0.5rem",
+          },
+          chatBubbleStyle: parsed.widgetAppearance?.chatBubbleStyle || "rounded",
+          avatarStyle: parsed.widgetAppearance?.avatarStyle || "circle",
+          animationsEnabled: parsed.widgetAppearance?.animationsEnabled ?? true,
+          customCSS: parsed.customCSS || {
+            enabled: false,
+            css: "",
+          },
+        };
+        console.log("🎨 IntegrationCreateEdit loaded layout from localStorage:", layoutData);
+        return layoutData;
+      }
+    } catch (error) {
+      console.warn("Failed to load layout from localStorage:", error);
+    }
+    return {
+      borderRadius: {
+        sm: "0.125rem",
+        md: "0.375rem",
+        lg: "0.5rem",
+      },
+      chatBubbleStyle: "rounded" as const,
+      avatarStyle: "circle" as const,
+      animationsEnabled: true,
+      customCSS: {
+        enabled: false,
+        css: "",
+      },
+    };
+  };
+
   // Form data state
   const [formData, setFormData] = useState({
     overview: {
@@ -148,23 +226,11 @@ export default function IntegrationCreateEdit({
       darkModeEnabled: true,
       defaultMode: "system" as const,
       
-      // Typography
-      fontFamily: "Inter, system-ui, sans-serif",
-      fontSize: {
-        xs: "0.75rem",
-        sm: "0.875rem", 
-        base: "1rem",
-        lg: "1.125rem",
-        xl: "1.25rem",
-        "2xl": "1.5rem",
-      },
+      // Typography - Load from localStorage
+      ...loadTypographyFromStorage(),
       
-      // Layout
-      borderRadius: {
-        sm: "0.125rem",
-        md: "0.375rem",
-        lg: "0.5rem",
-      },
+      // Layout - Load from localStorage
+      ...loadLayoutFromStorage(),
       
       // Spacing
       spacing: {
@@ -176,8 +242,10 @@ export default function IntegrationCreateEdit({
       },
       
       // Advanced
-      customCSS: "",
-      enableCustomCSS: false,
+      customCSS: {
+        enabled: false,
+        css: "",
+      },
       
       // Widget Appearance
       chatBubbleStyle: "rounded" as const,
@@ -1085,6 +1153,53 @@ export default function IntegrationCreateEdit({
     }));
   }, []);
 
+  // Sync typography changes with global context
+  useEffect(() => {
+    if (formData.theme?.fontFamily || formData.theme?.fontSize) {
+      setTypography({ 
+        fontFamily: formData.theme.fontFamily,
+        baseFontSize: formData.theme.fontSize?.base,
+        fontSize: formData.theme.fontSize
+      });
+    }
+  }, [formData.theme?.fontFamily, formData.theme?.fontSize, setTypography]);
+
+  // Sync layout changes with global context
+  useEffect(() => {
+    if (formData.theme?.borderRadius || formData.theme?.chatBubbleStyle || formData.theme?.avatarStyle || formData.theme?.animationsEnabled !== undefined || formData.theme?.customCSS) {
+      setLayout({
+        borderRadius: formData.theme.borderRadius,
+        widgetAppearance: {
+          chatBubbleStyle: formData.theme.chatBubbleStyle,
+          avatarStyle: formData.theme.avatarStyle,
+          animationsEnabled: formData.theme.animationsEnabled,
+        },
+        customCSS: formData.theme.customCSS
+      });
+    }
+  }, [formData.theme?.borderRadius, formData.theme?.chatBubbleStyle, formData.theme?.avatarStyle, formData.theme?.animationsEnabled, formData.theme?.customCSS, setLayout]);
+
+  // Ensure theme settings are preserved on component unmount
+  useEffect(() => {
+    return () => {
+      // Save theme settings when component unmounts
+      if (formData.theme) {
+        const themeLayout = {
+          borderRadius: formData.theme.borderRadius,
+          widgetAppearance: {
+            chatBubbleStyle: formData.theme.chatBubbleStyle,
+            avatarStyle: formData.theme.avatarStyle,
+            animationsEnabled: formData.theme.animationsEnabled,
+          },
+          customCSS: formData.theme.customCSS,
+        };
+        
+        localStorage.setItem("theme-layout", JSON.stringify(themeLayout));
+        console.log("🎨 Theme settings preserved on unmount");
+      }
+    };
+  }, [formData.theme]);
+
   const handleEnvironmentsChange = useCallback((data: any) => {
     setFormData(prev => ({
       ...prev,
@@ -1144,11 +1259,67 @@ export default function IntegrationCreateEdit({
   const handleSave = () => {
     setIsDraftSaved(true);
     console.log("Saving draft...");
+    
+    // Ensure theme settings are properly saved
+    if (formData.theme) {
+      console.log("🎨 Saving theme settings in draft:", formData.theme);
+      
+      // Save to localStorage
+      const themeLayout = {
+        borderRadius: formData.theme.borderRadius,
+        widgetAppearance: {
+          chatBubbleStyle: formData.theme.chatBubbleStyle,
+          avatarStyle: formData.theme.avatarStyle,
+          animationsEnabled: formData.theme.animationsEnabled,
+        },
+        customCSS: formData.theme.customCSS,
+      };
+      
+      localStorage.setItem("theme-layout", JSON.stringify(themeLayout));
+      console.log("🎨 Theme settings saved to localStorage");
+      
+      // Also sync with global context
+      setLayout(themeLayout);
+      console.log("🎨 Theme settings synced with global context");
+      
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('theme-changed'));
+      console.log("🎨 Theme change event dispatched");
+    }
+    
     // TODO: Implement save logic
   };
 
   const handlePublish = () => {
     console.log("Publishing integration...");
+    
+    // Ensure theme settings are properly saved before publishing
+    if (formData.theme) {
+      console.log("🎨 Saving theme settings before publish:", formData.theme);
+      
+      // Save to localStorage
+      const themeLayout = {
+        borderRadius: formData.theme.borderRadius,
+        widgetAppearance: {
+          chatBubbleStyle: formData.theme.chatBubbleStyle,
+          avatarStyle: formData.theme.avatarStyle,
+          animationsEnabled: formData.theme.animationsEnabled,
+        },
+        customCSS: formData.theme.customCSS,
+      };
+      
+      localStorage.setItem("theme-layout", JSON.stringify(themeLayout));
+      console.log("🎨 Theme settings saved to localStorage");
+      
+      // Also sync with global context
+      setLayout(themeLayout);
+      console.log("🎨 Theme settings synced with global context");
+      
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('theme-changed'));
+      console.log("🎨 Theme change event dispatched");
+    }
+    
     // TODO: Implement publish logic
   };
 

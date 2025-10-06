@@ -26,6 +26,7 @@ import {
   Info
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface ColorToken {
   name: string;
@@ -92,8 +93,10 @@ interface ThemeData {
   };
   
   // Advanced
-  customCSS: string;
-  enableCustomCSS: boolean;
+  customCSS: {
+    enabled: boolean;
+    css: string;
+  };
   
   // Widget Appearance
   chatBubbleStyle: "rounded" | "sharp" | "minimal";
@@ -118,7 +121,34 @@ const defaultColorTokens: ColorToken[] = [
 ];
 
 export default function ThemeTab({ data, onChange }: ThemeTabProps) {
-  const [theme, setTheme] = useState<ThemeData>(data);
+  const { setTypography, setLayout } = useTheme();
+  
+  // Load custom CSS from localStorage on initialization
+  const loadCustomCSSFromStorage = () => {
+    try {
+      const saved = localStorage.getItem("theme-layout");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const customCSS = parsed.customCSS || {
+          enabled: false,
+          css: "",
+        };
+        console.log("🎨 ThemeTab loaded custom CSS from localStorage:", customCSS);
+        return customCSS;
+      }
+    } catch (error) {
+      console.warn("Failed to load custom CSS from localStorage:", error);
+    }
+    return {
+      enabled: false,
+      css: "",
+    };
+  };
+  
+  const [theme, setTheme] = useState<ThemeData>(() => ({
+    ...data,
+    customCSS: loadCustomCSSFromStorage(),
+  }));
   const [activePreviewMode, setActivePreviewMode] = useState<"light" | "dark">("light");
   const [copiedColor, setCopiedColor] = useState<string | null>(null);
   const [importData, setImportData] = useState("");
@@ -127,16 +157,69 @@ export default function ThemeTab({ data, onChange }: ThemeTabProps) {
 
   // Sync local state when parent data changes (for edit mode)
   useEffect(() => {
-    setTheme(data);
+    setTheme(prev => ({
+      ...data,
+      customCSS: prev.customCSS, // Preserve custom CSS from localStorage
+    }));
   }, [data]);
+  
+  // Sync custom CSS with global context on mount
+  useEffect(() => {
+    if (theme.customCSS) {
+      console.log("🎨 ThemeTab syncing custom CSS with global context:", theme.customCSS);
+      setLayout({ customCSS: theme.customCSS });
+    }
+  }, []); // Only run on mount
+  
+  // Also sync when custom CSS changes
+  useEffect(() => {
+    if (theme.customCSS) {
+      console.log("🎨 ThemeTab custom CSS changed, syncing:", theme.customCSS);
+      setLayout({ customCSS: theme.customCSS });
+    }
+  }, [theme.customCSS, setLayout]);
 
   // Update parent state when theme changes
   useEffect(() => {
     onChange(theme);
   }, [theme, onChange]);
 
+  // Load preview font when fontFamily changes (preview-only)
+  useEffect(() => {
+    const primary = extractPrimaryFontName(theme.fontFamily);
+    if (primary) loadPreviewFont(primary);
+  }, [theme.fontFamily]);
   const updateTheme = (updates: Partial<ThemeData>) => {
     setTheme(prev => ({ ...prev, ...updates }));
+    // If typography-related fields updated, propagate globally
+    if (updates.fontFamily) {
+      setTypography({ fontFamily: updates.fontFamily });
+    }
+    if (updates.fontSize) {
+      // Update global typography for any font size change
+      const newFontSize = { ...theme.fontSize, ...updates.fontSize };
+      setTypography({ 
+        baseFontSize: newFontSize.base,
+        fontFamily: theme.fontFamily,
+        fontSize: newFontSize
+      });
+    }
+    // If layout-related fields updated, propagate globally
+    if (updates.borderRadius) {
+      setLayout({ borderRadius: updates.borderRadius });
+    }
+    if (updates.chatBubbleStyle || updates.avatarStyle || updates.animationsEnabled !== undefined) {
+      setLayout({ 
+        widgetAppearance: {
+          chatBubbleStyle: updates.chatBubbleStyle ?? theme.chatBubbleStyle,
+          avatarStyle: updates.avatarStyle ?? theme.avatarStyle,
+          animationsEnabled: updates.animationsEnabled ?? theme.animationsEnabled,
+        }
+      });
+    }
+    if (updates.customCSS) {
+      setLayout({ customCSS: updates.customCSS });
+    }
   };
 
   const copyToClipboard = async (text: string, colorName: string) => {
@@ -263,8 +346,10 @@ export default function ThemeTab({ data, onChange }: ThemeTabProps) {
       },
       
       // Advanced
-      customCSS: "",
-      enableCustomCSS: false,
+      customCSS: {
+        enabled: false,
+        css: "",
+      },
       
       // Widget Appearance
       chatBubbleStyle: "rounded",
@@ -652,14 +737,27 @@ export default function ThemeTab({ data, onChange }: ThemeTabProps) {
                 <CardContent>
                   <div 
                     className="p-6 rounded-lg space-y-4"
-                    style={previewStyles[activePreviewMode]}
+                    style={{
+                      ...previewStyles[activePreviewMode],
+                      fontFamily: theme.fontFamily,
+                      fontSize: theme.fontSize.base,
+                      lineHeight: 1.5,
+                    }}
                     data-testid="preview-container"
                   >
-                    {/* Preview Content */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold">AI Chat Preview</h3>
-                      
-                      {/* Chat Messages */}
+                     {/* Preview Content */}
+                     <div className="space-y-4">
+                       <h3 className="text-lg font-semibold" style={{ fontSize: theme.fontSize.lg }}>AI Chat Preview</h3>
+                       
+                       {/* Debug: Show current widget appearance settings */}
+                       <div className="text-xs text-muted-foreground space-y-1">
+                         <div>Debug - Widget Appearance:</div>
+                         <div>Chat Bubble: {theme.chatBubbleStyle}</div>
+                         <div>Avatar Style: {theme.avatarStyle}</div>
+                         <div>Animations: {theme.animationsEnabled ? "Enabled" : "Disabled"}</div>
+                       </div>
+                       
+                       {/* Chat Messages */}
                       <div className="space-y-3">
                         <div className="flex justify-end">
                           <div 
@@ -694,7 +792,7 @@ export default function ThemeTab({ data, onChange }: ThemeTabProps) {
                       <div className="flex gap-2 flex-wrap">
                         <div 
                           className="px-3 py-1 rounded text-sm font-medium"
-                          style={{ backgroundColor: theme.primaryColor, color: "white" }}
+                          style={{ backgroundColor: theme.primaryColor, color: "white", fontSize: theme.fontSize.sm }}
                         >
                           Primary Button
                         </div>
@@ -702,20 +800,21 @@ export default function ThemeTab({ data, onChange }: ThemeTabProps) {
                           className="px-3 py-1 rounded text-sm border"
                           style={{ 
                             borderColor: theme.borderColor,
-                            color: activePreviewMode === "light" ? theme.textPrimary : "#F0F6FC"
+                            color: activePreviewMode === "light" ? theme.textPrimary : "#F0F6FC",
+                            fontSize: theme.fontSize.sm,
                           }}
                         >
                           Secondary Button
                         </div>
                         <div 
                           className="px-2 py-1 rounded text-xs"
-                          style={{ backgroundColor: theme.successColor, color: "white" }}
+                          style={{ backgroundColor: theme.successColor, color: "white", fontSize: theme.fontSize.xs }}
                         >
                           Success
                         </div>
                         <div 
                           className="px-2 py-1 rounded text-xs"
-                          style={{ backgroundColor: theme.warningColor, color: "white" }}
+                          style={{ backgroundColor: theme.warningColor, color: "white", fontSize: theme.fontSize.xs }}
                         >
                           Warning
                         </div>
@@ -746,18 +845,6 @@ export default function ThemeTab({ data, onChange }: ThemeTabProps) {
                             token.name === "Border" ? theme.borderColor :
                             token.light
                           }}
-                          onClick={() => copyToClipboard(
-                            token.name === "Primary" ? theme.primaryColor :
-                            token.name === "Secondary" ? theme.secondaryColor :
-                            token.name === "Accent" ? theme.accentColor :
-                            token.name === "Background" ? theme.backgroundColor :
-                            token.name === "Surface" ? theme.surfaceColor :
-                            token.name === "Text Primary" ? theme.textPrimary :
-                            token.name === "Text Secondary" ? theme.textSecondary :
-                            token.name === "Border" ? theme.borderColor :
-                            token.light,
-                            token.name
-                          )}
                           data-testid={`color-swatch-${token.name.toLowerCase().replace(" ", "-")}`}
                         />
                         <div className="text-xs text-center">
@@ -805,74 +892,164 @@ export default function ThemeTab({ data, onChange }: ThemeTabProps) {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="font-xs">Extra Small</Label>
-                  <Input
-                    id="font-xs"
-                    value={theme.fontSize.xs}
-                    onChange={(e) => updateTheme({ 
-                      fontSize: { ...theme.fontSize, xs: e.target.value }
-                    })}
-                    data-testid="input-font-xs"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="font-sm">Small</Label>
-                  <Input
-                    id="font-sm"
-                    value={theme.fontSize.sm}
-                    onChange={(e) => updateTheme({ 
-                      fontSize: { ...theme.fontSize, sm: e.target.value }
-                    })}
-                    data-testid="input-font-sm"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="font-base">Base</Label>
-                  <Input
-                    id="font-base"
-                    value={theme.fontSize.base}
-                    onChange={(e) => updateTheme({ 
-                      fontSize: { ...theme.fontSize, base: e.target.value }
-                    })}
-                    data-testid="input-font-base"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="font-lg">Large</Label>
-                  <Input
-                    id="font-lg"
-                    value={theme.fontSize.lg}
-                    onChange={(e) => updateTheme({ 
-                      fontSize: { ...theme.fontSize, lg: e.target.value }
-                    })}
-                    data-testid="input-font-lg"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="font-xl">Extra Large</Label>
-                  <Input
-                    id="font-xl"
-                    value={theme.fontSize.xl}
-                    onChange={(e) => updateTheme({ 
-                      fontSize: { ...theme.fontSize, xl: e.target.value }
-                    })}
-                    data-testid="input-font-xl"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="font-2xl">2X Large</Label>
-                  <Input
-                    id="font-2xl"
-                    value={theme.fontSize["2xl"]}
-                    onChange={(e) => updateTheme({ 
-                      fontSize: { ...theme.fontSize, "2xl": e.target.value }
-                    })}
-                    data-testid="input-font-2xl"
-                  />
-                </div>
-              </div>
+               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                 <div className="space-y-2">
+                   <Label htmlFor="font-xs">Extra Small</Label>
+                   <div className="relative">
+                     <Input
+                       id="font-xs"
+                       type="number"
+                       min="0.5"
+                       step="0.001"
+                       value={parseFloat(theme.fontSize.xs.replace(/rem|px/, ''))}
+                       onChange={(e) => {
+                         let value = parseFloat(e.target.value) || 0.5;
+                         value = Math.max(0.5, value);
+                         // Limit to 3 decimal places
+                         value = Math.round(value * 1000) / 1000;
+                         updateTheme({ 
+                           fontSize: { ...theme.fontSize, xs: `${value}rem` }
+                         });
+                       }}
+                       data-testid="input-font-xs"
+                       className="pr-12"
+                     />
+                     <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                       rem
+                     </span>
+                   </div>
+                 </div>
+                 <div className="space-y-2">
+                   <Label htmlFor="font-sm">Small</Label>
+                   <div className="relative">
+                     <Input
+                       id="font-sm"
+                       type="number"
+                       min="0.5"
+                       step="0.001"
+                       value={parseFloat(theme.fontSize.sm.replace(/rem|px/, ''))}
+                       onChange={(e) => {
+                         let value = parseFloat(e.target.value) || 0.5;
+                         value = Math.max(0.5, value);
+                         // Limit to 3 decimal places
+                         value = Math.round(value * 1000) / 1000;
+                         updateTheme({ 
+                           fontSize: { ...theme.fontSize, sm: `${value}rem` }
+                         });
+                       }}
+                       data-testid="input-font-sm"
+                       className="pr-12"
+                     />
+                     <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                       rem
+                     </span>
+                   </div>
+                 </div>
+                 <div className="space-y-2">
+                   <Label htmlFor="font-base">Base</Label>
+                   <div className="relative">
+                     <Input
+                       id="font-base"
+                       type="number"
+                       min="0.5"
+                       step="0.001"
+                       value={parseFloat(theme.fontSize.base.replace(/rem|px/, ''))}
+                       onChange={(e) => {
+                         let value = parseFloat(e.target.value) || 0.5;
+                         value = Math.max(0.5, value);
+                         // Limit to 3 decimal places
+                         value = Math.round(value * 1000) / 1000;
+                         updateTheme({ 
+                           fontSize: { ...theme.fontSize, base: `${value}rem` }
+                         });
+                       }}
+                       data-testid="input-font-base"
+                       className="pr-12"
+                     />
+                     <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                       rem
+                     </span>
+                   </div>
+                 </div>
+                 <div className="space-y-2">
+                   <Label htmlFor="font-lg">Large</Label>
+                   <div className="relative">
+                     <Input
+                       id="font-lg"
+                       type="number"
+                       min="0.5"
+                       step="0.001"
+                       value={parseFloat(theme.fontSize.lg.replace(/rem|px/, ''))}
+                       onChange={(e) => {
+                         let value = parseFloat(e.target.value) || 0.5;
+                         value = Math.max(0.5, value);
+                         // Limit to 3 decimal places
+                         value = Math.round(value * 1000) / 1000;
+                         updateTheme({ 
+                           fontSize: { ...theme.fontSize, lg: `${value}rem` }
+                         });
+                       }}
+                       data-testid="input-font-lg"
+                       className="pr-12"
+                     />
+                     <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                       rem
+                     </span>
+                   </div>
+                 </div>
+                 <div className="space-y-2">
+                   <Label htmlFor="font-xl">Extra Large</Label>
+                   <div className="relative">
+                     <Input
+                       id="font-xl"
+                       type="number"
+                       min="0.5"
+                       step="0.001"
+                       value={parseFloat(theme.fontSize.xl.replace(/rem|px/, ''))}
+                       onChange={(e) => {
+                         let value = parseFloat(e.target.value) || 0.5;
+                         value = Math.max(0.5, value);
+                         // Limit to 3 decimal places
+                         value = Math.round(value * 1000) / 1000;
+                         updateTheme({ 
+                           fontSize: { ...theme.fontSize, xl: `${value}rem` }
+                         });
+                       }}
+                       data-testid="input-font-xl"
+                       className="pr-12"
+                     />
+                     <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                       rem
+                     </span>
+                   </div>
+                 </div>
+                 <div className="space-y-2">
+                   <Label htmlFor="font-2xl">2X Large</Label>
+                   <div className="relative">
+                     <Input
+                       id="font-2xl"
+                       type="number"
+                       min="0.5"
+                       step="0.001"
+                       value={parseFloat(theme.fontSize["2xl"].replace(/rem|px/, ''))}
+                       onChange={(e) => {
+                         let value = parseFloat(e.target.value) || 0.5;
+                         value = Math.max(0.5, value);
+                         // Limit to 3 decimal places
+                         value = Math.round(value * 1000) / 1000;
+                         updateTheme({ 
+                           fontSize: { ...theme.fontSize, "2xl": `${value}rem` }
+                         });
+                       }}
+                       data-testid="input-font-2xl"
+                       className="pr-12"
+                     />
+                     <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                       rem
+                     </span>
+                   </div>
+                 </div>
+               </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -994,20 +1171,20 @@ export default function ThemeTab({ data, onChange }: ThemeTabProps) {
                 </div>
                 <Switch
                   id="enable-custom-css"
-                  checked={theme.enableCustomCSS}
-                  onCheckedChange={(checked) => updateTheme({ enableCustomCSS: checked })}
+                  checked={theme.customCSS?.enabled || false}
+                  onCheckedChange={(checked) => updateTheme({ customCSS: { enabled: checked, css: theme.customCSS?.css || "" } })}
                   data-testid="switch-custom-css"
                 />
               </div>
 
-              {theme.enableCustomCSS && (
+              {theme.customCSS?.enabled && (
                 <div className="space-y-2">
                   <Label htmlFor="custom-css">Custom CSS Code</Label>
                   <Textarea
                     id="custom-css"
-                    value={theme.customCSS}
-                    onChange={(e) => updateTheme({ customCSS: e.target.value })}
-                    placeholder="/* Add your custom CSS here */&#10;.chat-widget { &#10;  /* Custom styles */ &#10;}"
+                    value={theme.customCSS?.css || ""}
+                    onChange={(e) => updateTheme({ customCSS: { enabled: true, css: e.target.value } })}
+                    placeholder="/* Add your custom CSS here */&#10;/* Example: Style the widget container */&#10;.widget-container { &#10;  border: 2px solid #3b82f6 !important; &#10;  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3) !important; &#10;}&#10;&#10;/* Example: Style chat bubbles */&#10;.chat-bubble { &#10;  border-radius: 20px !important; &#10;  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; &#10;}&#10;&#10;/* Example: Style chat messages */&#10;.chat-message { &#10;  margin-bottom: 1rem !important; &#10;}"
                     rows={12}
                     className="font-mono text-sm"
                     data-testid="textarea-custom-css"
@@ -1027,3 +1204,48 @@ export default function ThemeTab({ data, onChange }: ThemeTabProps) {
     </div>
   );
 }
+
+// Helper: extract primary font family name from CSS font-family string
+const extractPrimaryFontName = (fontFamily: string) => {
+  const first = (fontFamily || "").split(",")[0]?.trim() || "";
+  return first.replace(/^['"`]/, "").replace(/['"`]$/, "");
+};
+
+// Helper: load Google Font for known families (preview-only)
+const loadPreviewFont = (primaryName: string) => {
+  const known: Record<string, string> = {
+    Inter: "Inter:wght@400;500;600;700",
+    Roboto: "Roboto:wght@400;500;700",
+    Poppins: "Poppins:wght@400;500;600;700",
+    "Open Sans": "Open+Sans:wght@400;600;700",
+    "Source Sans Pro": "Source+Sans+Pro:wght@400;600;700",
+  };
+  const spec = known[primaryName];
+  if (!spec) return;
+  const id = `theme-tab-font-${primaryName.replace(/\s+/g, "-")}`;
+  if (document.getElementById(id)) return;
+  const link = document.createElement("link");
+  link.id = id;
+  link.rel = "stylesheet";
+  link.href = `https://fonts.googleapis.com/css2?family=${spec}&display=swap`;
+  document.head.appendChild(link);
+};
+
+
+
+/* Style the widget container */
+// .widget-container {
+//   border: 2px solid #3b82f6 !important;
+//   box-shadow: 0 0 20px rgba(59, 130, 246, 0.3) !important;
+// }
+
+// /* Style chat bubbles */
+// .chat-bubble {
+//   border-radius: 20px !important;
+//   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+// }
+
+// /* Style chat messages */
+// .chat-message {
+//   margin-bottom: 1rem !important;
+// }  

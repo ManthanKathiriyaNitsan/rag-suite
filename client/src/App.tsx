@@ -60,7 +60,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [widgetOpen, setWidgetOpen] = useState(false);
+  const [widgetOpen, setWidgetOpen] = useState(true); // Make widget visible by default
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);

@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 // 💬 Import feedback hook
 import { useChatFeedback } from "@/hooks/useChat";
 import { linkifyTextToNodes } from "@/lib/linkify";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface Citation {
   title: string;
@@ -54,6 +55,30 @@ export const ChatMessage = React.memo(function ChatMessage({
   // 💬 Use feedback hook
   const { submitFeedback, isSubmitting } = useChatFeedback();
   const [copied, setCopied] = useState(false);
+  
+  // Get widget appearance settings from global context
+  const getWidgetAppearance = () => {
+    try {
+      const saved = localStorage.getItem("theme-layout");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.widgetAppearance || {
+          chatBubbleStyle: "rounded",
+          avatarStyle: "circle",
+          animationsEnabled: true,
+        };
+      }
+    } catch (error) {
+      console.warn("Failed to load widget appearance from localStorage:", error);
+    }
+    return {
+      chatBubbleStyle: "rounded",
+      avatarStyle: "circle",
+      animationsEnabled: true,
+    };
+  };
+  
+  const widgetAppearance = getWidgetAppearance();
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(content);
@@ -78,11 +103,17 @@ export const ChatMessage = React.memo(function ChatMessage({
 
   return (
     <div
-      className={`flex gap-3 ${type === "user" ? "justify-end" : "justify-start"}`}
+      className={`chat-message flex gap-3 ${type === "user" ? "justify-end" : "justify-start"}`}
       data-testid={`message-${type}`}
     >
       {type === "assistant" && (
-        <Avatar className="h-8 w-8 mt-1">
+        <Avatar 
+          className={`h-8 w-8 mt-1 ${
+            widgetAppearance.avatarStyle === "circle" ? "rounded-full" :
+            widgetAppearance.avatarStyle === "square" ? "rounded-none" :
+            "rounded-md"
+          }`}
+        >
           <AvatarFallback className="bg-primary text-primary-foreground">
             <Bot className="h-4 w-4" />
           </AvatarFallback>
@@ -91,10 +122,16 @@ export const ChatMessage = React.memo(function ChatMessage({
 
       <div className={`max-w-[80%] min-w-0 ${type === "user" ? "order-first" : ""}`}>
         <Card
-          className={`p-4 ${
+          className={`chat-bubble p-4 ${
             type === "user"
               ? "bg-primary   ml-auto"
               : "bg-card"
+          } ${
+            widgetAppearance.chatBubbleStyle === "sharp" ? "rounded-none" :
+            widgetAppearance.chatBubbleStyle === "minimal" ? "rounded-sm" :
+            "rounded-lg"
+          } ${
+            widgetAppearance.animationsEnabled ? "transition-all duration-200 ease-in-out" : ""
           }`}
         >
           <div className="space-y-3">

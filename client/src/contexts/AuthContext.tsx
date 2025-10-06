@@ -35,6 +35,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   } = useAuth();
 
   const [error, setError] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState<boolean>(true);
+
+  // Handle initialization
+  useEffect(() => {
+    // Set a timeout to ensure we have time to check authentication
+    const initTimer = setTimeout(() => {
+      setIsInitializing(false);
+    }, 100);
+
+    return () => clearTimeout(initTimer);
+  }, []);
 
   // Clear error when it changes
   useEffect(() => {
@@ -53,10 +64,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated,
       user: user?.username,
       token: token ? 'present' : 'missing',
-      isLoading: isLoggingIn || isLoggingOut,
+      isLoading: isInitializing || isLoggingIn || isLoggingOut,
+      isInitializing,
       error
     });
-  }, [isAuthenticated, user, token, isLoggingIn, isLoggingOut, error]);
+  }, [isAuthenticated, user, token, isInitializing, isLoggingIn, isLoggingOut, error]);
 
   // Clear error function
   const clearError = () => {
@@ -81,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated,
     user,
     token,
-    isLoading: isLoggingIn || isLoggingOut,
+    isLoading: isInitializing || isLoggingIn || isLoggingOut,
     error,
     
     // Auth actions

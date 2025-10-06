@@ -12,6 +12,7 @@ import { testChatAPIConnection } from "@/lib/api";
 // 🌐 Import our global API hooks
 import { useSearch } from "@/hooks/useSearch";
 import { useChat } from "@/hooks/useChat";
+import { useTheme } from "@/contexts/ThemeContext";
 
 
 interface Message {
@@ -48,6 +49,64 @@ export function EmbeddableWidget({
 }: WidgetProps) {
   // 🎛️ Use global RAG settings
   const { settings } = useRAGSettings();
+  
+  // Get widget appearance settings from global context - make it reactive
+  const [widgetAppearance, setWidgetAppearance] = useState({
+    chatBubbleStyle: "rounded",
+    avatarStyle: "circle",
+    animationsEnabled: true,
+  });
+
+  // Update widget appearance when localStorage changes
+  useEffect(() => {
+    const getWidgetAppearance = () => {
+      try {
+        const saved = localStorage.getItem("theme-layout");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return parsed.widgetAppearance || {
+            chatBubbleStyle: "rounded",
+            avatarStyle: "circle",
+            animationsEnabled: true,
+          };
+        }
+      } catch (error) {
+        console.warn("Failed to load widget appearance from localStorage:", error);
+      }
+      return {
+        chatBubbleStyle: "rounded",
+        avatarStyle: "circle",
+        animationsEnabled: true,
+      };
+    };
+    
+    setWidgetAppearance(getWidgetAppearance());
+    
+    // Listen for storage changes
+    const handleStorageChange = () => {
+      console.log("🎨 EmbeddableWidget detected storage change, updating appearance");
+      setWidgetAppearance(getWidgetAppearance());
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check periodically for changes (since we're updating from the same tab)
+    const interval = setInterval(handleStorageChange, 1000);
+    
+    // Listen for custom theme change events
+    const handleThemeChange = () => {
+      console.log("🎨 EmbeddableWidget detected theme change event, updating appearance");
+      setWidgetAppearance(getWidgetAppearance());
+    };
+    
+    window.addEventListener('theme-changed', handleThemeChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('theme-changed', handleThemeChange);
+      clearInterval(interval);
+    };
+  }, []);
   
   const [activeTab, setActiveTab] = useState("auto");
   const [messages, setMessages] = useState<Message[]>([
@@ -340,7 +399,13 @@ export function EmbeddableWidget({
 
   return (
     <Card 
-      className="fixed md:bottom-6 bottom-1 w-[100%] md:right-6 mx-1  md:mx-0 md:w-96 h-[600px] shadow-xl z-50 flex flex-col overflow-hidden"
+      className={`widget-container fixed md:bottom-6 bottom-1 w-[100%] md:right-6 mx-1  md:mx-0 md:w-96 h-[600px] shadow-xl z-50 flex flex-col overflow-hidden ${
+        widgetAppearance.chatBubbleStyle === "sharp" ? "rounded-none" :
+        widgetAppearance.chatBubbleStyle === "minimal" ? "rounded-sm" :
+        "rounded-lg"
+      } ${
+        widgetAppearance.animationsEnabled ? "transition-all duration-200 ease-in-out" : ""
+      }`}
       style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
@@ -422,7 +487,7 @@ export function EmbeddableWidget({
 
           <TabsContent value="chat" className="flex-1 flex flex-col px-4 mt-0">
             <div 
-              className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-0 max-h-[400px] w-full"
+              className="flex-1 overflow-y-auto space-y-4  min-h-0 max-h-[400px] w-full"
               style={{
                 scrollbarWidth: 'thin',
                 scrollbarColor: '#d1d5db transparent'
@@ -467,7 +532,7 @@ export function EmbeddableWidget({
                 </div>
               )}
             </div>
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0  ">
               <SearchBar
                 placeholder="Type your message..."
                 onSearch={handleChat}
@@ -488,7 +553,7 @@ export function EmbeddableWidget({
 
           <TabsContent value="auto" className="flex-1 flex flex-col px-4 mt-0">
             <div 
-              className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-0 max-h-[400px] w-full"
+              className="flex-1 overflow-y-auto space-y-4 min-h-0 max-h-[400px] w-full"
               style={{
                 scrollbarWidth: 'thin',
                 scrollbarColor: '#d1d5db transparent'
@@ -533,7 +598,7 @@ export function EmbeddableWidget({
                 </div>
               )}
             </div>
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 ">
               <SearchBar
                 placeholder="Ask anything or search..."
                 onSearch={handleChat}
@@ -564,3 +629,21 @@ export function EmbeddableWidget({
     </Card>
   );
 }
+
+
+/* Style the widget container */
+// .widget-container {
+//   border: 2px solid #3b82f6 !important;
+//   box-shadow: 0 0 20px rgba(59, 130, 246, 0.3) !important;
+// }
+
+// /* Style chat bubbles */
+// .chat-bubble {
+//   border-radius: 20px !important;
+//   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+// }
+
+// /* Style chat messages */
+// .chat-message {
+//   margin-bottom: 1rem !important;
+// }
