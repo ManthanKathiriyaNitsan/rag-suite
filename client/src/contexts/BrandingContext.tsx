@@ -4,6 +4,11 @@ export type BrandingState = {
   orgName: string;
   primaryColor: string; // Hex or CSS color (e.g., #1F6FEB)
   logoDataUrl: string | null; // Base64 data URL
+  // Widget positioning controls
+  widgetZIndex: number;
+  widgetPosition: "bottom-right" | "bottom-left" | "top-right" | "top-left" | "center";
+  widgetOffsetX: number; // Custom X offset in pixels
+  widgetOffsetY: number; // Custom Y offset in pixels
 };
 
 type BrandingContextType = BrandingState & {
@@ -15,6 +20,11 @@ const DEFAULT_BRANDING: BrandingState = {
   orgName: "RAGSuite",
   primaryColor: "#1F6FEB",
   logoDataUrl: null,
+  // Widget positioning defaults
+  widgetZIndex: 50,
+  widgetPosition: "bottom-right",
+  widgetOffsetX: 0,
+  widgetOffsetY: 0,
 };
 
 const LOCAL_STORAGE_KEY = "branding";
@@ -118,6 +128,11 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
           orgName: parsed.orgName ?? DEFAULT_BRANDING.orgName,
           primaryColor: parsed.primaryColor ?? DEFAULT_BRANDING.primaryColor,
           logoDataUrl: typeof parsed.logoDataUrl !== "undefined" ? (parsed.logoDataUrl as string | null) : DEFAULT_BRANDING.logoDataUrl,
+          // Widget positioning fields
+          widgetZIndex: parsed.widgetZIndex ?? DEFAULT_BRANDING.widgetZIndex,
+          widgetPosition: parsed.widgetPosition ?? DEFAULT_BRANDING.widgetPosition,
+          widgetOffsetX: parsed.widgetOffsetX ?? DEFAULT_BRANDING.widgetOffsetX,
+          widgetOffsetY: parsed.widgetOffsetY ?? DEFAULT_BRANDING.widgetOffsetY,
         };
       }
     } catch {

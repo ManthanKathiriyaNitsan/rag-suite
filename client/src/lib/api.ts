@@ -144,7 +144,23 @@ export const searchAPI = {
       console.log('✅ API Response:', response.data);
       console.log('🔍 API Sources:', response.data.sources);
       console.log('🔍 API Response structure:', JSON.stringify(response.data, null, 2));
-      return response.data;  // Return the answer from API
+      
+      // Map server response to expected format
+      const mappedResponse = {
+        success: response.data.success || true,
+        answer: response.data.answer || '',
+        sources: response.data.sources ? response.data.sources.map((source: any) => ({
+          title: source.title || source.additionalProp1 || `Source ${Math.random().toString(36).substr(2, 9)}`,
+          url: source.url || source.additionalProp2 || '#',
+          snippet: source.snippet || source.additionalProp3 || 'No snippet available'
+        })) : [],
+        message: response.data.message || '',
+        timestamp: response.data.timestamp || new Date().toISOString(),
+        request_id: response.data.request_id || ''
+      };
+      
+      console.log('🔄 Mapped Response:', mappedResponse);
+      return mappedResponse;
     } catch (error) {
       console.error('❌ API Error:', error);
       throw error;  // Let the calling function handle the error
@@ -175,7 +191,23 @@ export const chatAPI = {
       });
       
       console.log('✅ Chat Response:', response.data);
-      return response.data;
+      
+      // Map server response to expected format for chat
+      const mappedResponse = {
+        success: response.data.success || true,
+        answer: response.data.answer || response.data.response || '',
+        sources: response.data.sources ? response.data.sources.map((source: any) => ({
+          title: source.title || source.additionalProp1 || `Source ${Math.random().toString(36).substr(2, 9)}`,
+          url: source.url || source.additionalProp2 || '#',
+          snippet: source.snippet || source.additionalProp3 || 'No snippet available'
+        })) : [],
+        message: response.data.message || '',
+        timestamp: response.data.timestamp || new Date().toISOString(),
+        request_id: response.data.request_id || ''
+      };
+      
+      console.log('🔄 Mapped Chat Response:', mappedResponse);
+      return mappedResponse;
     } catch (error) {
       console.error('❌ Chat Error:', error);
       throw error;
@@ -701,12 +733,20 @@ export const testChatAPIConnection = async () => {
 
 // 📝 Type definitions - This tells TypeScript what your API returns
 export interface SearchResponse {
+  success: boolean;
   answer: string;           // The AI's answer
   sources?: Array<{        // Optional sources/citations
-    title: string;
-    url: string;
-    snippet: string;
+    title?: string;
+    url?: string;
+    snippet?: string;
+    // Handle server's additional properties
+    additionalProp1?: string;
+    additionalProp2?: string;
+    additionalProp3?: string;
   }>;
+  message?: string;
+  timestamp?: string;
+  request_id?: string;
 }
 
 // 💬 Chat type definitions

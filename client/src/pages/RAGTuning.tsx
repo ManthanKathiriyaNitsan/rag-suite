@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Send, Copy, Settings, Zap, Loader2, Trash2, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +6,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { SearchBar } from "@/components/SearchBar";
+import { SearchBar, SearchBarRef } from "@/components/SearchBar";
 import { ChatMessage } from "@/components/ChatMessage";
 import { TypingIndicator, TypingAnimation, StreamingResponse } from "@/components/TypingIndicator";
 import { useRAGSettings, usePerformanceMetrics } from "@/contexts/RAGSettingsContext";
@@ -38,14 +38,40 @@ export default function RAGTuning() {
   const { settings, updateSettings } = useRAGSettings();
   const { metrics, updateMetrics } = usePerformanceMetrics();
   
-  const [messages, setMessages] = useState<Message[]>(
-    [
-    {
-      type: "assistant",
-      content: "Welcome to the RAG Tuning Playground! Ask me anything about your documentation to test different retrieval and generation settings.",
-      timestamp: new Date(),
-    },
-  ]);
+  // 💬 Load messages from sessionStorage on mount
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const savedMessages = sessionStorage.getItem('rag-tuning-messages');
+      if (savedMessages) {
+        const parsedMessages = JSON.parse(savedMessages);
+        // Convert timestamp strings back to Date objects
+        return parsedMessages.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+      }
+    } catch (error) {
+      console.warn('Failed to load RAG tuning messages from sessionStorage:', error);
+    }
+    
+    // Default welcome message
+    return [
+      {
+        type: "assistant",
+        content: "Welcome to the RAG Tuning Playground! Ask me anything about your documentation to test different retrieval and generation settings.",
+        timestamp: new Date(),
+      },
+    ];
+  });
+
+  // 💬 Save messages to sessionStorage whenever messages change
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('rag-tuning-messages', JSON.stringify(messages));
+    } catch (error) {
+      console.warn('Failed to save RAG tuning messages to sessionStorage:', error);
+    }
+  }, [messages]);
 
   // 🌐 Use our global search hook
   const { searchAsync, isSearching, searchData, searchError } = useSearch();
@@ -56,6 +82,12 @@ export default function RAGTuning() {
   
   // 📋 Current session state
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>();
+  
+  // 🧹 Ref for SearchBar to clear it after search
+  const searchBarRef = useRef<SearchBarRef>(null);
+  
+  // 📜 Ref for messages container to auto-scroll
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // 🎭 Animation states
   const [isTyping, setIsTyping] = useState(false);
@@ -74,6 +106,16 @@ export default function RAGTuning() {
       await new Promise(resolve => setTimeout(resolve, 50)); // 50ms delay between words
     }
   };
+
+  // 📜 Auto-scroll to bottom when new messages are added
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // 📜 Auto-scroll when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   // 🔍 Extract actual TopK from server message
   const extractTopKFromMessage = (message: string): { topK: number; reranker: boolean } => {
@@ -154,6 +196,8 @@ export default function RAGTuning() {
       const ragSources = searchResponse.sources || [];
       console.log("🔍 RAG sources array:", ragSources);
       console.log("🔍 RAG sources length:", ragSources.length);
+      console.log("🔍 First 5 RAG sources:", ragSources.slice(0, 5));
+      console.log("🔍 All RAG sources structure:", ragSources.map((s, i) => ({ index: i, title: s.title, url: s.url, snippet: s.snippet?.substring(0, 50) + "..." })));
 
       // 🔧 Fallback: If no sources from API, create mock sources based on TopK
       let finalRagSources = ragSources;
@@ -167,14 +211,19 @@ export default function RAGTuning() {
       }
 
       // Create final assistant message with RAG settings
+      const mappedRagSources = finalRagSources.map((source: any) => ({
+        title: source.title || "Unknown Source",
+        url: source.url || "#",
+        snippet: source.snippet || "No snippet available",
+      }));
+      
+      console.log("🔍 Mapped RAG sources length:", mappedRagSources.length);
+      console.log("🔍 Mapped RAG sources:", mappedRagSources);
+      
       const assistantMessage: Message = {
         type: "assistant",
         content: responseContent,
-        citations: finalRagSources.map((source: any) => ({
-          title: source.title || "Unknown Source",
-          url: source.url || "#",
-          snippet: source.snippet || "No snippet available",
-        })),
+        citations: mappedRagSources,
         timestamp: new Date(),
         ragSettings: settings, // 🎛️ Pass RAG settings
         queryString: query, // 🔍 Pass original query
@@ -187,6 +236,9 @@ export default function RAGTuning() {
       setIsStreaming(false);
       setStreamingContent("");
       console.log("✅ RAG Query processed successfully with search API only");
+      
+      // 🧹 Clear search bar after successful search
+      searchBarRef.current?.clear();
 
     } catch (error) {
       console.error("❌ Search API call failed:", error);
@@ -279,6 +331,7 @@ export default function RAGTuning() {
             </CardHeader>
             <CardContent className="space-y-4">
               <SearchBar
+                ref={searchBarRef}
                 placeholder="Ask about policies, docs, or how-tos..."
                 onSearch={handleQuery}
                 showSendButton
@@ -354,20 +407,23 @@ export default function RAGTuning() {
                   </div>
                 )}
                 
-                {/* 🌊 Streaming Response */}
-                {isStreaming && streamingContent && (
-                  <div className="flex justify-start">
-                    <div className="max-w-[80%]">
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <StreamingResponse 
-                          content={streamingContent} 
-                          isStreaming={isStreaming}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+                 {/* 🌊 Streaming Response */}
+                 {isStreaming && streamingContent && (
+                   <div className="flex justify-start">
+                     <div className="max-w-[80%]">
+                       <div className="bg-muted/50 rounded-lg p-3">
+                         <StreamingResponse 
+                           content={streamingContent} 
+                           isStreaming={isStreaming}
+                         />
+                       </div>
+                     </div>
+                   </div>
+                 )}
+                 
+                 {/* 📜 Scroll target for auto-scroll */}
+                 <div ref={messagesEndRef} />
+               </div>
             </CardContent>
           </Card>
         </div>

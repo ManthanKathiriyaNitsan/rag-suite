@@ -6,50 +6,31 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-// 🔐 Import authentication context
-import { useAuthContext } from "@/contexts/AuthContext";
-
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [, setLocation] = useLocation();
-  
-  // 🔐 Use authentication context
-  const { login, isLoading, error, clearError, isAuthenticated } = useAuthContext();
 
-  // 🔐 Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      console.log('🔐 User is authenticated, redirecting to dashboard');
-      setLocation("/");
-    }
-  }, [isAuthenticated, setLocation]);
-
-  // 🔐 Handle successful login redirect
-  useEffect(() => {
-    if (isAuthenticated && !isLoading) {
-      console.log('🔐 Login successful, redirecting to dashboard');
-      setLocation("/");
-    }
-  }, [isAuthenticated, isLoading, setLocation]);
-
-  // 🔐 Updated handleSubmit using authentication context
+  // 🔐 Simple mock login
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    clearError(); // Clear any previous errors
     
-    try {
-      // Call login function from auth context
-      await login({ username, password });
+    // Simple mock authentication - accept any username/password
+    if (username && password) {
+      // Set authentication tokens in localStorage
+      localStorage.setItem('auth-token', 'mock-jwt-token-' + Date.now());
+      localStorage.setItem('auth-user', JSON.stringify({
+        id: 1,
+        username: username,
+        email: username + '@example.com',
+        name: username
+      }));
       
-      // Force redirect after successful login
-      setTimeout(() => {
-        console.log('🔐 Forcing redirect after login');
-        setLocation("/");
-      }, 100);
-    } catch (error) {
-      console.error('Login error:', error);
+      // Redirect to dashboard
+      setLocation("/");
+    } else {
+      alert('Please enter both username and password');
     }
   };
 
@@ -139,11 +120,6 @@ export default function Login() {
             
             <CardContent className="space-y-6">
               <form onSubmit={handleSubmit} className="space-y-4">
-                {error && (
-                  <Alert variant="destructive" data-testid="error-alert">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
                 
                 <div className="space-y-2">
                   <Label htmlFor="username" className="text-sm font-medium">Username</Label>
@@ -200,17 +176,9 @@ export default function Login() {
                 <Button
                   type="submit"
                   className="w-full h-11"
-                  disabled={isLoading}
                   data-testid="button-sign-in"
                 >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Signing in...
-                    </>
-                  ) : (
-                    "Sign in"
-                  )}
+                  Sign in
                 </Button>
               </form>
               

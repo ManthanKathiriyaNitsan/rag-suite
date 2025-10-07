@@ -28,11 +28,15 @@ interface UserDropdownProps {
 export const UserDropdown = React.memo(function UserDropdown({ user }: UserDropdownProps) {
   const [, setLocation] = useLocation();
   
-  // 🔐 Use authentication context
-  const { user: authUser, logout } = useAuthContext();
+  // 🔐 Simple localStorage-based authentication
+  const [currentUser, setCurrentUser] = React.useState<any>(null);
   
-  // 🔧 FIXED: Use only auth user or prop user, no static fallback
-  const currentUser = authUser || user;
+  React.useEffect(() => {
+    const userData = localStorage.getItem('auth-user');
+    if (userData) {
+      setCurrentUser(JSON.parse(userData));
+    }
+  }, []);
 
   // 🔧 FIXED: Ensure all user properties have fallback values (but no static data)
   const safeUser = {
@@ -44,15 +48,15 @@ export const UserDropdown = React.memo(function UserDropdown({ user }: UserDropd
 
   // 🔧 DEBUG: Log current user data (moved after safeUser definition)
   console.log('🔍 UserDropdown - currentUser:', currentUser);
-  console.log('🔍 UserDropdown - authUser:', authUser);
   console.log('🔍 UserDropdown - user prop:', user);
   console.log('🔍 UserDropdown - safeUser:', safeUser);
 
-  // 🔐 Updated logout handler using auth context (must be declared unconditionally)
+  // 🔐 Simple logout handler
   const handleLogout = useCallback(() => {
-    logout(); // Use auth context logout function
+    localStorage.removeItem('auth-token');
+    localStorage.removeItem('auth-user');
     setLocation("/login");
-  }, [logout, setLocation]);
+  }, [setLocation]);
 
   // 🔧 FIXED: Compute initials unconditionally to preserve hook order
   const userInitials = useMemo(() => {

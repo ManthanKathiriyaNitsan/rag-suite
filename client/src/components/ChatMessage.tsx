@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useChatFeedback } from "@/hooks/useChat";
 import { linkifyTextToNodes } from "@/lib/linkify";
 import { useTheme } from "@/contexts/ThemeContext";
+import { simpleHighlight } from "@/lib/textHighlighting";
 
 interface Citation {
   title: string;
@@ -105,6 +106,9 @@ export const ChatMessage = React.memo(function ChatMessage({
     <div
       className={`chat-message flex gap-3 ${type === "user" ? "justify-end" : "justify-start"}`}
       data-testid={`message-${type}`}
+      role="article"
+      aria-label={`${type === "user" ? "User" : "Assistant"} message`}
+      aria-live="polite"
     >
       {type === "assistant" && (
         <Avatar 
@@ -113,9 +117,10 @@ export const ChatMessage = React.memo(function ChatMessage({
             widgetAppearance.avatarStyle === "square" ? "rounded-none" :
             "rounded-md"
           }`}
+          aria-label="AI Assistant avatar"
         >
           <AvatarFallback className="bg-primary text-primary-foreground">
-            <Bot className="h-4 w-4" />
+            <Bot className="h-4 w-4" aria-hidden="true" />
           </AvatarFallback>
         </Avatar>
       )}
@@ -144,8 +149,12 @@ export const ChatMessage = React.memo(function ChatMessage({
                   whiteSpace: 'pre-wrap',
                   hyphens: 'auto'
                 }}
+                role="text"
+                aria-label={`${type === "user" ? "User" : "Assistant"} message content`}
               >
-                {type === "assistant" ? linkifyTextToNodes(content) : content}
+                {type === "assistant" ? (
+                  queryString ? simpleHighlight(content, queryString) : linkifyTextToNodes(content)
+                ) : content}
               </p>
             </div>
 
@@ -167,7 +176,7 @@ export const ChatMessage = React.memo(function ChatMessage({
                             {source.title || `Source ${index + 1}`}
                           </p>
                           <p className="text-xs text-muted-foreground leading-relaxed">
-                            {source.snippet}
+                            {queryString ? simpleHighlight(source.snippet, queryString) : source.snippet}
                           </p>
                           {source.url && source.url !== "#" && (
                             <a 
@@ -203,7 +212,7 @@ export const ChatMessage = React.memo(function ChatMessage({
                 </div>
 
                 {showFeedback && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1" role="group" aria-label="Message feedback">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -213,8 +222,11 @@ export const ChatMessage = React.memo(function ChatMessage({
                       className={`h-8 px-2 ${
                         feedback === "up" ? "bg-accent" : ""
                       }`}
+                      aria-label="Thumbs up - positive feedback"
+                      aria-pressed={feedback === "up"}
+                      tabIndex={0}
                     >
-                      <ThumbsUp className="h-3 w-3" />
+                      <ThumbsUp className="h-3 w-3" aria-hidden="true" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -225,8 +237,11 @@ export const ChatMessage = React.memo(function ChatMessage({
                       className={`h-8 px-2 ${
                         feedback === "down" ? "bg-accent" : ""
                       }`}
+                      aria-label="Thumbs down - negative feedback"
+                      aria-pressed={feedback === "down"}
+                      tabIndex={0}
                     >
-                      <ThumbsDown className="h-3 w-3" />
+                      <ThumbsDown className="h-3 w-3" aria-hidden="true" />
                     </Button>
                     {isSubmitting && (
                       <span className="text-xs text-muted-foreground">

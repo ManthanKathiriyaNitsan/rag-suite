@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -31,7 +32,6 @@ import Integrations from "@/pages/Integrations";
 import Login from "@/pages/Login";
 import Onboarding from "@/pages/Onboarding";
 import Profile from "@/pages/Profile";
-import { useState } from "react";
 import Signup from "./pages/Signup";
 import { BrandingProvider } from "@/contexts/BrandingContext";
 // import { useBranding } from "@/contexts/BrandingContext";
@@ -39,7 +39,35 @@ import { I18nProvider } from "@/contexts/I18nContext";
 
 // 🔐 Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuthContext();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Check if user is authenticated
+    const checkAuth = () => {
+      const token = localStorage.getItem('auth-token');
+      const user = localStorage.getItem('auth-user');
+      
+      if (token && user) {
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+      }
+      setIsLoading(false);
+    };
+
+    checkAuth();
+
+    // Listen for storage changes (logout from other tabs)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'auth-token' || e.key === 'auth-user') {
+        checkAuth();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   if (isLoading) {
     return (
@@ -60,11 +88,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [widgetOpen, setWidgetOpen] = useState(true); // Make widget visible by default
+  const [widgetOpen, setWidgetOpen] = useState(false); // Start with widget closed
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const { isTourActive, completeTour, skipTour } = useOnboarding();
+  
+  // 🔄 Close widget on page refresh/load
+  useEffect(() => {
+    // Ensure widget is closed when component mounts (page refresh)
+    setWidgetOpen(false);
+  }, []); // Empty dependency array means this runs only on mount
   
   const style = {
     "--sidebar-width": "20rem",

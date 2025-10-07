@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { MessageCircle, X, Minimize2, Search, MessageSquare, Zap, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { MessageCircle, X, Minimize2, Search, MessageSquare, Zap, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +13,7 @@ import { testChatAPIConnection } from "@/lib/api";
 import { useSearch } from "@/hooks/useSearch";
 import { useChat } from "@/hooks/useChat";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useBranding } from "@/contexts/BrandingContext";
 
 
 interface Message {
@@ -39,6 +40,10 @@ interface WidgetProps {
   onToggle?: () => void;
   title?: string;
   showPoweredBy?: boolean;
+  // 🎯 Custom Event Callbacks
+  onReady?: () => void;
+  onAnswer?: (answer: string, query: string) => void;
+  onError?: (error: string, context?: string) => void;
 }
 
 export function EmbeddableWidget({
@@ -46,9 +51,28 @@ export function EmbeddableWidget({
   onToggle,
   title = "AI Assistant",
   showPoweredBy = true,
+  // 🎯 Custom Event Callbacks
+  onReady,
+  onAnswer,
+  onError,
 }: WidgetProps) {
   // 🎛️ Use global RAG settings
   const { settings } = useRAGSettings();
+  
+  // 🎨 Use branding settings for widget positioning
+  const { widgetZIndex, widgetPosition, widgetOffsetX, widgetOffsetY } = useBranding();
+  
+  // 🎯 Helper function to get position classes
+  const getPositionClasses = (position: string) => {
+    switch(position) {
+      case 'bottom-right': return 'bottom-6 right-6';
+      case 'bottom-left': return 'bottom-6 left-6';
+      case 'top-right': return 'top-6 right-6';
+      case 'top-left': return 'top-6 left-6';
+      case 'center': return 'top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2';
+      default: return 'bottom-6 right-6';
+    }
+  };
   
   // Get widget appearance settings from global context - make it reactive
   const [widgetAppearance, setWidgetAppearance] = useState({
@@ -84,18 +108,22 @@ export function EmbeddableWidget({
     
     // Listen for storage changes
     const handleStorageChange = () => {
-      console.log("🎨 EmbeddableWidget detected storage change, updating appearance");
-      setWidgetAppearance(getWidgetAppearance());
+      const newAppearance = getWidgetAppearance();
+      const hasChanged = JSON.stringify(newAppearance) !== JSON.stringify(widgetAppearance);
+      if (hasChanged) {
+        console.log("🎨 Widget appearance updated");
+        setWidgetAppearance(newAppearance);
+      }
     };
     
     window.addEventListener('storage', handleStorageChange);
     
     // Also check periodically for changes (since we're updating from the same tab)
-    const interval = setInterval(handleStorageChange, 1000);
+    const interval = setInterval(handleStorageChange, 2000); // Reduced frequency
     
     // Listen for custom theme change events
     const handleThemeChange = () => {
-      console.log("🎨 EmbeddableWidget detected theme change event, updating appearance");
+      console.log("🎨 Widget theme changed");
       setWidgetAppearance(getWidgetAppearance());
     };
     
@@ -109,13 +137,52 @@ export function EmbeddableWidget({
   }, []);
   
   const [activeTab, setActiveTab] = useState("auto");
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      type: "assistant",
-      content: "Hello! I can help you search for information or answer questions about your documentation. What would you like to know?",
-      timestamp: new Date(),
+  
+  // 💬 Load messages from sessionStorage on mount
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const savedMessages = sessionStorage.getItem('widget-messages');
+      if (savedMessages) {
+        const parsedMessages = JSON.parse(savedMessages);
+        // Convert timestamp strings back to Date objects
+        return parsedMessages.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+      }
+    } catch (error) {
+      console.warn('Failed to load widget messages from sessionStorage:', error);
     }
-  ]);
+    
+    // Default welcome message
+    return [
+      {
+        type: "assistant",
+        content: "Hello! I can help you search for information or answer questions about your documentation. What would you like to know?",
+        timestamp: new Date(),
+      },
+    ];
+  });
+
+  // 💬 Save messages to sessionStorage whenever messages change
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('widget-messages', JSON.stringify(messages));
+    } catch (error) {
+      console.warn('Failed to save widget messages to sessionStorage:', error);
+    }
+  }, [messages]);
+
+  // 🗑️ Clear chat function
+  const clearChat = () => {
+    setMessages([
+      {
+        type: "assistant",
+        content: "Hello! I can help you search for information or answer questions about your documentation. What would you like to know?",
+        timestamp: new Date(),
+      },
+    ]);
+  };
 
   // 🌐 Use our global search hook - same as RAGTuning!
   const { searchAsync, isSearching, searchData, searchError } = useSearch();
@@ -132,6 +199,9 @@ export function EmbeddableWidget({
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [pendingResponse, setPendingResponse] = useState<string | null>(null);
+  
+  // 📜 Ref for messages container to auto-scroll
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 🌊 Simulate streaming response
   const simulateStreamingResponse = async (content: string, onUpdate: (content: string) => void) => {
@@ -144,6 +214,23 @@ export function EmbeddableWidget({
       await new Promise(resolve => setTimeout(resolve, 50)); // 50ms delay between words
     }
   };
+
+  // 📜 Auto-scroll to bottom when new messages are added
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // 📜 Auto-scroll when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // 🎯 onReady callback - trigger when widget is ready
+  useEffect(() => {
+    if (onReady) {
+      onReady();
+    }
+  }, [onReady]);
 
   // 🔍 Extract actual TopK from server message
   const extractTopKFromMessage = (message: string): { topK: number; reranker: boolean } => {
@@ -202,6 +289,8 @@ export function EmbeddableWidget({
       const sources = searchResponse.sources || [];
       console.log("🔍 Sources array:", sources);
       console.log("🔍 Sources length:", sources.length);
+      console.log("🔍 First 5 sources:", sources.slice(0, 5));
+      console.log("🔍 All sources structure:", sources.map((s, i) => ({ index: i, title: s.title, url: s.url, snippet: s.snippet?.substring(0, 50) + "..." })));
 
       // 🔧 Fallback: If no sources from API, create mock sources based on TopK
       let finalSources = sources;
@@ -215,14 +304,19 @@ export function EmbeddableWidget({
       }
 
       // Create final assistant message with RAG settings
+      const mappedSources = finalSources.map((source: any) => ({
+        title: source.title || "Unknown Source",
+        url: source.url || "#",
+        snippet: source.snippet || "No snippet available",
+      }));
+      
+      console.log("🔍 Mapped sources length:", mappedSources.length);
+      console.log("🔍 Mapped sources:", mappedSources);
+      
       const assistantMessage: Message = {
         type: "assistant",
         content: responseContent,
-        citations: finalSources.map((source: any) => ({
-          title: source.title || "Unknown Source",
-          url: source.url || "#",
-          snippet: source.snippet || "No snippet available",
-        })),
+        citations: mappedSources,
         timestamp: new Date(),
         ragSettings: settings, // 🎛️ Pass RAG settings
         queryString: query, // 🔍 Pass original query
@@ -235,6 +329,11 @@ export function EmbeddableWidget({
       setIsStreaming(false);
       setStreamingContent("");
       console.log("✅ Widget search completed with search API only");
+      
+      // 🎯 onAnswer callback - trigger when AI responds successfully
+      if (onAnswer) {
+        onAnswer(responseContent, query);
+      }
 
     } catch (error) {
       console.error("❌ Widget search failed:", error);
@@ -243,6 +342,12 @@ export function EmbeddableWidget({
       setIsTyping(false);
       setIsStreaming(false);
       setPendingResponse(null);
+      
+      // 🎯 onError callback - trigger when search fails
+      if (onError) {
+        const errorMessage = error instanceof Error ? error.message : "Search failed";
+        onError(errorMessage, "search");
+      }
       
       // Check if it's a CORS error
       const isCORSError = error && typeof error === 'object' && 'message' in error && error.message.includes('CORS');
@@ -321,16 +426,23 @@ export function EmbeddableWidget({
       const chatSources = chatResponse?.sources || [];
       console.log("🔍 Chat sources array:", chatSources);
       console.log("🔍 Chat sources length:", chatSources.length);
+      console.log("🔍 First 5 chat sources:", chatSources.slice(0, 5));
+      console.log("🔍 All chat sources structure:", chatSources.map((s, i) => ({ index: i, title: s.title, url: s.url, snippet: s.snippet?.substring(0, 50) + "..." })));
 
       // Create final assistant message with RAG settings
+      const mappedChatSources = chatSources.map((source: any) => ({
+        title: source.title || "Unknown Source",
+        url: source.url || "#",
+        snippet: source.snippet || "No snippet available",
+      }));
+      
+      console.log("🔍 Mapped chat sources length:", mappedChatSources.length);
+      console.log("🔍 Mapped chat sources:", mappedChatSources);
+      
       const assistantMessage: Message = {
         type: "assistant",
         content: responseContent,
-        citations: chatSources.map((source: any) => ({
-          title: source.title || "Unknown Source",
-          url: source.url || "#",
-          snippet: source.snippet || "No snippet available",
-        })),
+        citations: mappedChatSources,
         timestamp: new Date(),
         ragSettings: settings, // 🎛️ Pass RAG settings
         queryString: query, // 🔍 Pass original query
@@ -343,6 +455,11 @@ export function EmbeddableWidget({
       setIsStreaming(false);
       setStreamingContent("");
       console.log("✅ Widget chat completed with chat API only");
+      
+      // 🎯 onAnswer callback - trigger when AI responds successfully
+      if (onAnswer) {
+        onAnswer(responseContent, query);
+      }
 
     } catch (error) {
       console.error("❌ Widget chat failed:", error);
@@ -351,6 +468,12 @@ export function EmbeddableWidget({
       setIsTyping(false);
       setIsStreaming(false);
       setPendingResponse(null);
+      
+      // 🎯 onError callback - trigger when chat fails
+      if (onError) {
+        const errorMessage = error instanceof Error ? error.message : "Chat failed";
+        onError(errorMessage, "chat");
+      }
       
       // Check if it's a network error
       const isNetworkError = error && typeof error === 'object' && 'code' in error && error.code === 'ERR_NETWORK';
@@ -388,10 +511,18 @@ export function EmbeddableWidget({
     return (
       <Button
         onClick={onToggle}
-        className="fixed bottom-[3%]   right-10 h-14 w-14 rounded-full shadow-lg z-50"
+        className={`fixed h-14 w-14 rounded-full shadow-lg ${getPositionClasses(widgetPosition)}`}
+        style={{ 
+          zIndex: widgetZIndex,
+          transform: `translate(${widgetOffsetX}px, ${widgetOffsetY}px)`
+        }}
         data-testid="button-widget-launcher"
+        aria-label="Open AI Assistant"
+        aria-expanded="false"
+        aria-haspopup="dialog"
+        tabIndex={0}
       >
-        <MessageCircle className="h-6 w-6" />
+        <MessageCircle className="h-6 w-6" aria-hidden="true" />
         <span className="sr-only">Open AI Assistant</span>
       </Button>
     );
@@ -399,14 +530,23 @@ export function EmbeddableWidget({
 
   return (
     <Card 
-      className={`widget-container fixed md:bottom-6 bottom-1 w-[100%] md:right-6 mx-1  md:mx-0 md:w-96 h-[600px] shadow-xl z-50 flex flex-col overflow-hidden ${
+      className={`widget-container fixed ${getPositionClasses(widgetPosition)} w-[100%] md:mx-0 md:w-96 h-[600px] shadow-xl flex flex-col overflow-hidden ${
         widgetAppearance.chatBubbleStyle === "sharp" ? "rounded-none" :
         widgetAppearance.chatBubbleStyle === "minimal" ? "rounded-sm" :
         "rounded-lg"
       } ${
         widgetAppearance.animationsEnabled ? "transition-all duration-200 ease-in-out" : ""
       }`}
-      style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+      style={{ 
+        wordBreak: 'break-word', 
+        overflowWrap: 'anywhere',
+        zIndex: widgetZIndex,
+        transform: `translate(${widgetOffsetX}px, ${widgetOffsetY}px)`
+      }}
+      role="dialog"
+      aria-label="AI Assistant Chat"
+      aria-modal="true"
+      aria-live="polite"
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle className="text-base font-medium">{title}</CardTitle>
@@ -418,11 +558,25 @@ export function EmbeddableWidget({
           <Button
             variant="ghost"
             size="icon"
+            onClick={clearChat}
+            data-testid="button-clear-chat"
+            className="h-8 w-8"
+            title="Clear chat"
+            aria-label="Clear chat history"
+            tabIndex={0}
+          >
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onToggle}
             data-testid="button-widget-close"
             className="h-8 w-8"
+            aria-label="Close AI Assistant"
+            tabIndex={0}
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
       </CardHeader>
@@ -430,28 +584,60 @@ export function EmbeddableWidget({
       <CardContent className="flex-1 flex flex-col p-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
           <div className="px-4 pb-3">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="search" data-testid="tab-search">
-                <Search className="h-4 w-4 mr-1" />
+            <TabsList className="grid w-full grid-cols-3" role="tablist" aria-label="Widget navigation">
+              <TabsTrigger 
+                value="search" 
+                data-testid="tab-search"
+                role="tab"
+                aria-selected={activeTab === "search"}
+                aria-controls="search-panel"
+                tabIndex={0}
+                className="flex items-center justify-center gap-1"
+              >
+                <Search className="h-4 w-4" aria-hidden="true" />
                 Search
               </TabsTrigger>
-              <TabsTrigger value="chat" data-testid="tab-chat">
-                <MessageSquare className="h-4 w-4 mr-1" />
+              <TabsTrigger 
+                value="chat" 
+                data-testid="tab-chat"
+                role="tab"
+                aria-selected={activeTab === "chat"}
+                aria-controls="chat-panel"
+                tabIndex={0}
+                className="flex items-center justify-center gap-1"
+              >
+                <MessageSquare className="h-4 w-4" aria-hidden="true" />
                 Chat
               </TabsTrigger>
-              <TabsTrigger value="auto" data-testid="tab-auto">
-                <Zap className="h-4 w-4 mr-1" />
+              <TabsTrigger 
+                value="auto" 
+                data-testid="tab-auto"
+                role="tab"
+                aria-selected={activeTab === "auto"}
+                aria-controls="auto-panel"
+                tabIndex={0}
+                className="flex items-center justify-center gap-1"
+              >
+                <Zap className="h-4 w-4" aria-hidden="true" />
                 Auto
               </TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent value="search" className="flex-1 flex flex-col px-4 mt-0">
+          <TabsContent 
+            value="search" 
+            className="flex-1 flex flex-col px-4 mt-0"
+            role="tabpanel"
+            id="search-panel"
+            aria-labelledby="tab-search"
+            tabIndex={0}
+          >
             <div className="space-y-3 flex-1 overflow-y-auto">
               <SearchBar
                 placeholder="Search documentation..."
                 onSearch={handleSearch}
                 showSendButton
+                enableHistory={false}
               />
               {/* 🔎 Recent Search History removed */}
               
@@ -485,7 +671,14 @@ export function EmbeddableWidget({
             </div>
           </TabsContent>
 
-          <TabsContent value="chat" className="flex-1 flex flex-col px-4 mt-0">
+          <TabsContent 
+            value="chat" 
+            className="flex-1 flex flex-col px-4 mt-0"
+            role="tabpanel"
+            id="chat-panel"
+            aria-labelledby="tab-chat"
+            tabIndex={0}
+          >
             <div 
               className="flex-1 overflow-y-auto space-y-4  min-h-0 max-h-[400px] w-full"
               style={{
@@ -531,12 +724,16 @@ export function EmbeddableWidget({
                   </div>
                 </div>
               )}
+              
+              {/* 📜 Scroll target for auto-scroll */}
+              <div ref={messagesEndRef} />
             </div>
             <div className="flex-shrink-0  ">
               <SearchBar
                 placeholder="Type your message..."
                 onSearch={handleChat}
                 showSendButton
+                enableHistory={false}
               />
               {/* 💬 Recent Chat History removed */}
               
@@ -551,7 +748,14 @@ export function EmbeddableWidget({
             </div>
           </TabsContent>
 
-          <TabsContent value="auto" className="flex-1 flex flex-col px-4 mt-0">
+          <TabsContent 
+            value="auto" 
+            className="flex-1 flex flex-col px-4 mt-0"
+            role="tabpanel"
+            id="auto-panel"
+            aria-labelledby="tab-auto"
+            tabIndex={0}
+          >
             <div 
               className="flex-1 overflow-y-auto space-y-4 min-h-0 max-h-[400px] w-full"
               style={{
@@ -604,6 +808,7 @@ export function EmbeddableWidget({
                 onSearch={handleChat}
                 showSendButton
                 showMicButton
+                enableHistory={false}
               />
               
               {/* 💬 Enhanced loading indicator for auto */}

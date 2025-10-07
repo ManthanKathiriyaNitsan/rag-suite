@@ -65,10 +65,26 @@ const systemServices = [
 ];
 
 export default function Settings() {
-  const { orgName: orgNameGlobal, primaryColor: primaryColorGlobal, logoDataUrl: logoGlobal, setBranding, resetBranding } = useBranding();
+  const { 
+    orgName: orgNameGlobal, 
+    primaryColor: primaryColorGlobal, 
+    logoDataUrl: logoGlobal, 
+    widgetZIndex: widgetZIndexGlobal,
+    widgetPosition: widgetPositionGlobal,
+    widgetOffsetX: widgetOffsetXGlobal,
+    widgetOffsetY: widgetOffsetYGlobal,
+    setBranding, 
+    resetBranding 
+  } = useBranding();
   const [orgName, setOrgName] = useState(orgNameGlobal || "Acme Corporation");
   const [primaryColor, setPrimaryColor] = useState(primaryColorGlobal || "#1F6FEB");
   const [retentionDays, setRetentionDays] = useState(90);
+  
+  // Widget positioning state
+  const [widgetZIndex, setWidgetZIndex] = useState(widgetZIndexGlobal || 50);
+  const [widgetPosition, setWidgetPosition] = useState(widgetPositionGlobal || "bottom-right");
+  const [widgetOffsetX, setWidgetOffsetX] = useState(widgetOffsetXGlobal || 0);
+  const [widgetOffsetY, setWidgetOffsetY] = useState(widgetOffsetYGlobal || 0);
   // const [locale, setLocale] = useState("en");
   const { locale, setLocale, t } = useI18n();
   const [showApiKey, setShowApiKey] = useState<string | null>(null);
@@ -176,21 +192,21 @@ export default function Settings() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 sm:px-6 lg:px-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Settings</h1>
+        <p className="text-muted-foreground text-sm sm:text-base">
           Manage your organization settings and preferences
         </p>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full h-auto grid-cols-1 md:grid-cols-2 lg:grid-cols-5">
-          <TabsTrigger value="profile" data-testid="tab-profile">Profile & Branding</TabsTrigger>
-          <TabsTrigger value="retention" data-testid="tab-retention">Data Retention</TabsTrigger>
-          <TabsTrigger value="i18n" data-testid="tab-i18n">Internationalization</TabsTrigger>
-          <TabsTrigger value="api-keys" data-testid="tab-api-keys">API Keys</TabsTrigger>
-          <TabsTrigger value="health" data-testid="tab-health">System Health</TabsTrigger>
+        <TabsList className="grid w-full h-auto grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+          <TabsTrigger value="profile" data-testid="tab-profile" className="text-xs sm:text-sm">Profile & Branding</TabsTrigger>
+          <TabsTrigger value="retention" data-testid="tab-retention" className="text-xs sm:text-sm">Data Retention</TabsTrigger>
+          <TabsTrigger value="i18n" data-testid="tab-i18n" className="text-xs sm:text-sm">Internationalization</TabsTrigger>
+          <TabsTrigger value="api-keys" data-testid="tab-api-keys" className="text-xs sm:text-sm">API Keys</TabsTrigger>
+          <TabsTrigger value="health" data-testid="tab-health" className="text-xs sm:text-sm">System Health</TabsTrigger>
         </TabsList>
 
         {/* Profile & Branding */}
@@ -203,7 +219,7 @@ export default function Settings() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="org-name">Organization Name</Label>
@@ -226,27 +242,30 @@ export default function Settings() {
                       onChange={handleLogoChange}
                       data-testid="input-logo-file"
                     />
-                    <div className="mt-2 flex items-center gap-4">
-                      <div className="h-16 w-16 bg-secondary rounded-lg flex items-center justify-center overflow-hidden">
+                    <div className="mt-2 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      <div className="h-20 w-20 sm:h-16 sm:w-16 bg-secondary rounded-lg flex items-center justify-center overflow-hidden">
                         {logoDataUrl ? (
                           <img src={logoDataUrl} alt="Logo preview" className="h-full w-full object-contain" />
                         ) : (
-                          <Upload className="h-6 w-6 text-muted-foreground" />
+                          <Upload className="h-8 w-8 sm:h-6 sm:w-6 text-muted-foreground" />
                         )}
                       </div>
-                      <Button
-                        variant="outline"
-                        onClick={() => fileInputRef.current?.click()}
-                        data-testid="button-upload-logo"
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload Logo
-                      </Button>
-                      {logoDataUrl && (
-                        <Button variant="ghost" onClick={handleRemoveLogo} data-testid="button-remove-logo">
-                          Remove
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
+                          data-testid="button-upload-logo"
+                          className="w-full sm:w-auto"
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Upload Logo
                         </Button>
-                      )}
+                        {logoDataUrl && (
+                          <Button variant="ghost" onClick={handleRemoveLogo} data-testid="button-remove-logo" className="w-full sm:w-auto">
+                            Remove
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">Recommended: 64x64px PNG or SVG</p>
                   </div>
@@ -349,9 +368,105 @@ export default function Settings() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={handleResetBranding}>Reset</Button>
-                <Button onClick={handleSaveBranding} data-testid="button-save-branding">Save Changes</Button>
+              <div className="flex flex-col sm:flex-row justify-end gap-2">
+                <Button variant="outline" onClick={handleResetBranding} className="w-full sm:w-auto">Reset</Button>
+                <Button onClick={handleSaveBranding} data-testid="button-save-branding" className="w-full sm:w-auto">Save Changes</Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Widget Positioning Controls */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Widget Positioning
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="widget-position">Widget Position</Label>
+                    <Select 
+                      value={widgetPosition} 
+                      onValueChange={(value) => {
+                        setWidgetPosition(value as any);
+                        setBranding({ widgetPosition: value as any });
+                      }}
+                    >
+                      <SelectTrigger id="widget-position">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                        <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                        <SelectItem value="top-right">Top Right</SelectItem>
+                        <SelectItem value="top-left">Top Left</SelectItem>
+                        <SelectItem value="center">Center</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="widget-zindex">Z-Index Level</Label>
+                    <Input
+                      id="widget-zindex"
+                      type="number"
+                      value={widgetZIndex}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 50;
+                        setWidgetZIndex(value);
+                        setBranding({ widgetZIndex: value });
+                      }}
+                      placeholder="50"
+                      data-testid="input-widget-zindex"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Higher values appear above other elements
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="widget-offset-x">X Offset (pixels)</Label>
+                    <Input
+                      id="widget-offset-x"
+                      type="number"
+                      value={widgetOffsetX}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 0;
+                        setWidgetOffsetX(value);
+                        setBranding({ widgetOffsetX: value });
+                      }}
+                      placeholder="0"
+                      data-testid="input-widget-offset-x"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Positive = move right, Negative = move left
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="widget-offset-y">Y Offset (pixels)</Label>
+                    <Input
+                      id="widget-offset-y"
+                      type="number"
+                      value={widgetOffsetY}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 0;
+                        setWidgetOffsetY(value);
+                        setBranding({ widgetOffsetY: value });
+                      }}
+                      placeholder="0"
+                      data-testid="input-widget-offset-y"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Positive = move down, Negative = move up
+                    </p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -389,16 +504,16 @@ export default function Settings() {
                 </ul>
               </div>
 
-              <div className="flex justify-end gap-2">
-                <Button variant="outline">Reset to Default</Button>
-                <Button data-testid="button-save-retention">Save Policy</Button>
+              <div className="flex flex-col sm:flex-row justify-end gap-2">
+                <Button variant="outline" className="w-full sm:w-auto">Reset to Default</Button>
+                <Button data-testid="button-save-retention" className="w-full sm:w-auto">Save Policy</Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* Internationalization */}
-        <TabsContent value="i18n" className="space-y-6">
+        <TabsContent value="i18n" className="space-y-6" style={{ maxWidth: '90vw' }}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -410,7 +525,7 @@ export default function Settings() {
               <div>
                 <Label htmlFor="locale">Default Language</Label>
                 <Select value={locale} onValueChange={setLocale}>
-                  <SelectTrigger className="w-64 mt-2" data-testid="select-locale">
+                  <SelectTrigger className="w-full sm:w-64 mt-2" data-testid="select-locale">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -450,18 +565,18 @@ export default function Settings() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={handleResetLocale}>Reset to Default</Button>
-                <Button data-testid="button-save-locale" onClick={handleSaveLocale}>{t("settings.i18n.save")}</Button>
+              <div className="flex flex-col sm:flex-row justify-end gap-2">
+                <Button variant="outline" onClick={handleResetLocale} className="w-full sm:w-auto">Reset to Default</Button>
+                <Button data-testid="button-save-locale" onClick={handleSaveLocale} className="w-full sm:w-auto">{t("settings.i18n.save")}</Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* API Keys */}
-        <TabsContent value="api-keys" className="space-y-6 w-full max-w-[92vw] overflow-hidden " style={{ maxWidth: '92vw' }} >
+        <TabsContent value="api-keys" className="space-y-6 w-full overflow-hidden" style={{ maxWidth: '90vw' }}>
           <Card className="w-full overflow-hidden">
-            <CardHeader className="flex flex-row flex-col lg:flex-row items-start lg:items-center justify-between gap-4 lg:gap-0">
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <CardTitle className="flex items-center gap-2">
                 <Key className="h-5 w-5" />
                 API Keys
@@ -469,22 +584,23 @@ export default function Settings() {
               <Button
                 onClick={() => setShowCreateKeyForm(true)}
                 data-testid="button-create-api-key"
+                className="w-full sm:w-auto"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create API Key
               </Button>
             </CardHeader>
-            <CardContent>
-              <Table className="min-w-[1000px] w-full table-fixed">
+            <CardContent className="overflow-x-auto">
+              <Table className="min-w-[800px] w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead className="w-[25%]">Key</TableHead>
-                    <TableHead  >Created</TableHead>
-                    <TableHead>Last Used</TableHead>
-                    <TableHead>Requests</TableHead>
-                    <TableHead>Rate Limit</TableHead>
-                    <TableHead >Actions</TableHead>
+                    <TableHead className="min-w-[120px]">Name</TableHead>
+                    <TableHead className="min-w-[200px]">Key</TableHead>
+                    <TableHead className="min-w-[100px]">Created</TableHead>
+                    <TableHead className="min-w-[100px]">Last Used</TableHead>
+                    <TableHead className="min-w-[80px]">Requests</TableHead>
+                    <TableHead className="min-w-[80px]">Rate Limit</TableHead>
+                    <TableHead className="min-w-[60px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -492,26 +608,30 @@ export default function Settings() {
                     <TableRow key={key.id} data-testid={`row-api-key-${key.id}`}>
                       <TableCell className="font-medium">{key.name}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                          <span className="font-mono text-xs sm:text-sm break-all">
                             {showApiKey === key.id ? key.key : `${key.key.slice(0, 12)}...`}
                           </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setShowApiKey(showApiKey === key.id ? null : key.id)}
-                            data-testid={`button-toggle-key-${key.id}`}
-                          >
-                            {showApiKey === key.id ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleCopyKey(key.key)}
-                            data-testid={`button-copy-key-${key.id}`}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowApiKey(showApiKey === key.id ? null : key.id)}
+                              data-testid={`button-toggle-key-${key.id}`}
+                              className="h-8 w-8 p-0"
+                            >
+                              {showApiKey === key.id ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopyKey(key.key)}
+                              data-testid={`button-copy-key-${key.id}`}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
@@ -531,6 +651,7 @@ export default function Settings() {
                           size="sm"
                           onClick={() => handleRevokeApiKey(key.id)}
                           data-testid={`button-revoke-key-${key.id}`}
+                          className="h-8 w-8 p-0"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -553,7 +674,7 @@ export default function Settings() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {systemServices.map((service, index) => (
                   <Card key={index} data-testid={`service-card-${index}`}>
                     <CardHeader className="pb-3">
@@ -585,7 +706,7 @@ export default function Settings() {
 
               <div className="mt-6 p-4 bg-secondary rounded-lg">
                 <h4 className="font-medium mb-2">Health Legend</h4>
-                <div className="flex flex-wrap gap-4 text-sm">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <Badge variant="default">Healthy</Badge>
                     <span className="text-muted-foreground">Service operating normally</span>
