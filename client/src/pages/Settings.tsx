@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Upload, Palette, Globe, Key, Activity, Eye, EyeOff, Copy, Trash2, Plus } from "lucide-react";
+import { Upload, Palette, Globe, Key, Activity, Eye, EyeOff, Copy, Trash2, Plus, FileText } from "lucide-react";
 import { CreateApiKeyForm } from "@/components/forms/CreateApiKeyForm";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/table";
 import { useI18n } from "@/contexts/I18nContext";
 import { useBranding } from "@/contexts/BrandingContext";
+import { useCitationFormatting } from "@/contexts/CitationFormattingContext";
 
 // todo: remove mock functionality
 const apiKeys = [
@@ -87,6 +89,7 @@ export default function Settings() {
   const [widgetOffsetY, setWidgetOffsetY] = useState(widgetOffsetYGlobal || 0);
   // const [locale, setLocale] = useState("en");
   const { locale, setLocale, t } = useI18n();
+  const { formatting, updateFormatting, resetFormatting } = useCitationFormatting();
   const [showApiKey, setShowApiKey] = useState<string | null>(null);
   const [showCreateKeyForm, setShowCreateKeyForm] = useState(false);
   const { toast } = useToast();
@@ -201,10 +204,11 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full h-auto grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+        <TabsList className="grid w-full h-auto grid-cols-1 sm:grid-cols-2 lg:grid-cols-6">
           <TabsTrigger value="profile" data-testid="tab-profile" className="text-xs sm:text-sm">Profile & Branding</TabsTrigger>
           <TabsTrigger value="retention" data-testid="tab-retention" className="text-xs sm:text-sm">Data Retention</TabsTrigger>
           <TabsTrigger value="i18n" data-testid="tab-i18n" className="text-xs sm:text-sm">Internationalization</TabsTrigger>
+          <TabsTrigger value="citations" data-testid="tab-citations" className="text-xs sm:text-sm">Citation Formatting</TabsTrigger>
           <TabsTrigger value="api-keys" data-testid="tab-api-keys" className="text-xs sm:text-sm">API Keys</TabsTrigger>
           <TabsTrigger value="health" data-testid="tab-health" className="text-xs sm:text-sm">System Health</TabsTrigger>
         </TabsList>
@@ -251,20 +255,20 @@ export default function Settings() {
                         )}
                       </div>
                       <div className="flex flex-col sm:flex-row gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => fileInputRef.current?.click()}
-                          data-testid="button-upload-logo"
+                      <Button
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        data-testid="button-upload-logo"
                           className="w-full sm:w-auto"
-                        >
-                          <Upload className="h-4 w-4 mr-2" />
-                          Upload Logo
-                        </Button>
-                        {logoDataUrl && (
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload Logo
+                      </Button>
+                      {logoDataUrl && (
                           <Button variant="ghost" onClick={handleRemoveLogo} data-testid="button-remove-logo" className="w-full sm:w-auto">
-                            Remove
-                          </Button>
-                        )}
+                          Remove
+                        </Button>
+                      )}
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">Recommended: 64x64px PNG or SVG</p>
@@ -513,7 +517,7 @@ export default function Settings() {
         </TabsContent>
 
         {/* Internationalization */}
-        <TabsContent value="i18n" className="space-y-6" style={{ maxWidth: '90vw' }}>
+        <TabsContent value="i18n" className="space-y-6" >
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -573,8 +577,196 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
+        {/* Citation Formatting */}
+        <TabsContent value="citations" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Citation Formatting
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Citation Style */}
+              <div>
+                <Label htmlFor="citation-style">Citation Style</Label>
+                <Select 
+                  value={formatting.style} 
+                  onValueChange={(value: any) => updateFormatting({ style: value })}
+                >
+                  <SelectTrigger className="w-full sm:w-64 mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="compact">Compact</SelectItem>
+                    <SelectItem value="detailed">Detailed</SelectItem>
+                    <SelectItem value="card">Card</SelectItem>
+                    <SelectItem value="minimal">Minimal</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Choose how citations are displayed
+                </p>
+              </div>
+
+              {/* Layout */}
+              <div>
+                <Label htmlFor="citation-layout">Layout</Label>
+                <Select 
+                  value={formatting.layout} 
+                  onValueChange={(value: any) => updateFormatting({ layout: value })}
+                >
+                  <SelectTrigger className="w-full sm:w-64 mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="vertical">Vertical</SelectItem>
+                    <SelectItem value="horizontal">Horizontal</SelectItem>
+                    <SelectItem value="grid">Grid</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1">
+                  How citations are arranged
+                </p>
+              </div>
+
+              {/* Numbering Style */}
+              <div>
+                <Label htmlFor="citation-numbering">Numbering Style</Label>
+                <Select 
+                  value={formatting.numbering} 
+                  onValueChange={(value: any) => updateFormatting({ numbering: value })}
+                >
+                  <SelectTrigger className="w-full sm:w-64 mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="brackets">[1] [2] [3]</SelectItem>
+                    <SelectItem value="parentheses">(1) (2) (3)</SelectItem>
+                    <SelectItem value="dots">1. 2. 3.</SelectItem>
+                    <SelectItem value="numbers">1 2 3</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1">
+                  How citations are numbered
+                </p>
+              </div>
+
+              {/* Color Scheme */}
+              <div>
+                <Label htmlFor="citation-colors">Color Scheme</Label>
+                <Select 
+                  value={formatting.colorScheme} 
+                  onValueChange={(value: any) => updateFormatting({ colorScheme: value })}
+                >
+                  <SelectTrigger className="w-full sm:w-64 mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Default</SelectItem>
+                    <SelectItem value="primary">Primary</SelectItem>
+                    <SelectItem value="muted">Muted</SelectItem>
+                    <SelectItem value="accent">Accent</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Citation color theme
+                </p>
+              </div>
+
+              {/* Display Options */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Display Options</h4>
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Show Snippets</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Display content snippets
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formatting.showSnippets}
+                    onCheckedChange={(checked: boolean) => updateFormatting({ showSnippets: checked })}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Show URLs</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Display source links
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formatting.showUrls}
+                    onCheckedChange={(checked: boolean) => updateFormatting({ showUrls: checked })}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Show Source Count</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Display number of sources
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formatting.showSourceCount}
+                    onCheckedChange={(checked: boolean) => updateFormatting({ showSourceCount: checked })}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Enable Hover Effects</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Add hover animations
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formatting.enableHover}
+                    onCheckedChange={(checked: boolean) => updateFormatting({ enableHover: checked })}
+                  />
+                </div>
+              </div>
+
+              {/* Snippet Length */}
+              <div>
+                <Label htmlFor="snippet-length">Max Snippet Length</Label>
+                <div className="flex items-center gap-4 mt-2">
+                  <input
+                    type="range"
+                    min="50"
+                    max="500"
+                    step="25"
+                    value={formatting.maxSnippetLength}
+                    onChange={(e) => updateFormatting({ maxSnippetLength: parseInt(e.target.value) })}
+                    className="flex-1"
+                  />
+                  <span className="text-sm text-muted-foreground w-16">
+                    {formatting.maxSnippetLength} chars
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Maximum length of content snippets
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-end gap-2">
+                <Button variant="outline" onClick={resetFormatting} className="w-full sm:w-auto">
+                  Reset to Default
+                </Button>
+                <Button className="w-full sm:w-auto">
+                  Save Settings
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* API Keys */}
-        <TabsContent value="api-keys" className="space-y-6 w-full overflow-hidden" style={{ maxWidth: '90vw' }}>
+        <TabsContent value="api-keys" className="space-y-6 w-full overflow-hidden">
           <Card className="w-full overflow-hidden">
             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <CardTitle className="flex items-center gap-2">
@@ -613,24 +805,24 @@ export default function Settings() {
                             {showApiKey === key.id ? key.key : `${key.key.slice(0, 12)}...`}
                           </span>
                           <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setShowApiKey(showApiKey === key.id ? null : key.id)}
-                              data-testid={`button-toggle-key-${key.id}`}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowApiKey(showApiKey === key.id ? null : key.id)}
+                            data-testid={`button-toggle-key-${key.id}`}
                               className="h-8 w-8 p-0"
-                            >
-                              {showApiKey === key.id ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCopyKey(key.key)}
-                              data-testid={`button-copy-key-${key.id}`}
+                          >
+                            {showApiKey === key.id ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCopyKey(key.key)}
+                            data-testid={`button-copy-key-${key.id}`}
                               className="h-8 w-8 p-0"
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
                           </div>
                         </div>
                       </TableCell>

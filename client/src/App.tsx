@@ -36,6 +36,7 @@ import Signup from "./pages/Signup";
 import { BrandingProvider } from "@/contexts/BrandingContext";
 // import { useBranding } from "@/contexts/BrandingContext";
 import { I18nProvider } from "@/contexts/I18nContext";
+import { CitationFormattingProvider } from "@/contexts/CitationFormattingContext";
 
 // 🔐 Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -45,13 +46,22 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Check if user is authenticated
     const checkAuth = () => {
-      const token = localStorage.getItem('auth-token');
-      const user = localStorage.getItem('auth-user');
+      const token = localStorage.getItem('auth_token');
+      const user = localStorage.getItem('user_data');
+      
+      console.log('🔐 ProtectedRoute - Checking auth:', {
+        hasToken: !!token,
+        hasUser: !!user,
+        token: token ? 'present' : 'missing',
+        user: user ? 'present' : 'missing'
+      });
       
       if (token && user) {
         setIsAuthenticated(true);
+        console.log('✅ ProtectedRoute - User authenticated');
       } else {
         setIsAuthenticated(false);
+        console.log('❌ ProtectedRoute - User not authenticated');
       }
       setIsLoading(false);
     };
@@ -60,7 +70,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
     // Listen for storage changes (logout from other tabs)
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'auth-token' || e.key === 'auth-user') {
+      if (e.key === 'auth_token' || e.key === 'user_data' || e.key === 'token_expires') {
         checkAuth();
       }
     };
@@ -231,14 +241,16 @@ function App() {
       <AuthProvider>
         <BrandingProvider>
           <RAGSettingsProvider>
-            <ThemeProvider>
-              <TooltipProvider>
-                <I18nProvider>
-                  <Router />
-                  <Toaster />
-                </I18nProvider>
-              </TooltipProvider>
-            </ThemeProvider>
+            <CitationFormattingProvider>
+              <ThemeProvider>
+                <TooltipProvider>
+                  <I18nProvider>
+                    <Router />
+                    <Toaster />
+                  </I18nProvider>
+                </TooltipProvider>
+              </ThemeProvider>
+            </CitationFormattingProvider>
           </RAGSettingsProvider>
         </BrandingProvider>
       </AuthProvider>

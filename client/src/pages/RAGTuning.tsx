@@ -123,8 +123,8 @@ export default function RAGTuning() {
     const rerankerMatch = message.match(/reranker=(on|off)/);
     
     return {
-      topK: topKMatch ? parseInt(topKMatch[1]) : undefined,
-      reranker: rerankerMatch ? rerankerMatch[1] === 'on' : undefined
+      topK: topKMatch ? parseInt(topKMatch[1]) : 5,
+      reranker: rerankerMatch ? rerankerMatch[1] === 'on' : false
     };
   };
 
@@ -307,6 +307,7 @@ export default function RAGTuning() {
             <Trash2 className="h-4 w-4" />
             Clear Chat
           </Button>
+          
           
           {sessions.length > 0 && (
             <div className="flex items-center gap-2">

@@ -32,7 +32,7 @@ export const UserDropdown = React.memo(function UserDropdown({ user }: UserDropd
   const [currentUser, setCurrentUser] = React.useState<any>(null);
   
   React.useEffect(() => {
-    const userData = localStorage.getItem('auth-user');
+    const userData = localStorage.getItem('user_data');
     if (userData) {
       setCurrentUser(JSON.parse(userData));
     }
@@ -53,8 +53,9 @@ export const UserDropdown = React.memo(function UserDropdown({ user }: UserDropd
 
   // 🔐 Simple logout handler
   const handleLogout = useCallback(() => {
-    localStorage.removeItem('auth-token');
-    localStorage.removeItem('auth-user');
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+    localStorage.removeItem('token_expires');
     setLocation("/login");
   }, [setLocation]);
 

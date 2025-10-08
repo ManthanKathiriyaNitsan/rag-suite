@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Bot, Eye, EyeOff, Shield, Zap, BarChart3 } from "lucide-react";
+import { Bot, Eye, EyeOff, Shield, Zap, BarChart3, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export default function Signu() {
+export default function Signup() {
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -20,16 +21,32 @@ export default function Signu() {
     setIsLoading(true);
     setError("");
 
+    // Basic validation
+    if (!email || !username || !password) {
+      setError("Please fill in all fields");
+      setIsLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      console.log("🚀 Making signup request with:", { email, password });
+      console.log("🚀 Making signup request with:", { email, username, password: "***" });
       
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch("http://192.168.0.103:8000/api/v1/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include", // Important for cookies
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ 
+          email, 
+          username, 
+          password 
+        }),
       });
 
       console.log("📡 Signup response status:", response.status);
@@ -37,12 +54,12 @@ export default function Signu() {
       console.log("📦 Signup response data:", data);
 
       if (response.ok) {
-        console.log("✅ Signup successful, redirecting to dashboard");
-        // Successful login - redirect to dashboard
-        setLocation("/");
+        console.log("✅ Signup successful, redirecting to login");
+        // Successful signup - redirect to login page
+        setLocation("/login");
       } else {
-        console.log("❌ Signup failed:", data.message);
-        setError(data.message || "Login failed");
+        console.log("❌ Signup failed:", data.detail || data.message);
+        setError(data.detail || data.message || "Signup failed");
       }
     } catch (error) {
       console.error("🚨 Signup network error:", error);
@@ -68,9 +85,9 @@ export default function Signu() {
           <Card className="border-0 shadow-lg">
             <CardHeader className="space-y-4 pb-6">
               <div className="text-center">
-                <CardTitle className="text-2xl font-semibold">Welcome To The RAGSuite</CardTitle>
+                <CardTitle className="text-2xl font-semibold">Create your account</CardTitle>
                 <p className="text-muted-foreground mt-2">
-                  Sign up to access your admin dashboard
+                  Sign up to get started with RAGSuite
                 </p>
               </div>
             </CardHeader>
@@ -92,6 +109,20 @@ export default function Signu() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     data-testid="input-email"
+                    className="h-11"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="username" className="text-sm font-medium">Username</Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    data-testid="input-username"
                     className="h-11"
                     required
                   />
@@ -128,10 +159,10 @@ export default function Signu() {
                 </div>
                 
                 <div className="text-sm p-0 h-auto ">
-                Have An Account?{" "}
+                Already have an account?{" "}
                   <Link href="/login">
-                    <Button variant="ghost" size="sm" className="text-sm text-blue-500 p-0 h-auto" data-testid="link-forgot-password">
-                      Login
+                    <Button variant="ghost" size="sm" className="text-sm text-blue-500 p-0 h-auto" data-testid="link-login">
+                      Sign in
                     </Button>
                   </Link>
                 </div>
@@ -140,9 +171,16 @@ export default function Signu() {
                   type="submit"
                   className="w-full h-11"
                   disabled={isLoading}
-                  data-testid="button-sign-in"
+                  data-testid="button-signup"
                 >
-                  {isLoading ? "Signing up..." : "Sign up"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating account...
+                    </>
+                  ) : (
+                    "Create Account"
+                  )}
                 </Button>
               </form>
               

@@ -65,12 +65,12 @@ export function EmbeddableWidget({
   // 🎯 Helper function to get position classes
   const getPositionClasses = (position: string) => {
     switch(position) {
-      case 'bottom-right': return 'bottom-6 right-6';
-      case 'bottom-left': return 'bottom-6 left-6';
-      case 'top-right': return 'top-6 right-6';
-      case 'top-left': return 'top-6 left-6';
+      case 'bottom-right': return 'bottom-1 right-0 sm:bottom-6 sm:right-6';
+      case 'bottom-left': return 'bottom-1 left-0 sm:bottom-6 sm:left-6';
+      case 'top-right': return 'top-1 right-0 sm:top-6 sm:right-6';
+      case 'top-left': return 'top-1 left-0 sm:top-6 sm:left-6';
       case 'center': return 'top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2';
-      default: return 'bottom-6 right-6';
+      default: return 'bottom-1 right-0 sm:bottom-6 sm:right-6';
     }
   };
   
@@ -530,7 +530,7 @@ export function EmbeddableWidget({
 
   return (
     <Card 
-      className={`widget-container fixed ${getPositionClasses(widgetPosition)} w-[100%] md:mx-0 md:w-96 h-[600px] shadow-xl flex flex-col overflow-hidden ${
+      className={`widget-container fixed ${getPositionClasses(widgetPosition)} w-full h-screen sm:w-96 sm:h-[600px] md:w-96 md:h-[600px] shadow-xl flex flex-col overflow-hidden ${
         widgetAppearance.chatBubbleStyle === "sharp" ? "rounded-none" :
         widgetAppearance.chatBubbleStyle === "minimal" ? "rounded-sm" :
         "rounded-lg"

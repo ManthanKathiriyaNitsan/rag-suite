@@ -5,9 +5,18 @@ import { CrawlSite } from "@/lib/api";
 
 interface CrawlJobsProps {
   sites: CrawlSite[];
+  statusFilter?: string;
+  dateFilter?: string;
 }
 
-export function CrawlJobs({ sites }: CrawlJobsProps) {
+export function CrawlJobs({ sites, statusFilter = "all", dateFilter = "today" }: CrawlJobsProps) {
+  // Filter sites based on status and date
+  const filteredSites = sites.filter((site) => {
+    // For now, we'll filter based on the site's basic properties
+    // The actual status filtering will be done in CrawlJobRow based on the badge status
+    return true; // We'll do the actual filtering in CrawlJobRow
+  });
+
   return (
     <Card className="w-full overflow-hidden">
       <CardHeader>
@@ -15,8 +24,13 @@ export function CrawlJobs({ sites }: CrawlJobsProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {sites.map((site) => (
-            <CrawlJobRow key={site.id} site={site} />
+          {filteredSites.map((site) => (
+            <CrawlJobRow 
+              key={site.id} 
+              site={site} 
+              statusFilter={statusFilter}
+              dateFilter={dateFilter}
+            />
           ))}
         </div>
       </CardContent>
@@ -24,9 +38,64 @@ export function CrawlJobs({ sites }: CrawlJobsProps) {
   );
 }
 
-function CrawlJobRow({ site }: { site: CrawlSite }) {
+function CrawlJobRow({ 
+  site, 
+  statusFilter = "all", 
+  dateFilter = "today" 
+}: { 
+  site: CrawlSite; 
+  statusFilter?: string; 
+  dateFilter?: string; 
+}) {
   const { getCrawlStatus } = useCrawlOperations();
   const statusQuery = getCrawlStatus(site.id);
+
+  // Determine if this job should be shown based on filters
+  const shouldShowJob = () => {
+    // Status filtering
+    if (statusFilter !== "all") {
+      if (statusQuery.isLoading) {
+        return statusFilter === "pending";
+      }
+      if (statusQuery.error) {
+        return statusFilter === "failed";
+      }
+      if (statusQuery.data) {
+        const jobStatus = statusQuery.data.status;
+        if (statusFilter === "running" && jobStatus !== "running") return false;
+        if (statusFilter === "completed" && jobStatus !== "completed") return false;
+        if (statusFilter === "failed" && jobStatus !== "failed") return false;
+        if (statusFilter === "pending" && jobStatus !== "pending") return false;
+      }
+    }
+
+    // Date filtering
+    if (dateFilter !== "all" && statusQuery.data?.startedAt) {
+      const jobDate = new Date(statusQuery.data.startedAt);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      switch (dateFilter) {
+        case "today":
+          return jobDate >= today;
+        case "week":
+          return jobDate >= weekAgo;
+        case "month":
+          return jobDate >= monthAgo;
+        default:
+          return true;
+      }
+    }
+
+    return true;
+  };
+
+  // Don't render if filters don't match
+  if (!shouldShowJob()) {
+    return null;
+  }
 
   if (statusQuery.isLoading) {
     return (

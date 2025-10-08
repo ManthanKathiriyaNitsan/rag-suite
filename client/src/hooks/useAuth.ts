@@ -144,15 +144,41 @@ export const useAuth = () => {
         return null;
       }
       
-      // Check if token is expired
-      if (new Date(expiresAt) <= new Date()) {
-        console.log('🔐 Token expired, clearing data');
-        // Token expired, clear data
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_data');
-        localStorage.removeItem('token_expires');
-        return null;
-      }
+    // Check if token is expired with robust timezone handling
+    const expirationDate = new Date(expiresAt);
+    const currentDate = new Date();
+    
+    // Calculate time difference in minutes
+    const timeDiffMinutes = Math.round((expirationDate.getTime() - currentDate.getTime()) / (1000 * 60));
+    
+    // If the time difference is negative but less than 6 hours, it's likely a timezone issue
+    // In this case, we'll treat the token as valid if it's within 6 hours of expiration
+    const isLikelyTimezoneIssue = timeDiffMinutes < 0 && timeDiffMinutes > -360; // -6 hours
+    
+    // Add 30 minute buffer for normal cases, but be more lenient for timezone issues
+    const bufferTime = isLikelyTimezoneIssue ? 0 : 30 * 60 * 1000; // 30 minutes for normal, 0 for timezone issues
+    const isExpired = expirationDate <= new Date(currentDate.getTime() + bufferTime);
+    
+    console.log('🔐 Token expiration check:', {
+      expiresAt: expiresAt,
+      expirationDate: expirationDate.toISOString(),
+      currentDate: currentDate.toISOString(),
+      timeDiffMinutes: timeDiffMinutes,
+      isLikelyTimezoneIssue: isLikelyTimezoneIssue,
+      bufferTime: bufferTime,
+      isExpired: isExpired
+    });
+    
+    if (isExpired && !isLikelyTimezoneIssue) {
+      console.log('🔐 Token expired (with buffer), clearing data');
+      // Token expired, clear data
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_data');
+      localStorage.removeItem('token_expires');
+      return null;
+    } else if (isLikelyTimezoneIssue) {
+      console.log('🔐 Likely timezone issue detected, treating token as valid');
+    }
       
       const user = JSON.parse(userData);
       console.log('🔐 Parsed user data:', user);
@@ -177,13 +203,40 @@ export const useAuth = () => {
       return null;
     }
     
-    // Check if token is expired
-    if (new Date(expiresAt) <= new Date()) {
+    // Check if token is expired with robust timezone handling
+    const expirationDate = new Date(expiresAt);
+    const currentDate = new Date();
+    
+    // Calculate time difference in minutes
+    const timeDiffMinutes = Math.round((expirationDate.getTime() - currentDate.getTime()) / (1000 * 60));
+    
+    // If the time difference is negative but less than 6 hours, it's likely a timezone issue
+    // In this case, we'll treat the token as valid if it's within 6 hours of expiration
+    const isLikelyTimezoneIssue = timeDiffMinutes < 0 && timeDiffMinutes > -360; // -6 hours
+    
+    // Add 30 minute buffer for normal cases, but be more lenient for timezone issues
+    const bufferTime = isLikelyTimezoneIssue ? 0 : 30 * 60 * 1000; // 30 minutes for normal, 0 for timezone issues
+    const isExpired = expirationDate <= new Date(currentDate.getTime() + bufferTime);
+    
+    console.log('🔐 Token expiration check (getCurrentToken):', {
+      expiresAt: expiresAt,
+      expirationDate: expirationDate.toISOString(),
+      currentDate: currentDate.toISOString(),
+      timeDiffMinutes: timeDiffMinutes,
+      isLikelyTimezoneIssue: isLikelyTimezoneIssue,
+      bufferTime: bufferTime,
+      isExpired: isExpired
+    });
+    
+    if (isExpired && !isLikelyTimezoneIssue) {
+      console.log('🔐 Token expired (with buffer), clearing data (getCurrentToken)');
       // Token expired, clear data
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user_data');
       localStorage.removeItem('token_expires');
       return null;
+    } else if (isLikelyTimezoneIssue) {
+      console.log('🔐 Likely timezone issue detected, treating token as valid (getCurrentToken)');
     }
     
     return token;

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Plus, Filter, Play, Pause, Trash2, Edit, Eye, Loader2 } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { Plus, Filter, Play, Pause, Trash2, Edit, Eye, Loader2, Search, X } from "lucide-react";
 import { AddSourceForm } from "@/components/forms/AddSourceForm";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CrawlSourceTable } from "@/components/CrawlSourceTable";
 import { CrawlJobs } from "@/components/CrawlJobs";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -55,6 +56,14 @@ export default function Crawl() {
   const [showAddSourceForm, setShowAddSourceForm] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [editingSite, setEditingSite] = useState<string | null>(null);
+  
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [cadenceFilter, setCadenceFilter] = useState("all");
+  const [jobStatusFilter, setJobStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("today");
+  
   const { toast } = useToast();
 
   // 🕷️ Use crawl hooks
@@ -80,6 +89,41 @@ export default function Crawl() {
     stats,
     isLoading: statsLoading,
   } = useCrawlStats();
+
+  // Filter and search logic
+  const filteredSites = useMemo(() => {
+    if (!sites) return [];
+    
+    return sites.filter((site: any) => {
+      // Search filter
+      const matchesSearch = searchQuery === "" || 
+        site.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        site.url?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        site.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Status filter
+      const matchesStatus = statusFilter === "all" || 
+        site.status?.toLowerCase() === statusFilter.toLowerCase();
+      
+      // Cadence filter
+      const matchesCadence = cadenceFilter === "all" || 
+        site.cadence?.toLowerCase() === cadenceFilter.toLowerCase();
+      
+      return matchesSearch && matchesStatus && matchesCadence;
+    });
+  }, [sites, searchQuery, statusFilter, cadenceFilter]);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setCadenceFilter("all");
+    setJobStatusFilter("all");
+    setDateFilter("today");
+  };
+
+  // Check if any filters are active
+  const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || cadenceFilter !== "all" || jobStatusFilter !== "all" || dateFilter !== "today";
 
   // 🕷️ Crawl operation handlers
   const handleAddSite = async (siteData: CrawlSiteData) => {
@@ -219,41 +263,63 @@ export default function Crawl() {
         </TabsList>
 
         <TabsContent value="sources" className="space-y-4 w-full overflow-hidden">
-          <div className="flex flex-wrap gap-4 mt-3 lg:mt-0 ">
-         
-            <Select defaultValue="all">
+          <div className="flex flex-col sm:flex-row gap-4 mt-3 lg:mt-0">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search sources..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+                data-testid="input-search-sources"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-40" data-testid="select-status-filter">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="paused">Paused</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
                 <SelectItem value="error">Error</SelectItem>
               </SelectContent>
             </Select>
 
-            <Select defaultValue="all">
+            {/* Cadence Filter */}
+            <Select value={cadenceFilter} onValueChange={setCadenceFilter}>
               <SelectTrigger className="w-40" data-testid="select-cadence-filter">
                 <SelectValue placeholder="Cadence" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Cadence</SelectItem>
+                <SelectItem value="once">Once</SelectItem>
                 <SelectItem value="hourly">Hourly</SelectItem>
                 <SelectItem value="daily">Daily</SelectItem>
                 <SelectItem value="weekly">Weekly</SelectItem>
               </SelectContent>
             </Select>
-           
 
-            <Button variant="outline" data-testid="button-filters">
-              <Filter className="h-4 w-4 mr-2" />
-              More Filters
-            </Button>
+            {/* Clear Filters Button */}
+            {hasActiveFilters && (
+              <Button 
+                variant="outline" 
+                onClick={clearFilters}
+                className="flex items-center gap-2"
+                data-testid="button-clear-filters"
+              >
+                <X className="h-4 w-4" />
+                Clear Filters
+              </Button>
+            )}
           </div>
 
           <CrawlSourceTable 
-            sites={sites}
+            sites={filteredSites}
             isLoading={sitesLoading}
             onEdit={setEditingSite}
             onDelete={handleDeleteSite}
@@ -267,8 +333,8 @@ export default function Crawl() {
 
 
         <TabsContent value="jobs" className="space-y-4 w-full overflow-hidden">
-          <div className="flex items-center gap-4">
-            <Select defaultValue="all">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Select value={jobStatusFilter} onValueChange={setJobStatusFilter}>
               <SelectTrigger className="w-40" data-testid="select-job-status-filter">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -277,10 +343,11 @@ export default function Crawl() {
                 <SelectItem value="running">Running</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="failed">Failed</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
               </SelectContent>
             </Select>
 
-            <Select defaultValue="today">
+            <Select value={dateFilter} onValueChange={setDateFilter}>
               <SelectTrigger className="w-40" data-testid="select-date-filter">
                 <SelectValue placeholder="Date Range" />
               </SelectTrigger>
@@ -288,10 +355,31 @@ export default function Crawl() {
                 <SelectItem value="today">Today</SelectItem>
                 <SelectItem value="week">This Week</SelectItem>
                 <SelectItem value="month">This Month</SelectItem>
+                <SelectItem value="all">All Time</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Clear Filters Button for Jobs */}
+            {(jobStatusFilter !== "all" || dateFilter !== "today") && (
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setJobStatusFilter("all");
+                  setDateFilter("today");
+                }}
+                className="flex items-center gap-2"
+                data-testid="button-clear-job-filters"
+              >
+                <X className="h-4 w-4" />
+                Clear Filters
+              </Button>
+            )}
           </div>
-          <CrawlJobs sites={sites} />
+          <CrawlJobs 
+            sites={sites} 
+            statusFilter={jobStatusFilter}
+            dateFilter={dateFilter}
+          />
         </TabsContent>
       </Tabs>
 
@@ -310,7 +398,7 @@ export default function Crawl() {
             if (!open) setEditingSite(null);
           }}
           onSubmit={(data) => handleUpdateSite(editingSite, data)}
-          editData={sites.find((s) => s.id === editingSite)}
+          editData={sites.find((s: any) => s.id === editingSite)}
         />
       )}
     </div>

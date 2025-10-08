@@ -10,6 +10,13 @@ import { useChatFeedback } from "@/hooks/useChat";
 import { linkifyTextToNodes } from "@/lib/linkify";
 import { useTheme } from "@/contexts/ThemeContext";
 import { simpleHighlight } from "@/lib/textHighlighting";
+import { useCitationFormatting } from "@/contexts/CitationFormattingContext";
+// 📝 Import markdown support
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+// 🎨 Import syntax highlighting
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface Citation {
   title: string;
@@ -57,6 +64,12 @@ export const ChatMessage = React.memo(function ChatMessage({
   const { submitFeedback, isSubmitting } = useChatFeedback();
   const [copied, setCopied] = useState(false);
   
+  // 🎨 Get theme for syntax highlighting
+  const { theme } = useTheme();
+  
+  // 🎨 Get citation formatting options
+  const { formatting } = useCitationFormatting();
+  
   // Get widget appearance settings from global context
   const getWidgetAppearance = () => {
     try {
@@ -80,6 +93,58 @@ export const ChatMessage = React.memo(function ChatMessage({
   };
   
   const widgetAppearance = getWidgetAppearance();
+
+  // 🎨 Citation formatting functions
+  const getNumberingStyle = (index: number) => {
+    switch (formatting.numbering) {
+      case 'brackets': return `[${index + 1}]`;
+      case 'parentheses': return `(${index + 1})`;
+      case 'dots': return `${index + 1}.`;
+      case 'numbers': return `${index + 1}`;
+      default: return `[${index + 1}]`;
+    }
+  };
+
+  const getCitationStyleClasses = () => {
+    const baseClasses = "rounded-md border";
+    
+    switch (formatting.style) {
+      case 'compact':
+        return `${baseClasses} p-1 text-xs`;
+      case 'detailed':
+        return `${baseClasses} p-3 bg-muted/50`;
+      case 'card':
+        return `${baseClasses} p-2 shadow-sm`;
+      case 'minimal':
+        return `${baseClasses} p-1 text-xs bg-transparent border-dashed`;
+      default:
+        return `${baseClasses} p-2`;
+    }
+  };
+
+  const getLayoutClasses = () => {
+    switch (formatting.layout) {
+      case 'vertical': return "space-y-2";
+      case 'horizontal': return "flex gap-2 flex-wrap";
+      case 'grid': return "grid grid-cols-1 sm:grid-cols-2 gap-2";
+      default: return "space-y-2";
+    }
+  };
+
+  const getColorSchemeClasses = () => {
+    switch (formatting.colorScheme) {
+      case 'primary': return "border-primary/20 bg-primary/5";
+      case 'muted': return "border-muted bg-muted/30";
+      case 'accent': return "border-accent/20 bg-accent/5";
+      default: return "border-border/20 bg-muted/30";
+    }
+  };
+
+  const truncateSnippet = (snippet: string) => {
+    if (!formatting.showSnippets) return "";
+    if (snippet.length <= formatting.maxSnippetLength) return snippet;
+    return snippet.substring(0, formatting.maxSnippetLength) + "...";
+  };
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(content);
@@ -129,7 +194,7 @@ export const ChatMessage = React.memo(function ChatMessage({
         <Card
           className={`chat-bubble p-4 ${
             type === "user"
-              ? "bg-primary   ml-auto"
+              ? "bg-primary ml-auto"
               : "bg-card"
           } ${
             widgetAppearance.chatBubbleStyle === "sharp" ? "rounded-none" :
@@ -141,49 +206,147 @@ export const ChatMessage = React.memo(function ChatMessage({
         >
           <div className="space-y-3">
             <div className="opacity-90 w-full min-w-0">
-              <p 
-                className="whitespace-pre-wrap break-words overflow-wrap-anywhere hyphens-auto word-break-break-word text-wrap"
-                style={{
-                  wordBreak: 'break-word',
-                  overflowWrap: 'anywhere',
-                  whiteSpace: 'pre-wrap',
-                  hyphens: 'auto'
-                }}
-                role="text"
-                aria-label={`${type === "user" ? "User" : "Assistant"} message content`}
-              >
-                {type === "assistant" ? (
-                  queryString ? simpleHighlight(content, queryString) : linkifyTextToNodes(content)
-                ) : content}
-              </p>
+              {type === "assistant" ? (
+                <div
+                  className="text-sm leading-relaxed prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground prose-blockquote:text-muted-foreground prose-blockquote:border-l-muted-foreground"
+                  role="text"
+                  aria-label="Assistant message content"
+                >
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      // 🎨 Enhanced code blocks with syntax highlighting
+                      code: ({ node, className, children, ...props }: any) => {
+                        const isInline = !className?.includes('language-');
+                        if (isInline) {
+                          return (
+                            <code className="bg-muted px-1 py-0.5 rounded text-sm font-mono" {...props}>
+                              {children}
+                            </code>
+                          );
+                        }
+                        
+                        // Extract language from className (e.g., "language-javascript" -> "javascript")
+                        const match = /language-(\w+)/.exec(className || '');
+                        const language = match ? match[1] : 'text';
+                        
+                        return (
+                          <div className="my-4">
+                            <SyntaxHighlighter
+                              language={language}
+                              style={theme === 'dark' ? oneDark : oneLight}
+                              customStyle={{
+                                margin: 0,
+                                borderRadius: '0.5rem',
+                                fontSize: '0.875rem',
+                                lineHeight: '1.5',
+                              }}
+                              showLineNumbers={false}
+                              wrapLines={true}
+                              wrapLongLines={true}
+                            >
+                              {String(children).replace(/\n$/, '')}
+                            </SyntaxHighlighter>
+                          </div>
+                        );
+                      },
+                      // Custom styling for links
+                      a: ({ href, children, ...props }) => (
+                        <a 
+                          href={href} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                          {...props}
+                        >
+                          {children}
+                        </a>
+                      ),
+                      // Custom styling for lists
+                      ul: ({ children, ...props }) => (
+                        <ul className="list-disc list-inside space-y-1" {...props}>
+                          {children}
+                        </ul>
+                      ),
+                      ol: ({ children, ...props }) => (
+                        <ol className="list-decimal list-inside space-y-1" {...props}>
+                          {children}
+                        </ol>
+                      ),
+                      // Custom styling for blockquotes
+                      blockquote: ({ children, ...props }) => (
+                        <blockquote className="border-l-4 border-muted-foreground pl-4 italic text-muted-foreground" {...props}>
+                          {children}
+                        </blockquote>
+                      ),
+                    }}
+                  >
+                    {String(content)}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <p
+                  className="whitespace-pre-wrap break-words overflow-wrap-anywhere hyphens-auto word-break-break-word text-wrap"
+                  style={{
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere',
+                    whiteSpace: 'pre-wrap',
+                    hyphens: 'auto'
+                  }}
+                  role="text"
+                  aria-label="User message content"
+                >
+                  {content}
+                </p>
+              )}
             </div>
 
-        
-
-            {/* 🎛️ RAG Settings Display */}
+            {/* 🎨 Enhanced Citation Display with Formatting Options */}
             {type === "assistant" && citations && citations.length > 0 && (
               <div className="space-y-3 pt-3 border-t border-border/20">
-                <p className="text-xs font-medium opacity-70">Sources ({citations.length}):</p>
-                <div className="space-y-2">
+                {formatting.showSourceCount && (
+                  <p className="text-xs font-medium opacity-70">
+                    Sources ({citations.length}):
+                  </p>
+                )}
+                <div className={getLayoutClasses()}>
                   {citations.map((source, index) => (
-                    <div key={index} className="p-2 bg-muted/30 rounded-md border border-border/20">
+                    <div 
+                      key={index} 
+                      className={`${getCitationStyleClasses()} ${getColorSchemeClasses()} ${
+                        formatting.enableHover ? 'hover:shadow-sm transition-shadow' : ''
+                      }`}
+                    >
                       <div className="flex items-start gap-2">
-                        <Badge variant="outline" className="text-xs shrink-0">
-                          {index + 1}
+                        <Badge 
+                          variant="outline" 
+                          className={`text-xs shrink-0 ${
+                            formatting.style === 'minimal' ? 'text-xs px-1 py-0' : ''
+                          }`}
+                        >
+                          {getNumberingStyle(index)}
                         </Badge>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground mb-1">
+                          <p className={`font-medium text-foreground mb-1 ${
+                            formatting.style === 'compact' ? 'text-xs' : 'text-sm'
+                          }`}>
                             {source.title || `Source ${index + 1}`}
                           </p>
-                          <p className="text-xs text-muted-foreground leading-relaxed">
-                            {queryString ? simpleHighlight(source.snippet, queryString) : source.snippet}
-                          </p>
-                          {source.url && source.url !== "#" && (
+                          {formatting.showSnippets && truncateSnippet(source.snippet) && (
+                            <p className={`text-muted-foreground leading-relaxed ${
+                              formatting.style === 'compact' ? 'text-xs' : 'text-xs'
+                            }`}>
+                              {queryString ? simpleHighlight(truncateSnippet(source.snippet), queryString) : truncateSnippet(source.snippet)}
+                            </p>
+                          )}
+                          {formatting.showUrls && source.url && source.url !== "#" && (
                             <a 
                               href={source.url} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="text-xs text-primary hover:underline mt-1 inline-block"
+                              className={`text-primary hover:underline mt-1 inline-block ${
+                                formatting.style === 'compact' ? 'text-xs' : 'text-xs'
+                              }`}
                             >
                               View Source →
                             </a>

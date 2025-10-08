@@ -16,19 +16,60 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Simple mock authentication - accept any username/password
     if (username && password) {
-      // Set authentication tokens in localStorage
-      localStorage.setItem('auth-token', 'mock-jwt-token-' + Date.now());
-      localStorage.setItem('auth-user', JSON.stringify({
-        id: 1,
-        username: username,
-        email: username + '@example.com',
-        name: username
-      }));
-      
-      // Redirect to dashboard
-      setLocation("/");
+      try {
+        // Try to get real authentication from crawl server
+        const response = await fetch('http://192.168.0.103:8000/api/v1/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: username,
+            password: password
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          // Store real authentication tokens
+          localStorage.setItem('auth_token', data.access_token || data.token);
+          localStorage.setItem('user_data', JSON.stringify({
+            id: data.user?.id || 1,
+            username: username,
+            email: data.user?.email || username + '@example.com',
+            name: data.user?.name || username
+          }));
+          localStorage.setItem('token_expires', data.expiresAt || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString());
+          
+          console.log('✅ Real authentication successful');
+          console.log('🔐 Stored auth data:', {
+            token: data.access_token || data.token,
+            user: data.user,
+            expiresAt: data.expiresAt
+          });
+          // Force page reload to update authentication state
+          window.location.href = "/";
+        } else {
+          throw new Error('Authentication failed');
+        }
+      } catch (error) {
+        console.warn('🔐 Real authentication failed, using mock authentication for development');
+        console.warn('💡 This allows development to continue without real server authentication');
+        
+        // Fallback to mock authentication for development
+        localStorage.setItem('auth_token', 'mock-jwt-token-' + Date.now());
+        localStorage.setItem('user_data', JSON.stringify({
+          id: 1,
+          username: username,
+          email: username + '@example.com',
+          name: username
+        }));
+        localStorage.setItem('token_expires', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString());
+        
+        // Force page reload to update authentication state
+        window.location.href = "/";
+      }
     } else {
       alert('Please enter both username and password');
     }

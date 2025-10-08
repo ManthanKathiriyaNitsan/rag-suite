@@ -5,7 +5,6 @@ const API_BASE_URL = 'http://192.168.0.117:8000/api/v1';
 
 // 🕷️ Crawl API Configuration - Separate base URL for crawl functionality
 const CRAWL_API_BASE_URL = 'http://192.168.0.103:8000/api/v1';
-
 // 📡 Create axios instance - This is your API client
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,           // Your API base URL
@@ -15,14 +14,21 @@ export const apiClient = axios.create({
   },
 });
 
-// 🔧 Add request interceptor for debugging
+// 🔧 Add request interceptor for debugging and authentication
 apiClient.interceptors.request.use(
   (config) => {
+    // Add authentication token if available
+    const token = localStorage.getItem('auth-token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
     console.log('🌐 API Request:', {
       method: config.method?.toUpperCase(),
       url: config.url,
       baseURL: config.baseURL,
       fullURL: `${config.baseURL}${config.url}`,
+      hasAuth: !!config.headers.Authorization,
     });
     return config;
   },
@@ -53,6 +59,15 @@ apiClient.interceptors.response.use(
     
     if (error.code === 'ERR_NETWORK') {
       console.error('🌐 Network Error: Cannot reach the server. Check if the API server is running at:', API_BASE_URL);
+    }
+    
+    // Check if it's a 401 Unauthorized error
+    if (error.response?.status === 401) {
+      console.warn('🔐 Authentication failed - redirecting to login');
+      // Clear auth data and redirect to login
+      localStorage.removeItem('auth-token');
+      localStorage.removeItem('auth-user');
+      window.location.href = '/login';
     }
     
     return Promise.reject(error);
@@ -294,6 +309,23 @@ export const crawlAPI = {
       return response.data;
     } catch (error) {
       console.error('❌ Add site failed:', error);
+      
+      // Handle authentication errors
+      if ((error as any).response?.status === 401) {
+        console.error('🔐 Authentication failed - please log in again');
+        // Clear auth data and redirect to login
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data');
+        localStorage.removeItem('token_expires');
+        window.location.href = '/login';
+        return;
+      }
+      
+      if ((error as any).response?.status === 403) {
+        console.error('🔐 Access forbidden - insufficient permissions');
+        throw new Error('Access forbidden. Please check your permissions.');
+      }
+      
       throw error;
     }
   },
@@ -333,6 +365,23 @@ export const crawlAPI = {
       }));
     } catch (error) {
       console.error('❌ Get sites failed:', error);
+      
+      // Handle authentication errors
+      if ((error as any).response?.status === 401) {
+        console.error('🔐 Authentication failed - please log in again');
+        // Clear auth data and redirect to login
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data');
+        localStorage.removeItem('token_expires');
+        window.location.href = '/login';
+        return [];
+      }
+      
+      if ((error as any).response?.status === 403) {
+        console.error('🔐 Access forbidden - insufficient permissions');
+        throw new Error('Access forbidden. Please check your permissions.');
+      }
+      
       throw error;
     }
   },
