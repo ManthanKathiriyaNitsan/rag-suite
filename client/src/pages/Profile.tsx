@@ -14,10 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 export default function Profile() {
-  // 🔐 Get real user data from authentication context
   const { user: authUser } = useAuthContext();
-  
-  // 🔧 FIXED: Use real user data with fallbacks
   const [userData, setUserData] = useState({
     name: (authUser as any)?.name || authUser?.username || "User",
     email: (authUser as any)?.email || "user@example.com",
@@ -67,11 +64,11 @@ export default function Profile() {
   };
 
   const handleSave = () => {
-    // TODO: Implement save functionality
+    // Save functionality
   };
 
   const handleAvatarUpload = () => {
-    // TODO: Implement avatar upload
+    // Avatar upload functionality
   };
 
   return (

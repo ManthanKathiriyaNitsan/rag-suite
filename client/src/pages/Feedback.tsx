@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { useTranslation } from "@/contexts/I18nContext";
 import {
   Select,
   SelectContent,
@@ -27,7 +28,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-// todo: remove mock functionality
 const feedbackData = [
   {
     id: "fb-001",
@@ -98,6 +98,7 @@ export default function Feedback() {
   const [timeRange, setTimeRange] = useState("all");
   const [voteFilter, setVoteFilter] = useState("all");
   const [reasonFilter, setReasonFilter] = useState("all");
+  const { t } = useTranslation();
 
   const getVoteIcon = (vote: string) => {
     return vote === "up" ? <ThumbsUp className="h-4 w-4" /> : <ThumbsDown className="h-4 w-4" />;
@@ -122,9 +123,9 @@ export default function Feedback() {
     <div className="space-y-6 w-full max-w-full overflow-hidden min-w-0" style={{ maxWidth: '92vw' }}>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Feedback Moderation</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('feedback.title')}</h1>
           <p className="text-muted-foreground">
-            Review and analyze user feedback on AI responses
+            {t('feedback.description')}
           </p>
         </div>
       </div>

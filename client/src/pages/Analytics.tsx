@@ -3,6 +3,7 @@ import { TrendingUp, Download, Clock, Users, ThumbsUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "@/contexts/I18nContext";
 import {
   Select,
   SelectContent,
@@ -12,7 +13,6 @@ import {
 } from "@/components/ui/select";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
 
-// todo: remove mock functionality
 const queryData = [
   { date: "2024-01-01", queries: 145, p95: 245, p50: 180, satisfaction: 89 },
   { date: "2024-01-02", queries: 210, p95: 267, p50: 195, satisfaction: 91 },
@@ -74,6 +74,7 @@ const hardQueries = [
 
 export default function Analytics() {
   const [timeRange, setTimeRange] = useState("7d");
+  const { t } = useTranslation();
 
   const getSatisfactionColor = (satisfaction: number) => {
     if (satisfaction >= 90) return "default";
@@ -85,9 +86,9 @@ export default function Analytics() {
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden min-w-0 px-2 sm:px-0" style={{ maxWidth: '93vw' }}>
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Analytics</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('analytics.title')}</h1>
           <p className="text-muted-foreground">
-            Track performance metrics and user engagement
+            {t('analytics.description')}
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">

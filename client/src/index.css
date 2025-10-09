@@ -218,6 +218,20 @@
   }
 }
 
+/* View Transition API Styles for Theme Toggle */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* Support for browsers that don't support View Transitions */
+@supports not (view-transition-name: none) {
+  .theme-transition {
+    transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+  }
+}
+
 /**
  * Using the elevate system.
  * Automatic contrast adjustment.

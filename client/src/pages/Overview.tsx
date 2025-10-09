@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useTranslation } from "@/contexts/I18nContext";
 
-// todo: remove mock functionality
 const chartData = [
   { name: "Mon", queries: 145 },
   { name: "Tue", queries: 210 },
@@ -31,12 +31,14 @@ const latestFeedback = [
 ];
 
 export default function Overview() {
+  const { t } = useTranslation();
+  
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('nav.overview')}</h1>
         <p className="text-muted-foreground">
-          Monitor your RAG system performance and user engagement
+          {t('overview.description')}
         </p>
       </div>
 

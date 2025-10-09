@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Plus, Filter, Play, Pause, Trash2, Edit, Eye, Loader2, Search, X } from "lucide-react";
 import { AddSourceForm } from "@/components/forms/AddSourceForm";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/contexts/I18nContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,11 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-// 🕷️ Import crawl hooks
 import { useCrawlSites, useCrawlOperations, useCrawlStats } from "@/hooks/useCrawl";
 import { CrawlSiteData } from "@/lib/api";
 
-// todo: remove mock functionality
 const crawlJobs = [
   {
     id: "job-001",
@@ -65,6 +64,7 @@ export default function Crawl() {
   const [dateFilter, setDateFilter] = useState("today");
   
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   // 🕷️ Use crawl hooks
   const {
@@ -210,41 +210,15 @@ export default function Crawl() {
   };
 
 
-  // useEffect(() => {
-
-  //   const fetchData = async () => {
-  //     try {
-  //       const response = await fetch('/api/crawl-sources', {
-  //         method: 'POST',
-  //         headers: {
-  //           'Content-Type': 'application/json',
-  //         },
-  //         body: JSON.stringify({
-  //           // your data here
-  //         })
-  //       });
-  
-  //       if (!response.ok) {
-  //         throw new Error(`HTTP error! status: ${response.status}`);
-  //       }
-  
-  //       const data = await response.json();
-  //       console.log('Success:', data);
-  //     } catch (error) {
-  //       console.error('Error:', error);
-  //     }
-  //   };
-  
-  //   fetchData();
-  // }, []);
+ 
 
   return (
     <div className="space-y-6 w-full max-w-full overflow-hidden min-w-0" style={{ maxWidth: '92vw' }}>
       <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 lg:gap-0 lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Crawl Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('crawl.title')}</h1>
           <p className="text-muted-foreground  ">
-            Configure and monitor website crawling sources
+            {t('crawl.description')}
           </p>
         </div>
         <Button

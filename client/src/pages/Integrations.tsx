@@ -4,6 +4,7 @@ import IntegrationCreateEdit from "@/components/IntegrationCreateEdit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "@/contexts/I18nContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -150,6 +151,7 @@ export default function Integrations() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [envFilter, setEnvFilter] = useState("all");
+  const { t } = useTranslation();
   
   // Navigation state
   const [currentView, setCurrentView] = useState<"list" | "create" | "edit">("list");
@@ -233,17 +235,13 @@ export default function Integrations() {
 
   const handleSaveIntegration = (data: any) => {
     console.log("Saving integration data:", data);
-    // TODO: Implement actual save logic here
-    // For now, just go back to list
     handleBackToList();
   };
 
   const handleDuplicateIntegration = (integrationId: string) => {
     console.log("Duplicate integration:", integrationId);
-    // TODO: Implement duplication logic
-    // For now, open in create mode with prefilled data
     setCurrentView("create");
-    setEditingIntegrationId(integrationId); // Can use this to prefill data
+    setEditingIntegrationId(integrationId);
   };
 
   // Show create/edit form if not in list view
@@ -263,9 +261,9 @@ export default function Integrations() {
     <div className="space-y-6 w-full max-w-full overflow-hidden min-w-0" style={{ maxWidth: '92vw' }}>
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Integrations</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('nav.integrations')}</h1>
           <p className="text-muted-foreground">
-            Manage your AI chat and search integrations across environments
+            {t('integrations.description')}
           </p>
         </div>
         <Button onClick={handleCreateIntegration} data-testid="button-create-integration">

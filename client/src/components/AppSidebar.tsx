@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useBranding } from "@/contexts/BrandingContext";
+import { useTranslation } from "@/contexts/I18nContext";
 
 const menuItems = [
   {
@@ -122,6 +123,7 @@ export function AppSidebar() {
   const [selectedProject, setSelectedProject] = useState(projects[0]);
   const [isMobile, setIsMobile] = useState(false);
   const { orgName, logoDataUrl } = useBranding();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -214,20 +216,35 @@ export function AppSidebar() {
           <SidebarGroupLabel>Application</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location === item.url}
-                    data-testid={`link-${item.title.toLowerCase().replace(' ', '-')}`}
-                  >
-                    <Link href={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {menuItems.map((item) => {
+                // Map menu titles to translation keys
+                const translationMap: Record<string, string> = {
+                  'Overview': 'nav.overview',
+                  'Crawl': 'nav.crawl',
+                  'Documents': 'nav.documents',
+                  'RAG Tuning': 'nav.rag-tuning',
+                  'Analytics': 'nav.analytics',
+                  'Feedback': 'nav.feedback',
+                  'Integrations': 'nav.integrations',
+                  'Settings': 'nav.settings'
+                };
+                const translationKey = translationMap[item.title] || `nav.${item.title.toLowerCase().replace(' ', '-')}`;
+                
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location === item.url}
+                      data-testid={`link-${item.title.toLowerCase().replace(' ', '-')}`}
+                    >
+                      <Link href={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{t(translationKey)}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

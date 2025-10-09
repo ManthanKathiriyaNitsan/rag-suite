@@ -6,11 +6,11 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "@/contexts/I18nContext";
 import { SearchBar, SearchBarRef } from "@/components/SearchBar";
 import { ChatMessage } from "@/components/ChatMessage";
 import { TypingIndicator, TypingAnimation, StreamingResponse } from "@/components/TypingIndicator";
 import { useRAGSettings, usePerformanceMetrics } from "@/contexts/RAGSettingsContext";
-// 🌐 Import our global API hooks
 import { useSearch } from "@/hooks/useSearch";
 import { useChat, useChatSessions } from "@/hooks/useChat";
 
@@ -19,7 +19,6 @@ interface Message {
   content: string;
   timestamp: Date;
   citations?: { title: string; url: string; snippet: string }[];
-  // 🎛️ RAG Settings display
   ragSettings?: {
     topK?: number;
     similarityThreshold?: number;
@@ -37,6 +36,7 @@ export default function RAGTuning() {
   // 🎛️ Use global RAG settings
   const { settings, updateSettings } = useRAGSettings();
   const { metrics, updateMetrics } = usePerformanceMetrics();
+  const { t } = useTranslation();
   
   // 💬 Load messages from sessionStorage on mount
   const [messages, setMessages] = useState<Message[]>(() => {
@@ -290,9 +290,9 @@ export default function RAGTuning() {
     <div className="space-y-6">
       <div className="flex justify-between items-start">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">RAG Tuning Playground</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('rag-tuning.title')}</h1>
         <p className="text-muted-foreground">
-          Test and optimize your retrieval-augmented generation settings
+          {t('rag-tuning.description')}
         </p>
         </div>
         

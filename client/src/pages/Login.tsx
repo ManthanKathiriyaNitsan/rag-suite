@@ -12,13 +12,12 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [, setLocation] = useLocation();
 
-  // 🔐 Simple mock login
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (username && password) {
       try {
-        // Try to get real authentication from crawl server
+        // Authenticate with server
         const response = await fetch('http://192.168.0.103:8000/api/v1/auth/login', {
           method: 'POST',
           headers: {

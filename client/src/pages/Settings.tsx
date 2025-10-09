@@ -36,7 +36,6 @@ import { useI18n } from "@/contexts/I18nContext";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useCitationFormatting } from "@/contexts/CitationFormattingContext";
 
-// todo: remove mock functionality
 const apiKeys = [
   {
     id: "key-001",
@@ -186,31 +185,37 @@ export default function Settings() {
 
   const handleSaveLocale = () => {
     // I18nProvider already persists the locale; provide UX feedback only
-    toast({ title: t("settings.i18n.save"), description: `${locale} selected as default language.` });
+    toast({ 
+      title: t("common.success"), 
+      description: `${locale} ${t('settings.i18n.defaultLanguage').toLowerCase()} ${t('common.save').toLowerCase()}d.` 
+    });
   };
 
   const handleResetLocale = () => {
     setLocale("en");
-    toast({ title: "Language reset", description: "Default language set to English (US)." });
+    toast({ 
+      title: t("common.success"), 
+      description: `${t('settings.i18n.defaultLanguage')} ${t('common.clear').toLowerCase()}ed to English (US).` 
+    });
   };
 
   return (
     <div className="space-y-6 sm:px-6 lg:px-8">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Settings</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('settings.title')}</h1>
         <p className="text-muted-foreground text-sm sm:text-base">
-          Manage your organization settings and preferences
+          {t('settings.description')}
         </p>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList className="grid w-full h-auto grid-cols-1 sm:grid-cols-2 lg:grid-cols-6">
-          <TabsTrigger value="profile" data-testid="tab-profile" className="text-xs sm:text-sm">Profile & Branding</TabsTrigger>
-          <TabsTrigger value="retention" data-testid="tab-retention" className="text-xs sm:text-sm">Data Retention</TabsTrigger>
-          <TabsTrigger value="i18n" data-testid="tab-i18n" className="text-xs sm:text-sm">Internationalization</TabsTrigger>
-          <TabsTrigger value="citations" data-testid="tab-citations" className="text-xs sm:text-sm">Citation Formatting</TabsTrigger>
-          <TabsTrigger value="api-keys" data-testid="tab-api-keys" className="text-xs sm:text-sm">API Keys</TabsTrigger>
-          <TabsTrigger value="health" data-testid="tab-health" className="text-xs sm:text-sm">System Health</TabsTrigger>
+          <TabsTrigger value="profile" data-testid="tab-profile" className="text-xs sm:text-sm">{t('settings.profile')}</TabsTrigger>
+          <TabsTrigger value="retention" data-testid="tab-retention" className="text-xs sm:text-sm">{t('settings.data-retention')}</TabsTrigger>
+          <TabsTrigger value="i18n" data-testid="tab-i18n" className="text-xs sm:text-sm">{t('settings.i18n')}</TabsTrigger>
+          <TabsTrigger value="citations" data-testid="tab-citations" className="text-xs sm:text-sm">{t('settings.citation-formatting')}</TabsTrigger>
+          <TabsTrigger value="api-keys" data-testid="tab-api-keys" className="text-xs sm:text-sm">{t('settings.api-keys')}</TabsTrigger>
+          <TabsTrigger value="health" data-testid="tab-health" className="text-xs sm:text-sm">{t('settings.system-health')}</TabsTrigger>
         </TabsList>
 
         {/* Profile & Branding */}
@@ -522,28 +527,33 @@ export default function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Globe className="h-5 w-5" />
-                Internationalization
+                {t('settings.i18n.title')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <Label htmlFor="locale">Default Language</Label>
+                <Label htmlFor="locale">{t('settings.i18n.defaultLanguage')}</Label>
                 <Select value={locale} onValueChange={setLocale}>
                   <SelectTrigger className="w-full sm:w-64 mt-2" data-testid="select-locale">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="en">English (US)</SelectItem>
-                    <SelectItem value="en-gb">English (UK)</SelectItem>
-                    <SelectItem value="es">Español</SelectItem>
-                    <SelectItem value="fr">Français</SelectItem>
-                    <SelectItem value="de">Deutsch</SelectItem>
-                    <SelectItem value="ja">日本語</SelectItem>
-                    <SelectItem value="zh">中文</SelectItem>
+                    <SelectItem value="en">🇺🇸 English (US)</SelectItem>
+                    <SelectItem value="en-gb">🇬🇧 English (UK)</SelectItem>
+                    <SelectItem value="es">🇪🇸 Español</SelectItem>
+                    <SelectItem value="fr">🇫🇷 Français</SelectItem>
+                    <SelectItem value="de">🇩🇪 Deutsch</SelectItem>
+                    <SelectItem value="ja">🇯🇵 日本語</SelectItem>
+                    <SelectItem value="zh">🇨🇳 中文</SelectItem>
+                    <SelectItem value="pt">🇵🇹 Português</SelectItem>
+                    <SelectItem value="it">🇮🇹 Italiano</SelectItem>
+                    <SelectItem value="ru">🇷🇺 Русский</SelectItem>
+                    <SelectItem value="ar">🇸🇦 العربية</SelectItem>
+                    <SelectItem value="hi">🇮🇳 हिन्दी</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Default language for the admin interface and AI responses
+                  {t('settings.i18n.description')}
                 </p>
               </div>
 
@@ -570,8 +580,12 @@ export default function Settings() {
               </div>
 
               <div className="flex flex-col sm:flex-row justify-end gap-2">
-                <Button variant="outline" onClick={handleResetLocale} className="w-full sm:w-auto">Reset to Default</Button>
-                <Button data-testid="button-save-locale" onClick={handleSaveLocale} className="w-full sm:w-auto">{t("settings.i18n.save")}</Button>
+                <Button variant="outline" onClick={handleResetLocale} className="w-full sm:w-auto">
+                  {t('common.clear')} / Reset to Default
+                </Button>
+                <Button data-testid="button-save-locale" onClick={handleSaveLocale} className="w-full sm:w-auto">
+                  {t('common.save')} / {t('settings.i18n.save')}
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -779,7 +793,7 @@ export default function Settings() {
             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <CardTitle className="flex items-center gap-2">
                 <Key className="h-5 w-5" />
-                API Keys
+                {t('api-keys.title')}
               </CardTitle>
               <Button
                 onClick={() => setShowCreateKeyForm(true)}
@@ -787,7 +801,7 @@ export default function Settings() {
                 className="w-full sm:w-auto"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Create API Key
+                {t('api-keys.create')}
               </Button>
             </CardHeader>
             <CardContent className="p-0">
@@ -872,13 +886,13 @@ export default function Settings() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Key</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead>Last Used</TableHead>
-                        <TableHead>Requests</TableHead>
-                        <TableHead>Rate Limit</TableHead>
-                        <TableHead className="text-center">Actions</TableHead>
+                        <TableHead>{t('api-keys.name')}</TableHead>
+                        <TableHead>{t('api-keys.key')}</TableHead>
+                        <TableHead>{t('api-keys.created')}</TableHead>
+                        <TableHead>{t('api-keys.lastUsed')}</TableHead>
+                        <TableHead>{t('api-keys.requests')}</TableHead>
+                        <TableHead>{t('api-keys.rateLimit')}</TableHead>
+                        <TableHead className="text-center">{t('api-keys.actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

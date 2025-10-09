@@ -78,28 +78,28 @@ Your RAG system is ready to help users find information from your documentation!
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Bot className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold">RAGSuite</span>
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="flex items-center justify-center gap-2 mb-3 sm:mb-4">
+            <Bot className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+            <span className="text-xl sm:text-2xl font-bold">RAGSuite</span>
           </div>
-          <h1 className="text-3xl font-bold mb-2">Welcome to RAGSuite!</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">Welcome to RAGSuite!</h1>
+          <p className="text-sm sm:text-base text-muted-foreground px-2">
             Let's get your AI-powered search and chat system set up in just a few steps
           </p>
         </div>
 
         {/* Progress Steps */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center space-x-4">
+        <div className="flex items-center justify-center mb-6 sm:mb-8">
+          <div className="flex items-center space-x-2 sm:space-x-4 overflow-x-auto pb-2">
             {steps.map((step, index) => (
-              <div key={step.id} className="flex items-center">
+              <div key={step.id} className="flex items-center min-w-0 flex-shrink-0">
                 <div className="flex items-center">
                   <div
                     className={`
-                      w-10 h-10 rounded-full flex items-center justify-center
+                      w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center
                       ${currentStep > step.id 
                         ? 'bg-primary text-primary-foreground' 
                         : currentStep === step.id 
@@ -108,20 +108,20 @@ Your RAG system is ready to help users find information from your documentation!
                     `}
                   >
                     {currentStep > step.id ? (
-                      <CheckCircle className="h-5 w-5" />
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                     ) : (
-                      <span className="font-medium">{step.id}</span>
+                      <span className="font-medium text-sm sm:text-base">{step.id}</span>
                     )}
                   </div>
-                  <div className="ml-3 text-left">
-                    <p className="font-medium">{step.title}</p>
-                    <p className="text-sm text-muted-foreground">{step.description}</p>
+                  <div className="ml-2 sm:ml-3 text-left hidden sm:block">
+                    <p className="font-medium text-sm sm:text-base">{step.title}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{step.description}</p>
                   </div>
                 </div>
                 {index < steps.length - 1 && (
                   <div
                     className={`
-                      ml-8 w-16 h-0.5
+                      ml-4 sm:ml-8 w-8 sm:w-16 h-0.5
                       ${currentStep > step.id ? 'bg-primary' : 'bg-muted'}
                     `}
                   />
@@ -131,14 +131,14 @@ Your RAG system is ready to help users find information from your documentation!
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto">
-          <div className="grid gap-8 lg:grid-cols-2">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid gap-4 sm:gap-6 lg:gap-8 lg:grid-cols-2">
             {/* Left Panel - Form */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Step {currentStep}: {steps[currentStep - 1].title}</CardTitle>
+            <Card className="order-2 lg:order-1">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg sm:text-xl">Step {currentStep}: {steps[currentStep - 1].title}</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4 sm:space-y-6">
                 {/* Step 1: Branding */}
                 {currentStep === 1 && (
                   <div className="space-y-4">
@@ -155,11 +155,11 @@ Your RAG system is ready to help users find information from your documentation!
 
                     <div>
                       <Label htmlFor="logo-upload">Logo Upload (Optional)</Label>
-                      <div className="mt-2 flex items-center gap-4">
-                        <div className="h-16 w-16 bg-secondary rounded-lg flex items-center justify-center">
-                          <Upload className="h-6 w-6 text-muted-foreground" />
+                      <div className="mt-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                        <div className="h-12 w-12 sm:h-16 sm:w-16 bg-secondary rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Upload className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
                         </div>
-                        <Button variant="outline" data-testid="button-upload-logo">
+                        <Button variant="outline" data-testid="button-upload-logo" className="w-full sm:w-auto">
                           <Upload className="h-4 w-4 mr-2" />
                           Upload Logo
                         </Button>
@@ -168,9 +168,9 @@ Your RAG system is ready to help users find information from your documentation!
 
                     <div>
                       <Label htmlFor="primary-color">Primary Color</Label>
-                      <div className="mt-2 flex items-center gap-4">
+                      <div className="mt-2 flex items-center gap-3 sm:gap-4">
                         <div
-                          className="h-10 w-20 rounded border"
+                          className="h-8 w-16 sm:h-10 sm:w-20 rounded border flex-shrink-0"
                           style={{ backgroundColor: primaryColor }}
                         />
                         <Input
@@ -178,7 +178,7 @@ Your RAG system is ready to help users find information from your documentation!
                           type="color"
                           value={primaryColor}
                           onChange={(e) => setPrimaryColor(e.target.value)}
-                          className="w-20"
+                          className="w-16 sm:w-20"
                           data-testid="input-primary-color"
                         />
                       </div>
@@ -234,9 +234,9 @@ Your RAG system is ready to help users find information from your documentation!
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
+                      <div className="space-y-0.5 flex-1 pr-4">
                         <Label htmlFor="headless-mode">Headless Browser Mode</Label>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs sm:text-sm text-muted-foreground">
                           Enable for JavaScript-heavy sites
                         </p>
                       </div>
@@ -245,6 +245,7 @@ Your RAG system is ready to help users find information from your documentation!
                         checked={headlessMode}
                         onCheckedChange={setHeadlessMode}
                         data-testid="switch-headless-mode"
+                        className="flex-shrink-0"
                       />
                     </div>
 
@@ -273,7 +274,7 @@ Your RAG system is ready to help users find information from your documentation!
 
                     <div className="space-y-2">
                       <Label>Example Queries:</Label>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {[
                           "How do I get started?",
                           "What are the API endpoints?",
@@ -286,6 +287,7 @@ Your RAG system is ready to help users find information from your documentation!
                             size="sm"
                             onClick={() => handleTestQuery(query)}
                             data-testid={`example-query-${index}`}
+                            className="text-left justify-start h-auto py-2 px-3"
                           >
                             {query}
                           </Button>
@@ -311,12 +313,13 @@ Your RAG system is ready to help users find information from your documentation!
                 )}
 
                 {/* Navigation Buttons */}
-                <div className="flex justify-between pt-6 border-t">
+                <div className="flex flex-col sm:flex-row justify-between gap-3 pt-4 sm:pt-6 border-t">
                   <Button
                     variant="outline"
                     onClick={handleBack}
                     disabled={currentStep === 1}
                     data-testid="button-back"
+                    className="w-full sm:w-auto order-2 sm:order-1"
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back
@@ -330,6 +333,7 @@ Your RAG system is ready to help users find information from your documentation!
                         (currentStep === 2 && !sourceUrl)
                       }
                       data-testid="button-next"
+                      className="w-full sm:w-auto order-1 sm:order-2"
                     >
                       Next
                       <ArrowRight className="h-4 w-4 ml-2" />
@@ -338,6 +342,7 @@ Your RAG system is ready to help users find information from your documentation!
                     <Button
                       onClick={handleFinish}
                       data-testid="button-finish"
+                      className="w-full sm:w-auto order-1 sm:order-2"
                     >
                       Finish Setup
                       <CheckCircle className="h-4 w-4 ml-2" />
@@ -348,24 +353,24 @@ Your RAG system is ready to help users find information from your documentation!
             </Card>
 
             {/* Right Panel - Live Preview */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Live Preview</CardTitle>
+            <Card className="order-1 lg:order-2">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg sm:text-xl">Live Preview</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 {currentStep === 1 && (
                   <div className="space-y-4">
-                    <div className="p-4 border rounded-lg">
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="h-8 w-8 bg-secondary rounded flex items-center justify-center">
-                          <Upload className="h-4 w-4" />
+                    <div className="p-3 sm:p-4 border rounded-lg">
+                      <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                        <div className="h-6 w-6 sm:h-8 sm:w-8 bg-secondary rounded flex items-center justify-center flex-shrink-0">
+                          <Upload className="h-3 w-3 sm:h-4 sm:w-4" />
                         </div>
-                        <span className="font-semibold">{orgName || "Your Organization"}</span>
+                        <span className="font-semibold text-sm sm:text-base truncate">{orgName || "Your Organization"}</span>
                       </div>
-                      <Button style={{ backgroundColor: primaryColor }} className="text-white mb-4">
+                      <Button style={{ backgroundColor: primaryColor }} className="text-white mb-3 sm:mb-4 w-full sm:w-auto">
                         Primary Button
                       </Button>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         This is how your branding will appear in the admin interface and embeddable widget.
                       </p>
                     </div>
@@ -374,12 +379,12 @@ Your RAG system is ready to help users find information from your documentation!
 
                 {currentStep === 2 && (
                   <div className="space-y-4">
-                    <div className="p-4 border rounded-lg">
-                      <h4 className="font-medium mb-2">Crawl Configuration</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
+                    <div className="p-3 sm:p-4 border rounded-lg">
+                      <h4 className="font-medium mb-2 text-sm sm:text-base">Crawl Configuration</h4>
+                      <div className="space-y-2 text-xs sm:text-sm">
+                        <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                           <span className="text-muted-foreground">URL:</span>
-                          <span className="font-mono break-all">{sourceUrl || "Not set"}</span>
+                          <span className="font-mono break-all text-right">{sourceUrl || "Not set"}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Depth:</span>
@@ -391,7 +396,7 @@ Your RAG system is ready to help users find information from your documentation!
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Headless:</span>
-                          <Badge variant={headlessMode ? "default" : "outline"}>
+                          <Badge variant={headlessMode ? "default" : "outline"} className="text-xs">
                             {headlessMode ? "Enabled" : "Disabled"}
                           </Badge>
                         </div>
@@ -402,24 +407,24 @@ Your RAG system is ready to help users find information from your documentation!
 
                 {currentStep === 3 && (
                   <div className="space-y-4">
-                    <div className="p-4 border rounded-lg">
-                      <h4 className="font-medium mb-2">System Status</h4>
+                    <div className="p-3 sm:p-4 border rounded-lg">
+                      <h4 className="font-medium mb-2 text-sm sm:text-base">System Status</h4>
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-sm">Organization configured</span>
+                          <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
+                          <span className="text-xs sm:text-sm">Organization configured</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-sm">Data source added</span>
+                          <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
+                          <span className="text-xs sm:text-sm">Data source added</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-sm">AI model ready</span>
+                          <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
+                          <span className="text-xs sm:text-sm">AI model ready</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-sm">Vector database initialized</span>
+                          <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
+                          <span className="text-xs sm:text-sm">Vector database initialized</span>
                         </div>
                       </div>
                     </div>

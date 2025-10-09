@@ -34,9 +34,10 @@ import Onboarding from "@/pages/Onboarding";
 import Profile from "@/pages/Profile";
 import Signup from "./pages/Signup";
 import { BrandingProvider } from "@/contexts/BrandingContext";
-// import { useBranding } from "@/contexts/BrandingContext";
 import { I18nProvider } from "@/contexts/I18nContext";
 import { CitationFormattingProvider } from "@/contexts/CitationFormattingContext";
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { useTranslation } from "@/contexts/I18nContext";
 
 // 🔐 Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -98,17 +99,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [widgetOpen, setWidgetOpen] = useState(false); // Start with widget closed
+  const [widgetOpen, setWidgetOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const { isTourActive, completeTour, skipTour } = useOnboarding();
+  const { t } = useTranslation();
   
-  // 🔄 Close widget on page refresh/load
   useEffect(() => {
-    // Ensure widget is closed when component mounts (page refresh)
     setWidgetOpen(false);
-  }, []); // Empty dependency array means this runs only on mount
+  }, []);
   
   const style = {
     "--sidebar-width": "20rem",
@@ -117,10 +117,10 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex h-screen manthan w-full">
+      <div className="flex h-screen w-full">
         <AppSidebar data-testid="sidebar" />
         <div className="flex flex-col flex-1">
-          <header className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <header className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 min-w-0">
             <div className="flex items-center gap-2">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
               <Button
@@ -131,24 +131,24 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
                 className="text-muted-foreground"
               >
                 <Search className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Search</span>
+                <span className="hidden sm:inline">{t('common.search')}</span>
                 <kbd className="ml-2 pointer-events-none hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
                   <span className="text-xs">⌘</span>K
                 </kbd>
               </Button>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 md:gap-2">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setNotificationsOpen(true)}
                 data-testid="button-notifications"
-                className="relative"
+                className="relative h-8 w-8 md:h-9 md:w-9 p-0"
               >
                 <Bell className="h-4 w-4" />
                 <Badge
                   variant="destructive"
-                  className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs flex items-center justify-center"
+                  className="absolute -top-0.5 -right-0.5 h-4 w-4 p-0 text-[10px] font-semibold flex items-center justify-center rounded-lg border border-background/20"
                 >
                   3
                 </Badge>
@@ -158,20 +158,23 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
                 size="sm"
                 onClick={() => setHelpOpen(true)}
                 data-testid="button-help"
+                className="h-8 w-8 md:h-9 md:w-9 p-0"
               >
                 <HelpCircle className="h-4 w-4" />
               </Button>
+              <div className="hidden md:block">
+                <LanguageSelector />
+              </div>
               <ThemeToggle />
               <UserDropdown />
             </div>
           </header>
-          <main className="flex-1 overflow-auto md:p-6 p-3 bg-background">
+          <main className="flex-1 overflow-auto md:p-6 p-3 bg-background min-w-0">
             {children}
           </main>
         </div>
       </div>
       
-      {/* Demo Widget - shows the embeddable widget */}
       <EmbeddableWidget
         isOpen={widgetOpen}
         onToggle={() => setWidgetOpen(!widgetOpen)}
@@ -179,7 +182,6 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
         showPoweredBy={true}
       />
       
-      {/* Global Components */}
       <CommandPalette
         open={commandPaletteOpen}
         onOpenChange={setCommandPaletteOpen}
@@ -193,7 +195,6 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
         onOpenChange={setHelpOpen}
       />
       
-      {/* Onboarding Tour */}
       <OnboardingTour
         isActive={isTourActive}
         onComplete={completeTour}
@@ -229,7 +230,6 @@ function Router() {
           </DashboardLayout>
         </ProtectedRoute>
       </Route>
-      {/* Default route ensures redirect to login when no match */}
       <Route component={Login} />
     </Switch>
   );

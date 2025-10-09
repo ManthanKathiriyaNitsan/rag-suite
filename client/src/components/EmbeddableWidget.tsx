@@ -65,12 +65,12 @@ export function EmbeddableWidget({
   // 🎯 Helper function to get position classes
   const getPositionClasses = (position: string) => {
     switch(position) {
-      case 'bottom-right': return 'bottom-1 right-0 sm:bottom-6 sm:right-6';
-      case 'bottom-left': return 'bottom-1 left-0 sm:bottom-6 sm:left-6';
-      case 'top-right': return 'top-1 right-0 sm:top-6 sm:right-6';
-      case 'top-left': return 'top-1 left-0 sm:top-6 sm:left-6';
+      case 'bottom-right': return 'bottom-0 right-0 sm:bottom-6 sm:right-6';
+      case 'bottom-left': return 'bottom-0 left-0 sm:bottom-6 sm:left-6';
+      case 'top-right': return 'top-0 right-0 sm:top-6 sm:right-6';
+      case 'top-left': return 'top-0 left-0 sm:top-6 sm:left-6';
       case 'center': return 'top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2';
-      default: return 'bottom-1 right-0 sm:bottom-6 sm:right-6';
+      default: return 'bottom-0 right-0 sm:bottom-6 sm:right-6';
     }
   };
   

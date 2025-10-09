@@ -3,6 +3,7 @@ import { Grid, List, Filter, Search, Upload, Trash2, RefreshCw, FileText, Extern
 import { UploadDocumentForm } from "@/components/forms/UploadDocumentForm";
 import { EditDocumentForm } from "@/components/forms/EditDocumentForm";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/contexts/I18nContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,7 +23,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-// 📄 Import API and types
 import { documentAPI, Document, DocumentMetadata } from "@/lib/api";
 
 
@@ -35,14 +35,12 @@ export default function Documents() {
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
   const { toast } = useToast();
+  const { t } = useTranslation();
 
-  // 📄 Real API state
   const [documents, setDocuments] = useState<Document[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(true);
   const [documentsError, setDocumentsError] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  
-  // 📄 Load documents from API
   const loadDocuments = async () => {
     try {
       setDocumentsLoading(true);
@@ -180,9 +178,9 @@ export default function Documents() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-start gap-4 md:gap-0 md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Document Library</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('documents.title')}</h1>
           <p className="text-muted-foreground">
-            Manage your indexed documents and content
+            {t('documents.description')}
           </p>
         </div>
         <Button
@@ -190,7 +188,7 @@ export default function Documents() {
           data-testid="button-upload-document"
         >
           <Upload className="h-4 w-4 mr-2" />
-          Upload Documents
+          {t('documents.upload')}
         </Button>
       </div>
 
