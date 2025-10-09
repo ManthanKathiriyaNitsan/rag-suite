@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 // 🎨 Citation Formatting Options
 export interface CitationFormattingOptions {
   style: 'compact' | 'detailed' | 'card' | 'minimal';
-  layout: 'vertical' | 'horizontal' | 'grid';
+  layout: 'vertical' | 'grid';
   numbering: 'brackets' | 'parentheses' | 'dots' | 'numbers';
   showSnippets: boolean;
   showUrls: boolean;

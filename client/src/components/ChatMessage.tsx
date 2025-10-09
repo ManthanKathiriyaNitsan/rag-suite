@@ -5,6 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 // 💬 Import feedback hook
 import { useChatFeedback } from "@/hooks/useChat";
 import { linkifyTextToNodes } from "@/lib/linkify";
@@ -125,7 +130,6 @@ export const ChatMessage = React.memo(function ChatMessage({
   const getLayoutClasses = () => {
     switch (formatting.layout) {
       case 'vertical': return "space-y-2";
-      case 'horizontal': return "flex gap-2 flex-wrap";
       case 'grid': return "grid grid-cols-1 sm:grid-cols-2 gap-2";
       default: return "space-y-2";
     }
@@ -311,49 +315,85 @@ export const ChatMessage = React.memo(function ChatMessage({
                 )}
                 <div className={getLayoutClasses()}>
                   {citations.map((source, index) => (
-                    <div 
-                      key={index} 
-                      className={`${getCitationStyleClasses()} ${getColorSchemeClasses()} ${
-                        formatting.enableHover ? 'hover:shadow-sm transition-shadow' : ''
-                      }`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <Badge 
-                          variant="outline" 
-                          className={`text-xs shrink-0 ${
-                            formatting.style === 'minimal' ? 'text-xs px-1 py-0' : ''
+                    <HoverCard key={index} openDelay={300} closeDelay={100}>
+                      <HoverCardTrigger asChild>
+                        <div 
+                          className={`${getCitationStyleClasses()} ${getColorSchemeClasses()} ${
+                            formatting.enableHover ? 'hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer' : ''
                           }`}
                         >
-                          {getNumberingStyle(index)}
-                        </Badge>
-                        <div className="flex-1 min-w-0">
-                          <p className={`font-medium text-foreground mb-1 ${
-                            formatting.style === 'compact' ? 'text-xs' : 'text-sm'
-                          }`}>
-                            {source.title || `Source ${index + 1}`}
-                          </p>
-                          {formatting.showSnippets && truncateSnippet(source.snippet) && (
-                            <p className={`text-muted-foreground leading-relaxed ${
-                              formatting.style === 'compact' ? 'text-xs' : 'text-xs'
-                            }`}>
-                              {queryString ? simpleHighlight(truncateSnippet(source.snippet), queryString) : truncateSnippet(source.snippet)}
-                            </p>
-                          )}
-                          {formatting.showUrls && source.url && source.url !== "#" && (
-                            <a 
-                              href={source.url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className={`text-primary hover:underline mt-1 inline-block ${
-                                formatting.style === 'compact' ? 'text-xs' : 'text-xs'
+                          <div className="flex items-start gap-2">
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs shrink-0 ${
+                                formatting.style === 'minimal' ? 'text-xs px-1 py-0' : ''
                               }`}
                             >
-                              View Source →
-                            </a>
+                              {getNumberingStyle(index)}
+                            </Badge>
+                            <div className="flex-1 min-w-0">
+                              <p className={`font-medium text-foreground mb-1 ${
+                                formatting.style === 'compact' ? 'text-xs' : 'text-sm'
+                              }`}>
+                                {source.title || `Source ${index + 1}`}
+                              </p>
+                              {formatting.showSnippets && truncateSnippet(source.snippet) && (
+                                <p className={`text-muted-foreground leading-relaxed ${
+                                  formatting.style === 'compact' ? 'text-xs' : 'text-xs'
+                                }`}>
+                                  {queryString ? simpleHighlight(truncateSnippet(source.snippet), queryString) : truncateSnippet(source.snippet)}
+                                </p>
+                              )}
+                              {formatting.showUrls && source.url && source.url !== "#" && (
+                                <a 
+                                  href={source.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className={`text-primary hover:underline mt-1 inline-block ${
+                                    formatting.style === 'compact' ? 'text-xs' : 'text-xs'
+                                  }`}
+                                >
+                                  View Source →
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </HoverCardTrigger>
+                      <HoverCardContent 
+                        className="w-80 max-h-60 overflow-y-auto" 
+                        side="top"
+                        align="start"
+                        sideOffset={5}
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {getNumberingStyle(index)}
+                            </Badge>
+                            <h4 className="font-semibold text-sm">{source.title || `Source ${index + 1}`}</h4>
+                          </div>
+                          {source.snippet && (
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              {source.snippet}
+                            </p>
+                          )}
+                          {source.url && source.url !== "#" && (
+                            <div className="pt-2 border-t">
+                              <a 
+                                href={source.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline flex items-center gap-1"
+                              >
+                                <span className="truncate">{source.url}</span>
+                                <Copy className="h-3 w-3 shrink-0" />
+                              </a>
+                            </div>
                           )}
                         </div>
-                      </div>
-                    </div>
+                      </HoverCardContent>
+                    </HoverCard>
                   ))}
                 </div>
               </div>
