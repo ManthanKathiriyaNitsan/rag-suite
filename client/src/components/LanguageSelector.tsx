@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useTranslation } from '@/contexts/I18nContext';
+import { PointerTypes } from '@/components/ui/animated-pointer';
 
 export function LanguageSelector() {
   const { locale, setLocale, availableLocales } = useTranslation();

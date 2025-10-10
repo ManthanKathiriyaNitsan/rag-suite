@@ -14,6 +14,7 @@ import { useSearch } from "@/hooks/useSearch";
 import { useChat } from "@/hooks/useChat";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useBranding } from "@/contexts/BrandingContext";
+import { PointerTypes } from "@/components/ui/animated-pointer";
 
 
 interface Message {
@@ -61,6 +62,27 @@ export function EmbeddableWidget({
   
   // 🎨 Use branding settings for widget positioning
   const { widgetZIndex, widgetPosition, widgetOffsetX, widgetOffsetY } = useBranding();
+  
+  // 🎭 Animation states
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [shouldShow, setShouldShow] = useState(isOpen);
+  
+  // 🎬 Handle smooth open/close animations
+  useEffect(() => {
+    if (isOpen && !shouldShow) {
+      // Opening animation
+      setShouldShow(true);
+      setIsAnimating(true);
+      setTimeout(() => setIsAnimating(false), 400);
+    } else if (!isOpen && shouldShow) {
+      // Closing animation
+      setIsAnimating(true);
+      setTimeout(() => {
+        setShouldShow(false);
+        setIsAnimating(false);
+      }, 300);
+    }
+  }, [isOpen, shouldShow]);
   
   // 🎯 Helper function to get position classes
   const getPositionClasses = (position: string) => {
@@ -507,84 +529,96 @@ export function EmbeddableWidget({
     }
   };
 
-  if (!isOpen) {
+  if (!shouldShow) {
     return (
-      <Button
-        onClick={onToggle}
-        className={`fixed h-14 w-14 rounded-full shadow-lg ${getPositionClasses(widgetPosition)}`}
-        style={{ 
-          zIndex: widgetZIndex,
-          transform: `translate(${widgetOffsetX}px, ${widgetOffsetY}px)`
-        }}
-        data-testid="button-widget-launcher"
-        aria-label="Open AI Assistant"
-        aria-expanded="false"
-        aria-haspopup="dialog"
-        tabIndex={0}
-      >
-        <MessageCircle className="h-6 w-6" aria-hidden="true" />
-        <span className="sr-only">Open AI Assistant</span>
-      </Button>
+      <div className={`fixed ${getPositionClasses(widgetPosition)}`} style={{ 
+        zIndex: Math.max(widgetZIndex, 9990),
+        transform: `translate(${widgetOffsetX}px, ${widgetOffsetY}px)`
+      }}>
+        <div className="relative">
+          <Button
+            onClick={onToggle}
+            className="h-14 w-14 rounded-full shadow-lg widget-launcher-transition hover:scale-110 animate-widget-launcher-bounce animate-widget-launcher-pulse"
+            data-testid="button-widget-launcher"
+            aria-label="Open AI Assistant"
+            aria-expanded="false"
+            aria-haspopup="dialog"
+            tabIndex={0}
+          >
+            <MessageCircle className="h-6 w-6" aria-hidden="true" />
+            <span className="sr-only">Open AI Assistant</span>
+          </Button>
+          <PointerTypes.Chat className="absolute inset-0" />
+        </div>
+      </div>
     );
   }
 
   return (
     <Card 
-      className={`widget-container fixed ${getPositionClasses(widgetPosition)} w-full h-screen sm:w-96 sm:h-[600px] md:w-96 md:h-[600px] shadow-xl flex flex-col overflow-hidden ${
-        widgetAppearance.chatBubbleStyle === "sharp" ? "rounded-none" :
-        widgetAppearance.chatBubbleStyle === "minimal" ? "rounded-sm" :
-        "rounded-lg"
-      } ${
-        widgetAppearance.animationsEnabled ? "transition-all duration-200 ease-in-out" : ""
-      }`}
-      style={{ 
-        wordBreak: 'break-word', 
-        overflowWrap: 'anywhere',
-        zIndex: widgetZIndex,
-        transform: `translate(${widgetOffsetX}px, ${widgetOffsetY}px)`
-      }}
-      role="dialog"
-      aria-label="AI Assistant Chat"
-      aria-modal="true"
-      aria-live="polite"
-    >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        className={`widget-container widget-container-elevated fixed ${getPositionClasses(widgetPosition)} w-full h-screen sm:w-96 sm:h-[600px] md:w-96 md:h-[600px] shadow-xl flex flex-col ${
+          widgetAppearance.chatBubbleStyle === "sharp" ? "rounded-none" :
+          widgetAppearance.chatBubbleStyle === "minimal" ? "rounded-sm" :
+          "rounded-lg"
+        } ${
+          isAnimating ? (isOpen ? "animate-widget-enter" : "animate-widget-exit") : ""
+        } ${
+          widgetAppearance.animationsEnabled ? "widget-transition" : ""
+        }`}
+        style={{ 
+          wordBreak: 'break-word', 
+          overflowWrap: 'anywhere',
+          zIndex: Math.max(widgetZIndex, 9990),
+          transform: `translate(${widgetOffsetX}px, ${widgetOffsetY}px)`
+        }}
+        role="dialog"
+        aria-label="AI Assistant Chat"
+        aria-modal="true"
+        aria-live="polite"
+      >
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 animate-slide-down">
         <CardTitle className="text-base font-medium">{title}</CardTitle>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 animate-fade-in-scale">
           <Badge variant="outline" className="text-xs">
             <div className="w-2 h-2 bg-green-500 rounded-full mr-1" />
             Online
           </Badge>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={clearChat}
-            data-testid="button-clear-chat"
-            className="h-8 w-8"
-            title="Clear chat"
-            aria-label="Clear chat history"
-            tabIndex={0}
-          >
-            <Trash2 className="h-4 w-4" aria-hidden="true" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggle}
-            data-testid="button-widget-close"
-            className="h-8 w-8"
-            aria-label="Close AI Assistant"
-            tabIndex={0}
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </Button>
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={clearChat}
+              data-testid="button-clear-chat"
+              className="h-8 w-8"
+              title="Clear chat"
+              aria-label="Clear chat history"
+              tabIndex={0}
+            >
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <PointerTypes.Error className="absolute inset-0" />
+          </div>
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggle}
+              data-testid="button-widget-close"
+              className="h-8 w-8"
+              aria-label="Close AI Assistant"
+              tabIndex={0}
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <PointerTypes.Error className="absolute inset-0" />
+          </div>
         </div>
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col p-0">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col animate-slide-up">
           <div className="px-4 pb-3">
-            <TabsList className="grid w-full grid-cols-3" role="tablist" aria-label="Widget navigation">
+            <TabsList className="grid w-full grid-cols-3 animate-fade-in-scale h-10" role="tablist" aria-label="Widget navigation">
               <TabsTrigger 
                 value="search" 
                 data-testid="tab-search"
@@ -592,10 +626,11 @@ export function EmbeddableWidget({
                 aria-selected={activeTab === "search"}
                 aria-controls="search-panel"
                 tabIndex={0}
-                className="flex items-center justify-center gap-1"
+                className="flex items-center justify-center gap-1 relative"
               >
                 <Search className="h-4 w-4" aria-hidden="true" />
                 Search
+                <PointerTypes.Search className="absolute inset-0" />
               </TabsTrigger>
               <TabsTrigger 
                 value="chat" 
@@ -604,10 +639,11 @@ export function EmbeddableWidget({
                 aria-selected={activeTab === "chat"}
                 aria-controls="chat-panel"
                 tabIndex={0}
-                className="flex items-center justify-center gap-1"
+                className="flex items-center justify-center gap-1 relative"
               >
                 <MessageSquare className="h-4 w-4" aria-hidden="true" />
                 Chat
+                <PointerTypes.Chat className="absolute inset-0" />
               </TabsTrigger>
               <TabsTrigger 
                 value="auto" 
@@ -616,10 +652,11 @@ export function EmbeddableWidget({
                 aria-selected={activeTab === "auto"}
                 aria-controls="auto-panel"
                 tabIndex={0}
-                className="flex items-center justify-center gap-1"
+                className="flex items-center justify-center gap-1 relative"
               >
                 <Zap className="h-4 w-4" aria-hidden="true" />
                 Auto
+                <PointerTypes.AI className="absolute inset-0" />
               </TabsTrigger>
             </TabsList>
           </div>
@@ -801,6 +838,9 @@ export function EmbeddableWidget({
                   </div>
                 </div>
               )}
+              
+              {/* 📜 Scroll target for auto-scroll */}
+              <div ref={messagesEndRef} />
             </div>
             <div className="flex-shrink-0 ">
               <SearchBar
@@ -824,7 +864,7 @@ export function EmbeddableWidget({
         </Tabs>
 
         {showPoweredBy && (
-          <div className="px-4 py-2 border-t text-center">
+          <div className="px-4 py-2 border-t text-center animate-slide-up">
             <p className="text-xs text-muted-foreground">
               Powered by <span className="font-medium">RAGSuite</span>
             </p>

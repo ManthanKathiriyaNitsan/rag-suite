@@ -38,6 +38,8 @@ import { I18nProvider } from "@/contexts/I18nContext";
 import { CitationFormattingProvider } from "@/contexts/CitationFormattingContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useTranslation } from "@/contexts/I18nContext";
+import { SmoothCursor } from "@/components/ui/smooth-cursor";
+import { PointerTypes } from "@/components/ui/animated-pointer";
 
 // 🔐 Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -169,7 +171,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
               <UserDropdown />
             </div>
           </header>
-          <main className="flex-1 overflow-auto md:p-6 p-3 bg-background min-w-0">
+          <main className={`flex-1 overflow-auto md:p-6 p-3 bg-background min-w-0 ${widgetOpen ? 'main-content-blur' : ''}`}>
             {children}
           </main>
         </div>
@@ -200,6 +202,9 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
         onComplete={completeTour}
         onClose={skipTour}
       />
+      
+      {/* Smooth Cursor */}
+      <SmoothCursor />
     </SidebarProvider>
   );
 }

@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 // 🔐 Import authentication context
 import { useAuthContext } from "@/contexts/AuthContext";
+import { PointerTypes } from "@/components/ui/animated-pointer";
 
 interface UserDropdownProps {
   user?: {
@@ -76,21 +77,22 @@ export const UserDropdown = React.memo(function UserDropdown({ user }: UserDropd
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="relative h-9 w-9 rounded-full"
-          data-testid="user-menu-trigger"
-        >
-          <Avatar className="h-9 w-9">
-            <AvatarImage src={safeUser.avatar} alt={safeUser.name} />
-            <AvatarFallback className="bg-primary/10 text-primary font-medium">
-              {userInitials}
-            </AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
+    <div className="relative">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            className="relative h-9 w-9 rounded-full"
+            data-testid="user-menu-trigger"
+          >
+            <Avatar className="h-9 w-9">
+              <AvatarImage src={safeUser.avatar} alt={safeUser.name} />
+              <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                {userInitials}
+              </AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
       
       <DropdownMenuContent className="w-80" align="end" forceMount>
         {/* User Info Header */}
@@ -201,6 +203,7 @@ export const UserDropdown = React.memo(function UserDropdown({ user }: UserDropd
           </DropdownMenuItem>
         </div>
       </DropdownMenuContent>
-    </DropdownMenu>
+      </DropdownMenu>
+    </div>
   );
 });

@@ -40,6 +40,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useTranslation } from "@/contexts/I18nContext";
+import { PointerTypes } from "@/components/ui/animated-pointer";
 
 const menuItems = [
   {
@@ -230,18 +231,38 @@ export function AppSidebar() {
                 };
                 const translationKey = translationMap[item.title] || `nav.${item.title.toLowerCase().replace(' ', '-')}`;
                 
+                // Map menu items to pointer types
+                const getPointerType = (title: string) => {
+                  switch (title) {
+                    case 'Overview': return PointerTypes.Star;
+                    case 'Crawl': return PointerTypes.Crawl;
+                    case 'Documents': return PointerTypes.Documents;
+                    case 'RAG Tuning': return PointerTypes.AI;
+                    case 'Analytics': return PointerTypes.Analytics;
+                    case 'Feedback': return PointerTypes.Favorite;
+                    case 'Integrations': return PointerTypes.Integration;
+                    case 'Settings': return PointerTypes.Settings;
+                    default: return PointerTypes.Click;
+                  }
+                };
+                
+                const PointerComponent = getPointerType(item.title);
+                
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location === item.url}
-                      data-testid={`link-${item.title.toLowerCase().replace(' ', '-')}`}
-                    >
-                      <Link href={item.url}>
-                        <item.icon className="h-4 w-4" />
-                        <span>{t(translationKey)}</span>
-                      </Link>
-                    </SidebarMenuButton>
+                    <div className="relative">
+                      <SidebarMenuButton
+                        asChild
+                        isActive={location === item.url}
+                        data-testid={`link-${item.title.toLowerCase().replace(' ', '-')}`}
+                      >
+                        <Link href={item.url}>
+                          <item.icon className="h-4 w-4" />
+                          <span>{t(translationKey)}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                      <PointerComponent className="absolute inset-0" />
+                    </div>
                   </SidebarMenuItem>
                 );
               })}

@@ -33,6 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useI18n } from "@/contexts/I18nContext";
+import { PointerTypes } from "@/components/ui/animated-pointer";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useCitationFormatting } from "@/contexts/CitationFormattingContext";
 
@@ -698,10 +699,13 @@ export default function Settings() {
                       Display content snippets
                     </p>
                   </div>
-                  <Switch
-                    checked={formatting.showSnippets}
-                    onCheckedChange={(checked: boolean) => updateFormatting({ showSnippets: checked })}
-                  />
+                  <div className="relative">
+                    <Switch
+                      checked={formatting.showSnippets}
+                      onCheckedChange={(checked: boolean) => updateFormatting({ showSnippets: checked })}
+                    />
+                    <PointerTypes.Settings className="absolute inset-0" />
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -711,10 +715,13 @@ export default function Settings() {
                       Display source links
                     </p>
                   </div>
-                  <Switch
-                    checked={formatting.showUrls}
-                    onCheckedChange={(checked: boolean) => updateFormatting({ showUrls: checked })}
-                  />
+                  <div className="relative">
+                    <Switch
+                      checked={formatting.showUrls}
+                      onCheckedChange={(checked: boolean) => updateFormatting({ showUrls: checked })}
+                    />
+                    <PointerTypes.Settings className="absolute inset-0" />
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -724,10 +731,13 @@ export default function Settings() {
                       Display number of sources
                     </p>
                   </div>
-                  <Switch
-                    checked={formatting.showSourceCount}
-                    onCheckedChange={(checked: boolean) => updateFormatting({ showSourceCount: checked })}
-                  />
+                  <div className="relative">
+                    <Switch
+                      checked={formatting.showSourceCount}
+                      onCheckedChange={(checked: boolean) => updateFormatting({ showSourceCount: checked })}
+                    />
+                    <PointerTypes.Settings className="absolute inset-0" />
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -737,10 +747,13 @@ export default function Settings() {
                       Add hover animations
                     </p>
                   </div>
-                  <Switch
-                    checked={formatting.enableHover}
-                    onCheckedChange={(checked: boolean) => updateFormatting({ enableHover: checked })}
-                  />
+                  <div className="relative">
+                    <Switch
+                      checked={formatting.enableHover}
+                      onCheckedChange={(checked: boolean) => updateFormatting({ enableHover: checked })}
+                    />
+                    <PointerTypes.Settings className="absolute inset-0" />
+                  </div>
                 </div>
               </div>
 

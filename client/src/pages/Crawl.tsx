@@ -3,6 +3,7 @@ import { Plus, Filter, Play, Pause, Trash2, Edit, Eye, Loader2, Search, X } from
 import { AddSourceForm } from "@/components/forms/AddSourceForm";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/contexts/I18nContext";
+import { PointerTypes } from "@/components/ui/animated-pointer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -221,19 +222,28 @@ export default function Crawl() {
             {t('crawl.description')}
           </p>
         </div>
-        <Button
-          onClick={() => setShowAddSourceForm(true)}
-          data-testid="button-add-source"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Source
-        </Button>
+        <div className="relative">
+          <Button
+            onClick={() => setShowAddSourceForm(true)}
+            data-testid="button-add-source"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Source
+          </Button>
+          <PointerTypes.Add className="absolute inset-0" />
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="sources" data-testid="tab-sources">Sources</TabsTrigger>
-          <TabsTrigger value="jobs" data-testid="tab-jobs">Jobs</TabsTrigger>
+          <div className="relative">
+            <TabsTrigger value="sources" data-testid="tab-sources">Sources</TabsTrigger>
+            <PointerTypes.Click className="absolute inset-0" />
+          </div>
+          <div className="relative">
+            <TabsTrigger value="jobs" data-testid="tab-jobs">Jobs</TabsTrigger>
+            <PointerTypes.Click className="absolute inset-0" />
+          </div>
         </TabsList>
 
         <TabsContent value="sources" className="space-y-4 w-full overflow-hidden">

@@ -4,6 +4,7 @@ import { Search, Mic, Send, History } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { PointerTypes } from "@/components/ui/animated-pointer";
 
 interface SearchBarProps {
   placeholder?: string;
@@ -320,7 +321,7 @@ export const SearchBar = React.forwardRef<SearchBarRef, SearchBarProps>(function
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    console.log("🔍 Input changed to:", val);
+    console.log("🔍 Input changed to:", val); 
     setQuery(val);
     // Only schedule suggestions if we have enough characters
     if (val.trim().length >= 2) {
@@ -456,86 +457,98 @@ export const SearchBar = React.forwardRef<SearchBarRef, SearchBarProps>(function
     <form onSubmit={handleSubmit} className={`relative ${className}`} data-testid="search-bar-container">
       <div className="relative flex items-center">
         <Search className="absolute left-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-        <Input
-          type="text"
-          placeholder={placeholder}
-          value={query}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          onBlur={() => {
-            // Delay closing to allow click
-            setTimeout(() => setShowSuggestions(false), 150);
-          }}
-          className="pl-10 pr-20"
-          data-testid="input-search"
-          aria-label="Search input"
-          aria-describedby="search-hints"
-          aria-expanded={showSuggestions || showHistory}
-          aria-autocomplete="list"
-          role="combobox"
-          aria-activedescendant={highlightedIndex >= 0 ? `suggestion-${highlightedIndex}` : undefined}
-        />
+        <div className="relative w-full">
+          <Input
+            type="text"
+            placeholder={placeholder}
+            value={query}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            onBlur={() => {
+              // Delay closing to allow click
+              setTimeout(() => setShowSuggestions(false), 150);
+            }}
+            className="pl-10 pr-20"
+            data-testid="input-search"
+            aria-label="Search input"
+            aria-describedby="search-hints"
+            aria-expanded={showSuggestions || showHistory}
+            aria-autocomplete="list"
+            role="combobox"
+            aria-activedescendant={highlightedIndex >= 0 ? `suggestion-${highlightedIndex}` : undefined}
+          />
+          <PointerTypes.Search className="absolute inset-0" />
+        </div>
         <div className="absolute right-2 flex items-center gap-1">
           {/* 📚 History Button */}
           {enableHistory && queryHistory.length > 0 && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={toggleHistory}
-              data-testid="button-history"
-              className="h-8 w-8"
-              title="Show search history"
-              aria-label="Show search history"
-              aria-expanded={showHistory}
-              aria-controls="history-list"
-              tabIndex={0}
-            >
-              <History className="h-4 w-4" aria-hidden="true" />
-            </Button>
+            <div className="relative">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={toggleHistory}
+                data-testid="button-history"
+                className="h-8 w-8"
+                title="Show search history"
+                aria-label="Show search history"
+                aria-expanded={showHistory}
+                aria-controls="history-list"
+                tabIndex={0}
+              >
+                <History className="h-4 w-4" aria-hidden="true" />
+              </Button>
+              <PointerTypes.Click className="absolute inset-0" />
+            </div>
           )}
           
           {showMicButton && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={handleMicClick}
-              data-testid="button-mic"
-              className={`h-8 w-8 ${isListening ? "text-red-500 animate-pulse" : ""}`}
-              title={isListening ? "Stop listening" : "Start voice input"}
-              aria-label={isListening ? "Stop voice recording" : "Start voice input"}
-              aria-pressed={isListening}
-              tabIndex={0}
-            >
-              <Mic className="h-4 w-4" aria-hidden="true" />
-            </Button>
+            <div className="relative">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={handleMicClick}
+                data-testid="button-mic"
+                className={`h-8 w-8 ${isListening ? "text-red-500 animate-pulse" : ""}`}
+                title={isListening ? "Stop listening" : "Start voice input"}
+                aria-label={isListening ? "Stop voice recording" : "Start voice input"}
+                aria-pressed={isListening}
+                tabIndex={0}
+              >
+                <Mic className="h-4 w-4" aria-hidden="true" />
+              </Button>
+              <PointerTypes.Click className="absolute inset-0" />
+            </div>
           )}
           {showSendButton && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              disabled={!query.trim()}
-              data-testid="button-send"
-              className="h-8 w-8"
-              onClick={() => {
-                if (query.trim() && onSearch) {
-                  console.log("🧹 Send button clicked, clearing search bar, current query:", query);
-                  if (enableHistory) {
-                    saveQueryToHistory(query.trim()); // 📚 Save to history
+            <div className="relative">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled={!query.trim()}
+                data-testid="button-send"
+                className="h-8 w-8"
+                onClick={() => {
+                  if (query.trim() && onSearch) {
+                    console.log("🧹 Send button clicked, clearing search bar, current query:", query);
+                    if (enableHistory) {
+                      saveQueryToHistory(query.trim()); // 📚 Save to history
+                    }
+                    onSearch(query.trim());
+                    setQuery(""); // 🧹 Clear the search bar after search
+                    setShowSuggestions(false);
+                    console.log("🧹 Send button - search bar cleared");
                   }
-                  onSearch(query.trim());
-                  setQuery(""); // 🧹 Clear the search bar after search
-                  setShowSuggestions(false);
-                  console.log("🧹 Send button - search bar cleared");
-                }
-              }}
-              aria-label="Send search query"
-              tabIndex={0}
-            >
-              <Send className="h-4 w-4" aria-hidden="true" />
-            </Button>
+                }}
+                aria-label="Send search query"
+                tabIndex={0}
+              >
+                <Send className="h-4 w-4" aria-hidden="true" />
+              </Button>
+              <PointerTypes.Send className="absolute inset-0" />
+            </div>
           )}
         </div>
         {showSuggestions && suggestions.length > 0 && (

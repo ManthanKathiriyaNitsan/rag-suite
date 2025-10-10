@@ -4,6 +4,7 @@ import { UploadDocumentForm } from "@/components/forms/UploadDocumentForm";
 import { EditDocumentForm } from "@/components/forms/EditDocumentForm";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/contexts/I18nContext";
+import { PointerTypes } from "@/components/ui/animated-pointer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -183,13 +184,16 @@ export default function Documents() {
             {t('documents.description')}
           </p>
         </div>
-        <Button
-          onClick={() => setShowUploadForm(true)}
-          data-testid="button-upload-document"
-        >
-          <Upload className="h-4 w-4 mr-2" />
-          {t('documents.upload')}
-        </Button>
+        <div className="relative">
+          <Button
+            onClick={() => setShowUploadForm(true)}
+            data-testid="button-upload-document"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            {t('documents.upload')}
+          </Button>
+          <PointerTypes.Upload className="absolute inset-0" />
+        </div>
       </div>
 
       {/* Filters and Search */}
@@ -197,39 +201,48 @@ export default function Documents() {
         <div className="flex items-center flex-wrap gap-4">
           <div className="relative ">
             <Search className="absolute -translate-y-[50%] top-[50%] left-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search documents..."
+            <div className="relative">
+              <Input
+                placeholder="Search documents..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 w-64"
               data-testid="input-search-documents"
             />
+              <PointerTypes.Search className="absolute inset-0" />
+            </div>
           </div>
 
-          <Select defaultValue="all-sources">
-            <SelectTrigger className="w-40" data-testid="select-source-filter">
-              <SelectValue placeholder="Source" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all-sources">All Sources</SelectItem>
-              <SelectItem value="docs">docs.company.com</SelectItem>
-              <SelectItem value="api">api.company.com</SelectItem>
-              <SelectItem value="help">help.company.com</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="relative">
+            <Select defaultValue="all-sources">
+              <SelectTrigger className="w-40" data-testid="select-source-filter">
+                <SelectValue placeholder="Source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all-sources">All Sources</SelectItem>
+                <SelectItem value="docs">docs.company.com</SelectItem>
+                <SelectItem value="api">api.company.com</SelectItem>
+                <SelectItem value="help">help.company.com</SelectItem>
+              </SelectContent>
+            </Select>
+            <PointerTypes.Filter className="absolute inset-0" />
+          </div>
 
-          <Select defaultValue="all-types">
-            <SelectTrigger className="w-32" data-testid="select-type-filter">
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all-types">All Types</SelectItem>
-              <SelectItem value="pdf">PDF</SelectItem>
-              <SelectItem value="doc">DOC</SelectItem>
-              <SelectItem value="html">HTML</SelectItem>
-              <SelectItem value="txt">TXT</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="relative">
+            <Select defaultValue="all-types">
+              <SelectTrigger className="w-32" data-testid="select-type-filter">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all-types">All Types</SelectItem>
+                <SelectItem value="pdf">PDF</SelectItem>
+                <SelectItem value="doc">DOC</SelectItem>
+                <SelectItem value="html">HTML</SelectItem>
+                <SelectItem value="txt">TXT</SelectItem>
+              </SelectContent>
+            </Select>
+            <PointerTypes.Filter className="absolute inset-0" />
+          </div>
 
           <Select defaultValue="all-status">
             <SelectTrigger className="w-32" data-testid="select-status-filter">
@@ -251,24 +264,30 @@ export default function Documents() {
 
         <div className="flex items-center gap-2">
           <div className="flex border rounded-md">
-            <Button
-              variant={viewMode === "grid" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("grid")}
-              data-testid="button-grid-view"
-              className="rounded-r-none"
-            >
-              <Grid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "list" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("list")}
-              data-testid="button-list-view"
-              className="rounded-l-none"
-            >
-              <List className="h-4 w-4" />
-            </Button>
+            <div className="relative">
+              <Button
+                variant={viewMode === "grid" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+                data-testid="button-grid-view"
+                className="rounded-r-none"
+              >
+                <Grid className="h-4 w-4" />
+              </Button>
+              <PointerTypes.Grid className="absolute inset-0" />
+            </div>
+            <div className="relative">
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                data-testid="button-list-view"
+                className="rounded-l-none"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <PointerTypes.List className="absolute inset-0" />
+            </div>
           </div>
         </div>
       </div>

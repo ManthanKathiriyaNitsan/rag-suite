@@ -342,4 +342,455 @@
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
   }
+
+  /* Animated Theme Toggle Styles */
+  .theme-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+  }
+
+  .theme-switch #theme-input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #3b82f6;
+    transition: all 0.4s ease-in-out;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .sun-moon {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: #fbbf24;
+    transition: all 0.4s ease-in-out;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #theme-input:checked + .slider {
+    background-color: #1f2937;
+  }
+
+  #theme-input:focus + .slider {
+    box-shadow: 0 0 1px #3b82f6;
+  }
+
+  #theme-input:checked + .slider .sun-moon {
+    transform: translateX(22px);
+    background-color: #f3f4f6;
+    animation: rotate-center 0.6s ease-in-out both;
+  }
+
+  .moon-dot {
+    opacity: 0;
+    transition: opacity 0.4s ease-in-out;
+    fill: #6b7280;
+  }
+
+  #theme-input:checked + .slider .sun-moon .moon-dot {
+    opacity: 1;
+  }
+
+  .slider.round {
+    border-radius: 28px;
+  }
+
+  .slider.round .sun-moon {
+    border-radius: 50%;
+  }
+
+  #moon-dot-1 {
+    left: 8px;
+    top: 2px;
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    z-index: 4;
+  }
+
+  #moon-dot-2 {
+    left: 2px;
+    top: 8px;
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    z-index: 4;
+  }
+
+  #moon-dot-3 {
+    left: 12px;
+    top: 14px;
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    z-index: 4;
+  }
+
+  #light-ray-1 {
+    left: -6px;
+    top: -6px;
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    z-index: -1;
+    fill: white;
+    opacity: 0.1;
+  }
+
+  #light-ray-2 {
+    left: -50%;
+    top: -50%;
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    z-index: -1;
+    fill: white;
+    opacity: 0.1;
+  }
+
+  #light-ray-3 {
+    left: -14px;
+    top: -14px;
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    z-index: -1;
+    fill: white;
+    opacity: 0.1;
+  }
+
+  .cloud-light {
+    position: absolute;
+    fill: #e5e7eb;
+    animation: cloud-move 6s infinite;
+  }
+
+  .cloud-dark {
+    position: absolute;
+    fill: #9ca3af;
+    animation: cloud-move 6s infinite;
+    animation-delay: 1s;
+  }
+
+  #cloud-1 {
+    left: 24px;
+    top: 12px;
+    width: 28px;
+  }
+
+  #cloud-2 {
+    left: 32px;
+    top: 8px;
+    width: 16px;
+  }
+
+  #cloud-3 {
+    left: 16px;
+    top: 18px;
+    width: 20px;
+  }
+
+  #cloud-4 {
+    left: 28px;
+    top: 14px;
+    width: 28px;
+  }
+
+  #cloud-5 {
+    left: 36px;
+    top: 10px;
+    width: 16px;
+  }
+
+  #cloud-6 {
+    left: 18px;
+    top: 20px;
+    width: 20px;
+  }
+
+  @keyframes cloud-move {
+    0% {
+      transform: translateX(0px);
+    }
+    40% {
+      transform: translateX(3px);
+    }
+    80% {
+      transform: translateX(-3px);
+    }
+    100% {
+      transform: translateX(0px);
+    }
+  }
+
+  .stars {
+    transform: translateY(-24px);
+    opacity: 0;
+    transition: all 0.4s ease-in-out;
+  }
+
+  .star {
+    fill: white;
+    position: absolute;
+    transition: all 0.4s ease-in-out;
+    animation: star-twinkle 2s infinite;
+  }
+
+  #theme-input:checked + .slider .stars {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  #star-1 {
+    width: 12px;
+    top: 2px;
+    left: 2px;
+    animation-delay: 0.3s;
+  }
+
+  #star-2 {
+    width: 4px;
+    top: 12px;
+    left: 2px;
+  }
+
+  #star-3 {
+    width: 8px;
+    top: 16px;
+    left: 8px;
+    animation-delay: 0.6s;
+  }
+
+  #star-4 {
+    width: 10px;
+    top: 0px;
+    left: 14px;
+    animation-delay: 1.3s;
+  }
+
+  @keyframes star-twinkle {
+    0% {
+      transform: scale(1);
+    }
+    40% {
+      transform: scale(1.2);
+    }
+    80% {
+      transform: scale(0.8);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @keyframes rotate-center {
+    0% {
+      transform: translateX(22px) rotate(0);
+    }
+    100% {
+      transform: translateX(22px) rotate(360deg);
+    }
+  }
+
+  /* Responsive sizing */
+  @media (max-width: 640px) {
+    .theme-switch {
+      width: 44px;
+      height: 24px;
+    }
+    
+    .sun-moon {
+      height: 16px;
+      width: 16px;
+      left: 4px;
+      bottom: 4px;
+    }
+    
+    #theme-input:checked + .slider .sun-moon {
+      transform: translateX(20px);
+    }
+    
+    .slider.round {
+      border-radius: 24px;
+    }
+  }
+
+  /* Primary Button Shine Animation */
+  .shadow-primary {
+    box-shadow: 0 25px 50px -12px hsl(var(--primary) / 0.5);
+  }
+
+  /* EmbeddableWidget Smooth Animations */
+  @keyframes widget-enter {
+    0% {
+      opacity: 0;
+      transform: scale(0.8) translateY(20px);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.02) translateY(-5px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .animate-widget-enter {
+    animation: widget-enter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  @keyframes widget-exit {
+    0% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.02) translateY(-5px);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0.8) translateY(20px);
+    }
+  }
+
+  .animate-widget-exit {
+    animation: widget-exit 0.3s cubic-bezier(0.55, 0.055, 0.675, 0.19) forwards;
+  }
+
+  /* Widget launcher button animations */
+  @keyframes widget-launcher-bounce {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-3px);
+    }
+  }
+
+  .animate-widget-launcher-bounce {
+    animation: widget-launcher-bounce 2s ease-in-out infinite;
+  }
+
+  @keyframes widget-launcher-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 10px hsl(var(--primary) / 0);
+    }
+  }
+
+  .animate-widget-launcher-pulse {
+    animation: widget-launcher-pulse 2s ease-in-out infinite;
+  }
+
+  /* Widget content animations */
+  @keyframes slide-down {
+    0% {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-slide-down {
+    animation: slide-down 0.4s ease-out 0.1s both;
+  }
+
+  @keyframes slide-up {
+    0% {
+      opacity: 0;
+      transform: translateY(15px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.5s ease-out 0.2s both;
+  }
+
+  @keyframes fade-in-scale {
+    0% {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-fade-in-scale {
+    animation: fade-in-scale 0.3s ease-out both;
+  }
+
+  /* Smooth transitions for widget states */
+  .widget-transition {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .widget-launcher-transition {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Main content blur effect when widget is open */
+  .main-content-blur {
+    filter: blur(3px);
+    transition: filter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* Enhanced widget container - stays sharp */
+  .widget-container-elevated {
+    z-index: 9990;
+  }
+
+  /* Smooth cursor styles - only when SmoothCursor is active */
+  @media (min-width: 1024px) {
+    body.smooth-cursor-active * {
+      cursor: none !important;
+    }
+    
+    /* Show default cursor for input elements when SmoothCursor is active */
+    body.smooth-cursor-active input, 
+    body.smooth-cursor-active textarea, 
+    body.smooth-cursor-active [contenteditable], 
+    body.smooth-cursor-active a {
+      cursor: auto !important;
+    }
+  }
+
+  /* Pointer positioning fixes */
+  [data-pointer-active] {
+    cursor: none !important;
+  }
+  
+  [data-pointer-active] * {
+    cursor: none !important;
+  }
 }
