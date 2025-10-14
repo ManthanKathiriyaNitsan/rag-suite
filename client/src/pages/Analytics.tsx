@@ -1,17 +1,17 @@
-import { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { TrendingUp, Download, Clock, Users, ThumbsUp } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { useTranslation } from "@/contexts/I18nContext";
-import { PointerTypes } from "@/components/ui/animated-pointer";
+import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/Select";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
 
 const queryData = [
@@ -24,64 +24,67 @@ const queryData = [
   { date: "2024-01-07", queries: 156, p95: 223, p50: 165, satisfaction: 88 },
 ];
 
-const sourceCoverage = [
-  { name: "docs.company.com", value: 45, color: "#1F6FEB" },
-  { name: "help.company.com", value: 25, color: "#22C55E" },
-  { name: "api.company.com", value: 20, color: "#F59E0B" },
-  { name: "blog.company.com", value: 10, color: "#EF4444" },
-];
+const Analytics = React.memo(function Analytics() {
+  // 📊 Memoized source coverage data
+  const sourceCoverage = useMemo(() => [
+    { name: "docs.company.com", value: 45, color: "#1F6FEB" },
+    { name: "help.company.com", value: 25, color: "#22C55E" },
+    { name: "api.company.com", value: 20, color: "#F59E0B" },
+    { name: "blog.company.com", value: 10, color: "#EF4444" },
+  ], []);
 
-const popularQueries = [
-  { query: "How to configure SSL certificates?", count: 342, satisfaction: 94 },
-  { query: "API rate limiting documentation", count: 298, satisfaction: 87 },
-  { query: "Deployment troubleshooting guide", count: 276, satisfaction: 91 },
-  { query: "Database backup procedures", count: 234, satisfaction: 89 },
-  { query: "User authentication setup", count: 198, satisfaction: 85 },
-  { query: "Error code explanations", count: 187, satisfaction: 82 },
-  { query: "Performance optimization tips", count: 165, satisfaction: 88 },
-  { query: "Security best practices", count: 143, satisfaction: 92 },
-];
+  // 📊 Memoized popular queries data
+  const popularQueries = useMemo(() => [
+    { query: "How to configure SSL certificates?", count: 342, satisfaction: 94 },
+    { query: "API rate limiting documentation", count: 298, satisfaction: 87 },
+    { query: "Deployment troubleshooting guide", count: 276, satisfaction: 91 },
+    { query: "Database backup procedures", count: 234, satisfaction: 89 },
+    { query: "User authentication setup", count: 198, satisfaction: 85 },
+    { query: "Error code explanations", count: 187, satisfaction: 82 },
+    { query: "Performance optimization tips", count: 165, satisfaction: 88 },
+    { query: "Security best practices", count: 143, satisfaction: 92 },
+  ], []);
 
-const hardQueries = [
-  {
-    query: "How to configure advanced load balancer settings with custom headers?",
-    attempts: 45,
-    satisfaction: 34,
-    avgLatency: "4.2s",
-    lastAttempt: "2 hours ago",
-  },
-  {
-    query: "Integration with legacy SAML providers using custom attributes",
-    attempts: 38,
-    satisfaction: 28,
-    avgLatency: "3.8s",
-    lastAttempt: "4 hours ago",
-  },
-  {
-    query: "Custom webhook payload validation for third-party services",
-    attempts: 32,
-    satisfaction: 41,
-    avgLatency: "3.1s",
-    lastAttempt: "6 hours ago",
-  },
-  {
-    query: "Advanced database sharding configuration for high throughput",
-    attempts: 29,
-    satisfaction: 35,
-    avgLatency: "4.7s",
-    lastAttempt: "8 hours ago",
-  },
-];
-
-export default function Analytics() {
+  // 📊 Memoized hard queries data
+  const hardQueries = useMemo(() => [
+    {
+      query: "How to configure advanced load balancer settings with custom headers?",
+      attempts: 45,
+      satisfaction: 34,
+      avgLatency: "4.2s",
+      lastAttempt: "2 hours ago",
+    },
+    {
+      query: "Integration with legacy SAML providers using custom attributes",
+      attempts: 38,
+      satisfaction: 28,
+      avgLatency: "3.8s",
+      lastAttempt: "4 hours ago",
+    },
+    {
+      query: "Custom webhook payload validation for third-party services",
+      attempts: 32,
+      satisfaction: 41,
+      avgLatency: "3.1s",
+      lastAttempt: "6 hours ago",
+    },
+    {
+      query: "Advanced database sharding configuration for high throughput",
+      attempts: 29,
+      satisfaction: 35,
+      avgLatency: "4.7s",
+      lastAttempt: "8 hours ago",
+    },
+  ], []);
   const [timeRange, setTimeRange] = useState("7d");
   const { t } = useTranslation();
 
-  const getSatisfactionColor = (satisfaction: number) => {
+  // 🎨 Memoized satisfaction color function
+  const getSatisfactionColor = useCallback((satisfaction: number) => {
     if (satisfaction >= 90) return "default";
     if (satisfaction >= 70) return "secondary";
     return "destructive";
-  };
+  }, []);
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden min-w-0 px-2 sm:px-0" style={{ maxWidth: '93vw' }}>
@@ -326,4 +329,6 @@ export default function Analytics() {
       </div>
     </div>
   );
-}
+});
+
+export default Analytics;

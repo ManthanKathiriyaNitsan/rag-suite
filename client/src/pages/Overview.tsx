@@ -1,10 +1,12 @@
+import React, { useMemo, useCallback } from "react";
 import { Activity, Search, Users, AlertTriangle, TrendingUp } from "lucide-react";
-import { StatsCard } from "@/components/StatsCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatsCard } from "@/components/features/analytics/StatsCard";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useTranslation } from "@/contexts/I18nContext";
+import { PointerTypes } from "@/components/ui/AnimatedPointer";
 
 const chartData = [
   { name: "Mon", queries: 145 },
@@ -16,21 +18,22 @@ const chartData = [
   { name: "Sun", queries: 156 },
 ];
 
-const topSources = [
-  { url: "docs.company.com", docs: 245, lastCrawl: "2 hours ago", errors: 0 },
-  { url: "help.company.com", docs: 89, lastCrawl: "6 hours ago", errors: 0 },
-  { url: "blog.company.com", docs: 156, lastCrawl: "1 day ago", errors: 3 },
-  { url: "api.company.com", docs: 67, lastCrawl: "3 hours ago", errors: 1 },
-];
+const Overview = React.memo(function Overview() {
+  // 📊 Memoized top sources data
+  const topSources = useMemo(() => [
+    { url: "docs.company.com", docs: 245, lastCrawl: "2 hours ago", errors: 0 },
+    { url: "help.company.com", docs: 89, lastCrawl: "6 hours ago", errors: 0 },
+    { url: "blog.company.com", docs: 156, lastCrawl: "1 day ago", errors: 3 },
+    { url: "api.company.com", docs: 67, lastCrawl: "3 hours ago", errors: 1 },
+  ], []);
 
-const latestFeedback = [
-  { query: "How to configure SSL?", vote: "up", reason: "helpful", time: "5 min ago" },
-  { query: "API rate limits", vote: "down", reason: "outdated", time: "12 min ago" },
-  { query: "Deployment guide", vote: "up", reason: "accurate", time: "25 min ago" },
-  { query: "Database backup", vote: "up", reason: "complete", time: "1 hour ago" },
-];
-
-export default function Overview() {
+  // 📊 Memoized latest feedback data
+  const latestFeedback = useMemo(() => [
+    { query: "How to configure SSL?", vote: "up", reason: "helpful", time: "5 min ago" },
+    { query: "API rate limits", vote: "down", reason: "outdated", time: "12 min ago" },
+    { query: "Deployment guide", vote: "up", reason: "accurate", time: "25 min ago" },
+    { query: "Database backup", vote: "up", reason: "complete", time: "1 hour ago" },
+  ], []);
   const { t } = useTranslation();
   
   return (
@@ -166,4 +169,6 @@ export default function Overview() {
       </Card>
     </div>
   );
-}
+});
+
+export default Overview;

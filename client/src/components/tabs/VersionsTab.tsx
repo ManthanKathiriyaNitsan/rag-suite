@@ -1,17 +1,17 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Label } from "@/components/ui/Label";
+import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
+import { Switch } from "@/components/ui/Switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
+import { Alert, AlertDescription } from "@/components/ui/Alert";
+import { Separator } from "@/components/ui/Separator";
+import { ScrollArea } from "@/components/ui/ScrollArea";
 import { 
   History, 
   Plus, 
@@ -42,12 +42,13 @@ import {
   Archive,
   Star
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
+import { safeStringConversion } from "@/utils/safeStringConversion";
 
 interface VersionChange {
   field: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: string | number | boolean | object | null;
+  newValue: string | number | boolean | object | null;
   type: "added" | "modified" | "removed";
 }
 
@@ -61,7 +62,7 @@ interface Version {
   releaseNotes: string;
   tags: string[];
   changes: VersionChange[];
-  config: any; // Full configuration snapshot
+  config: Record<string, unknown>; // Full configuration snapshot
   
   // Publishing metadata
   approvedBy?: string;
@@ -110,12 +111,12 @@ export default function VersionsTab({ data, onChange }: VersionsTabProps) {
   // Sync local state when parent data changes (for edit mode)
   useEffect(() => {
     setVersions(data);
-  }, [data]);
+  }, [data]); // Only depend on data
 
   // Update parent state when versions change
   useEffect(() => {
     onChange(versions);
-  }, [versions, onChange]);
+  }, [versions]); // Only depend on versions
 
   const updateVersions = (updates: Partial<VersionsData>) => {
     setVersions(prev => ({ ...prev, ...updates }));
@@ -309,11 +310,11 @@ export default function VersionsTab({ data, onChange }: VersionsTabProps) {
     }));
   };
 
-  const formatChangeValue = (value: any) => {
+  const formatChangeValue = (value: string | number | boolean | object | null) => {
     if (typeof value === "object") {
       return JSON.stringify(value, null, 2);
     }
-    return String(value);
+    return safeStringConversion(value);
   };
 
   const getCurrentVersion = () => {
@@ -486,8 +487,11 @@ export default function VersionsTab({ data, onChange }: VersionsTabProps) {
                 {versions.versions.length}
               </p>
               <p className="text-sm text-muted-foreground">
-                {versions.versions.filter(v => v.status === "published").length} published, {" "}
-                {versions.versions.filter(v => v.status === "draft").length} draft
+                {useMemo(() => {
+                  const published = versions.versions.filter(v => v.status === "published").length;
+                  const draft = versions.versions.filter(v => v.status === "draft").length;
+                  return `${published} published, ${draft} draft`;
+                }, [versions.versions])}
               </p>
             </div>
           </div>
@@ -514,7 +518,7 @@ export default function VersionsTab({ data, onChange }: VersionsTabProps) {
         {/* History Tab */}
         <TabsContent value="history" className="space-y-4">
           <div className="space-y-4">
-            {versions.versions.map((version, index) => (
+            {useMemo(() => versions.versions.map((version, index) => (
               <Card 
                 key={version.id} 
                 className={`transition-all hover-elevate ${
@@ -698,7 +702,7 @@ export default function VersionsTab({ data, onChange }: VersionsTabProps) {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            )), [versions.versions, versions.currentVersion])}
 
             {versions.versions.length === 0 && (
               <Card className="text-center py-12">

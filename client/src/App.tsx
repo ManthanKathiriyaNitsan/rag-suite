@@ -1,45 +1,50 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense, lazy } from "react";
 import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
+import { queryClient } from "./services/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Toaster } from "@/components/ui/Toaster";
+import { TooltipProvider } from "@/components/ui/Tooltip";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/Sidebar";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuthContext } from "@/contexts/AuthContext";
 import { RAGSettingsProvider } from "@/contexts/RAGSettingsContext";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { AppSidebar } from "@/components/AppSidebar";
-import { EmbeddableWidget } from "@/components/EmbeddableWidget";
-import { CommandPalette } from "@/components/CommandPalette";
-import { NotificationInbox } from "@/components/NotificationInbox";
-import { HelpSystem } from "@/components/HelpSystem";
-import { OnboardingTour } from "@/components/OnboardingTour";
-import { UserDropdown } from "@/components/UserDropdown";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { Bell, HelpCircle, Search, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { NotFound } from "@/pages/ErrorPages";
-import Overview from "@/pages/Overview";
-import Crawl from "@/pages/Crawl";
-import Documents from "@/pages/Documents";
-import Analytics from "@/pages/Analytics";
-import Feedback from "@/pages/Feedback";
-import RAGTuning from "@/pages/RAGTuning";
-import Settings from "@/pages/Settings";
-import Integrations from "@/pages/Integrations";
-import Login from "@/pages/Login";
-import Onboarding from "@/pages/Onboarding";
-import Profile from "@/pages/Profile";
-import Signup from "./pages/Signup";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { PageErrorBoundary } from "@/components/error";
 import { BrandingProvider } from "@/contexts/BrandingContext";
 import { I18nProvider } from "@/contexts/I18nContext";
 import { CitationFormattingProvider } from "@/contexts/CitationFormattingContext";
-import { LanguageSelector } from "@/components/LanguageSelector";
 import { useTranslation } from "@/contexts/I18nContext";
-import { SmoothCursor } from "@/components/ui/smooth-cursor";
-import { PointerTypes } from "@/components/ui/animated-pointer";
+import { SmoothCursor } from "@/components/ui/SmoothCursor";
+import { PointerTypes } from "@/components/ui/AnimatedPointer";
+
+// 🚀 Lazy load all pages for optimal performance
+const Overview = lazy(() => import("@/pages/Overview"));
+const Crawl = lazy(() => import("@/pages/Crawl"));
+const Documents = lazy(() => import("@/pages/Documents"));
+const Analytics = lazy(() => import("@/pages/Analytics"));
+const Feedback = lazy(() => import("@/pages/Feedback"));
+const RAGTuning = lazy(() => import("@/pages/RAGTuning"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const Integrations = lazy(() => import("@/pages/Integrations"));
+const Login = lazy(() => import("@/pages/Login"));
+const Onboarding = lazy(() => import("@/pages/Onboarding"));
+const Profile = lazy(() => import("@/pages/Profile"));
+const Signup = lazy(() => import("./pages/Signup"));
+const NotFound = lazy(() => import("@/pages/ErrorPages").then(module => ({ default: module.NotFound })));
+
+// 🚀 Direct imports (temporarily disabled lazy loading to bypass React error)
+import ThemeToggle from "@/components/common/ThemeToggle";
+import AppSidebar from "@/components/layout/AppSidebar";
+import { EmbeddableWidget } from "@/components/common/EmbeddableWidget";
+import CommandPalette from "@/components/common/CommandPalette";
+import NotificationInbox from "@/components/common/NotificationInbox";
+import HelpSystem from "@/components/common/HelpSystem";
+import OnboardingTour from "@/components/common/OnboardingTour";
+import UserDropdown from "@/components/common/UserDropdown";
+import LanguageSelector from "@/components/common/LanguageSelector";
 
 // 🔐 Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -80,7 +85,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  }, []); // Empty dependency array - runs only on mount
 
   if (isLoading) {
     return (
@@ -110,7 +115,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
   
   useEffect(() => {
     setWidgetOpen(false);
-  }, []);
+  }, []); // Empty dependency array - runs only on mount
   
   const style = {
     "--sidebar-width": "20rem",
@@ -212,30 +217,94 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
 function Router() {
   return (
     <Switch>
-      <Route path="/login" component={Login} />
-      <Route path="/signup" component={Signup} />
-      <Route path="/onboarding" component={Onboarding} />
+      <Route path="/login">
+        <PageErrorBoundary pageName="Login">
+          <Login />
+        </PageErrorBoundary>
+      </Route>
+      <Route path="/signup">
+        <PageErrorBoundary pageName="Signup">
+          <Signup />
+        </PageErrorBoundary>
+      </Route>
+      <Route path="/onboarding">
+        <PageErrorBoundary pageName="Onboarding">
+          <Onboarding />
+        </PageErrorBoundary>
+      </Route>
       <Route path="/" nest>
         <ProtectedRoute>
           <DashboardLayout>
             <Switch>
-              <Route path="/" component={Overview} />
-              <Route path="/crawl" component={Crawl} />
-              <Route path="/rag-tuning" component={RAGTuning} />
-              <Route path="/documents" component={Documents} />
-              <Route path="/analytics" component={Analytics} />
-              <Route path="/feedback" component={Feedback} />
-              <Route path="/integrations" component={Integrations} />
-              <Route path="/profile" component={Profile} />
-              <Route path="/settings" component={Settings} />
-              <Route path="/api-keys" component={Settings} />
-              <Route path="/system-health" component={Settings} />
-              <Route component={NotFound} />
+              <Route path="/">
+                <PageErrorBoundary pageName="Overview">
+                  <Overview />
+                </PageErrorBoundary>
+              </Route>
+              <Route path="/crawl">
+                <PageErrorBoundary pageName="Crawl">
+                  <Crawl />
+                </PageErrorBoundary>
+              </Route>
+              <Route path="/rag-tuning">
+                <PageErrorBoundary pageName="RAG Tuning">
+                  <RAGTuning />
+                </PageErrorBoundary>
+              </Route>
+              <Route path="/documents">
+                <PageErrorBoundary pageName="Documents">
+                  <Documents />
+                </PageErrorBoundary>
+              </Route>
+              <Route path="/analytics">
+                <PageErrorBoundary pageName="Analytics">
+                  <Analytics />
+                </PageErrorBoundary>
+              </Route>
+              <Route path="/feedback">
+                <PageErrorBoundary pageName="Feedback">
+                  <Feedback />
+                </PageErrorBoundary>
+              </Route>
+              <Route path="/integrations">
+                <PageErrorBoundary pageName="Integrations">
+                  <Integrations />
+                </PageErrorBoundary>
+              </Route>
+              <Route path="/profile">
+                <PageErrorBoundary pageName="Profile">
+                  <Profile />
+                </PageErrorBoundary>
+              </Route>
+              <Route path="/settings">
+                <PageErrorBoundary pageName="Settings">
+                  <Settings />
+                </PageErrorBoundary>
+              </Route>
+              <Route path="/api-keys">
+                <PageErrorBoundary pageName="API Keys">
+                  <Settings />
+                </PageErrorBoundary>
+              </Route>
+              <Route path="/system-health">
+                <PageErrorBoundary pageName="System Health">
+                  <Settings />
+                </PageErrorBoundary>
+              </Route>
+              <Route>
+                <PageErrorBoundary pageName="Not Found">
+                  <NotFound />
+                </PageErrorBoundary>
+              </Route>
             </Switch>
           </DashboardLayout>
         </ProtectedRoute>
       </Route>
-      <Route component={Login} />
+      <Route>
+        <PageErrorBoundary pageName="Login">
+          <Login />
+        </PageErrorBoundary>
+      </Route>
     </Switch>
   );
 }

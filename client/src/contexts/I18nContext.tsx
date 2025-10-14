@@ -1269,7 +1269,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       // ignore
     }
-  }, []);
+  }, [setLocale]);
 
   // Persist locale
   useEffect(() => {

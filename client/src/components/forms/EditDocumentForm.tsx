@@ -1,17 +1,17 @@
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/Dialog";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Textarea } from "@/components/ui/Textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { documentAPI, DocumentMetadata } from "@/lib/api";
+} from "@/components/ui/Select";
+import { documentAPI, DocumentMetadata } from "@/services/api/api";
 
 interface EditDocumentFormProps {
   open: boolean;
@@ -21,7 +21,7 @@ interface EditDocumentFormProps {
   onSubmit?: (metadata: DocumentMetadata) => void;
 }
 
-export function EditDocumentForm({ open, onOpenChange, documentId, initialMetadata, onSubmit }: EditDocumentFormProps) {
+function EditDocumentForm({ open, onOpenChange, documentId, initialMetadata, onSubmit }: EditDocumentFormProps) {
   const [title, setTitle] = React.useState(initialMetadata?.title || "");
   const [description, setDescription] = React.useState(initialMetadata?.description || "");
   const [language, setLanguage] = React.useState(initialMetadata?.language || "en");
@@ -33,7 +33,7 @@ export function EditDocumentForm({ open, onOpenChange, documentId, initialMetada
     setDescription(initialMetadata?.description || "");
     setLanguage(initialMetadata?.language || "en");
     setSource(initialMetadata?.source || "");
-  }, [initialMetadata, open]);
+  }, [initialMetadata, open]); // Only depend on actual values
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,3 +126,5 @@ export function EditDocumentForm({ open, onOpenChange, documentId, initialMetada
     </Dialog>
   );
 }
+
+export default EditDocumentForm;

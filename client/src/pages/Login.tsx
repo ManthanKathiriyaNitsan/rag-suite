@@ -1,24 +1,26 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { Bot, Eye, EyeOff, Shield, Zap, BarChart3, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-export default function Login() {
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Alert, AlertDescription } from "@/components/ui/Alert";
+import { PointerTypes } from "@/components/ui/AnimatedPointer";
+import { mockLogin } from "@/utils/mockAuth";
+const Login = React.memo(function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [, setLocation] = useLocation();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (username && password) {
       try {
         // Authenticate with server
-        const response = await fetch('http://192.168.0.103:8000/api/v1/auth/login', {
+        const response = await fetch('http://localhost:5000/api/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -56,23 +58,26 @@ export default function Login() {
         console.warn('🔐 Real authentication failed, using mock authentication for development');
         console.warn('💡 This allows development to continue without real server authentication');
         
-        // Fallback to mock authentication for development
-        localStorage.setItem('auth_token', 'mock-jwt-token-' + Date.now());
-        localStorage.setItem('user_data', JSON.stringify({
-          id: 1,
-          username: username,
-          email: username + '@example.com',
-          name: username
-        }));
-        localStorage.setItem('token_expires', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString());
-        
-        // Force page reload to update authentication state
-        window.location.href = "/";
+        // Use mock authentication system
+        try {
+          const mockData = await mockLogin(username, password);
+          localStorage.setItem('auth_token', mockData.token);
+          localStorage.setItem('user_data', JSON.stringify(mockData.user));
+          localStorage.setItem('token_expires', mockData.expiresAt);
+          localStorage.setItem('mock-mode', 'true'); // Flag that we're in mock mode
+          
+          console.log('✅ Mock authentication successful');
+          // Force page reload to update authentication state
+          window.location.href = "/";
+        } catch (mockError) {
+          console.error('❌ Mock authentication also failed:', mockError);
+          alert('Authentication failed. Please try again.');
+        }
       }
     } else {
       alert('Please enter both username and password');
     }
-  };
+  }, [username, password, setLocation]);
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -213,13 +218,16 @@ export default function Login() {
                   </Link>
                 </div>
                 
-                <Button
-                  type="submit"
-                  className="w-full h-11"
-                  data-testid="button-sign-in"
-                >
-                  Sign in
-                </Button>
+                <div className="relative">
+                  <Button
+                    type="submit"
+                    className="w-full h-11 group"
+                    data-testid="button-sign-in"
+                  >
+                    Sign in
+                  </Button>
+                  <PointerTypes.Click className="absolute inset-0" />
+                </div>
               </form>
               
               <div className="pt-4 border-t">
@@ -250,4 +258,6 @@ export default function Login() {
       </div>
     </div>
   );
-}
+});
+
+export default Login;

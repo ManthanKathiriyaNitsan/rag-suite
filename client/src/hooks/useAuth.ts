@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
-import { authAPI, LoginCredentials, LoginResponse, User } from '@/lib/api';
+import { authAPI, LoginCredentials, LoginResponse, User } from '@/services/api/api';
 
 // 🔐 Authentication hook for login functionality
 export const useAuth = () => {
@@ -38,7 +38,7 @@ export const useAuth = () => {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, []); // Empty dependency array - runs only on mount
 
   // Login mutation
   const loginMutation = useMutation({

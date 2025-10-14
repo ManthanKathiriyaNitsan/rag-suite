@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 // 🎛️ RAG Settings Interface
 export interface RAGSettings {
@@ -41,7 +41,7 @@ const DEFAULT_RAG_SETTINGS: RAGSettings = {
 };
 
 // 🎛️ RAG Settings Provider
-export function RAGSettingsProvider({ children }: { children: React.ReactNode }) {
+export const RAGSettingsProvider = React.memo(function RAGSettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<RAGSettings>(() => {
     // Load from localStorage if available, otherwise use defaults
     if (typeof window !== 'undefined') {
@@ -66,41 +66,42 @@ export function RAGSettingsProvider({ children }: { children: React.ReactNode })
     }
   }, [settings]);
 
-  // 🔄 Update settings function
-  const updateSettings = (newSettings: Partial<RAGSettings>) => {
+  // 🔄 Update settings function - memoized
+  const updateSettings = useCallback((newSettings: Partial<RAGSettings>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
-  };
+  }, []);
 
-  // 🔄 Reset settings to defaults
-  const resetSettings = () => {
+  // 🔄 Reset settings to defaults - memoized
+  const resetSettings = useCallback(() => {
     setSettings(DEFAULT_RAG_SETTINGS);
-  };
+  }, []);
 
-  // 📊 Update performance metrics
-  const updateMetrics = (newMetrics: PerformanceMetrics) => {
+  // 📊 Update performance metrics - memoized
+  const updateMetrics = useCallback((newMetrics: PerformanceMetrics) => {
     setMetrics(newMetrics);
-  };
+  }, []);
 
-  // 🗑️ Clear performance metrics
-  const clearMetrics = () => {
+  // 🗑️ Clear performance metrics - memoized
+  const clearMetrics = useCallback(() => {
     setMetrics(null);
-  };
+  }, []);
 
-  const value: RAGSettingsContextType = {
+  // 🚀 Memoize context value to prevent unnecessary re-renders
+  const value: RAGSettingsContextType = useMemo(() => ({
     settings,
     updateSettings,
     resetSettings,
     metrics,
     updateMetrics,
     clearMetrics,
-  };
+  }), [settings, updateSettings, resetSettings, metrics, updateMetrics, clearMetrics]);
 
   return (
     <RAGSettingsContext.Provider value={value}>
       {children}
     </RAGSettingsContext.Provider>
   );
-}
+});
 
 // 🎛️ Use RAG Settings Hook
 export function useRAGSettings() {

@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Textarea } from "@/components/ui/Textarea";
+import { Badge } from "@/components/ui/Badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/Select";
 import {
   Command,
   CommandEmpty,
@@ -19,45 +19,18 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
+} from "@/components/ui/Command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { X, Plus, Check, ChevronsUpDown, User } from "lucide-react";
+} from "@/components/ui/Popover";
+import { X, Plus, Check, ChevronsUpDown, User as UserIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface OverviewTabProps {
-  data: {
-    name: string;
-    slug: string;
-    description: string;
-    status: string;
-    ownerId: string;
-    tags: string[];
-  };
-  onChange: (data: any) => void;
-}
+import { OverviewTabProps } from "@/types/components";
+import { User } from "@/types/api";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
-
-interface OverviewTabProps {
-  data: {
-    name: string;
-    slug: string;
-    description: string;
-    status: string;
-    ownerId: string;
-    tags: string[];
-  };
-  users?: User[]; // Available users for selection
-  onChange: (data: any) => void;
-}
 
 export default function OverviewTab({ data, users = [], onChange }: OverviewTabProps) {
   const [name, setName] = useState(data.name || "");
@@ -196,7 +169,7 @@ export default function OverviewTab({ data, users = [], onChange }: OverviewTabP
                   >
                     {selectedOwner ? (
                       <div className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
+                        <UserIcon className="h-4 w-4" />
                         <span>{selectedOwner.name}</span>
                       </div>
                     ) : (
@@ -228,7 +201,7 @@ export default function OverviewTab({ data, users = [], onChange }: OverviewTabP
                               )}
                             />
                             <div className="flex items-center gap-2">
-                              <User className="h-4 w-4" />
+                              <UserIcon className="h-4 w-4" />
                               <div>
                                 <div className="font-medium">{user.name}</div>
                                 <div className="text-sm text-muted-foreground">{user.email}</div>

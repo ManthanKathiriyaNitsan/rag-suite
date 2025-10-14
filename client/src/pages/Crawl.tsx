@@ -1,25 +1,27 @@
-import { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, Suspense, lazy } from "react";
 import { Plus, Filter, Play, Pause, Trash2, Edit, Eye, Loader2, Search, X } from "lucide-react";
-import { AddSourceForm } from "@/components/forms/AddSourceForm";
-import { useToast } from "@/hooks/use-toast";
+
+// 🚀 Lazy load heavy crawl components
+const AddSourceForm = lazy(() => import("@/components/forms/AddSourceForm"));
+const CrawlSourceTable = lazy(() => import("@/components/features/documents/CrawlSourceTable"));
+const CrawlJobs = lazy(() => import("@/components/features/documents/CrawlJobs"));
+import { useToast } from "@/hooks/useToast";
 import { useTranslation } from "@/contexts/I18nContext";
-import { PointerTypes } from "@/components/ui/animated-pointer";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CrawlSourceTable } from "@/components/CrawlSourceTable";
-import { CrawlJobs } from "@/components/CrawlJobs";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { PointerTypes } from "@/components/ui/AnimatedPointer";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/Select";
 import { useCrawlSites, useCrawlOperations, useCrawlStats } from "@/hooks/useCrawl";
-import { CrawlSiteData } from "@/lib/api";
+import { CrawlSiteData } from "@/services/api/api";
 
 const crawlJobs = [
   {
@@ -226,6 +228,7 @@ export default function Crawl() {
           <Button
             onClick={() => setShowAddSourceForm(true)}
             data-testid="button-add-source"
+            className="group"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Source
@@ -251,66 +254,80 @@ export default function Crawl() {
             {/* Search Input */}
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search sources..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-                data-testid="input-search-sources"
-              />
+              <div className="relative">
+                <Input
+                  placeholder="Search sources..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                  data-testid="input-search-sources"
+                />
+                <PointerTypes.Search className="absolute inset-0" />
+              </div>
             </div>
 
             {/* Status Filter */}
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40" data-testid="select-status-filter">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="error">Error</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40" data-testid="select-status-filter">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="error">Error</SelectItem>
+                </SelectContent>
+              </Select>
+              <PointerTypes.Filter className="absolute inset-0" />
+            </div>
 
             {/* Cadence Filter */}
-            <Select value={cadenceFilter} onValueChange={setCadenceFilter}>
-              <SelectTrigger className="w-40" data-testid="select-cadence-filter">
-                <SelectValue placeholder="Cadence" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Cadence</SelectItem>
-                <SelectItem value="once">Once</SelectItem>
-                <SelectItem value="hourly">Hourly</SelectItem>
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <Select value={cadenceFilter} onValueChange={setCadenceFilter}>
+                <SelectTrigger className="w-40" data-testid="select-cadence-filter">
+                  <SelectValue placeholder="Cadence" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Cadence</SelectItem>
+                  <SelectItem value="once">Once</SelectItem>
+                  <SelectItem value="hourly">Hourly</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                </SelectContent>
+              </Select>
+              <PointerTypes.Time className="absolute inset-0" />
+            </div>
 
             {/* Clear Filters Button */}
             {hasActiveFilters && (
-              <Button 
-                variant="outline" 
-                onClick={clearFilters}
-                className="flex items-center gap-2"
-                data-testid="button-clear-filters"
-              >
-                <X className="h-4 w-4" />
-                Clear Filters
-              </Button>
+              <div className="relative">
+                <Button 
+                  variant="outline" 
+                  onClick={clearFilters}
+                  className="flex items-center gap-2"
+                  data-testid="button-clear-filters"
+                >
+                  <X className="h-4 w-4" />
+                  Clear Filters
+                </Button>
+                <PointerTypes.Refresh className="absolute inset-0" />
+              </div>
             )}
           </div>
 
-          <CrawlSourceTable 
-            sites={filteredSites}
-            isLoading={sitesLoading}
-            onEdit={setEditingSite}
+          <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
+            <CrawlSourceTable 
+              sites={filteredSites}
+              isLoading={sitesLoading}
+              onEdit={setEditingSite}
             onDelete={handleDeleteSite}
             onStartCrawl={handleStartCrawl}
             isStarting={isStarting}
             isDeleting={isDeleting}
           />
+          </Suspense>
         </TabsContent>
 
 
@@ -318,72 +335,87 @@ export default function Crawl() {
 
         <TabsContent value="jobs" className="space-y-4 w-full overflow-hidden">
           <div className="flex flex-col sm:flex-row gap-4">
-            <Select value={jobStatusFilter} onValueChange={setJobStatusFilter}>
-              <SelectTrigger className="w-40" data-testid="select-job-status-filter">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="running">Running</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <Select value={jobStatusFilter} onValueChange={setJobStatusFilter}>
+                <SelectTrigger className="w-40" data-testid="select-job-status-filter">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="running">Running</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+              <PointerTypes.Filter className="absolute inset-0" />
+            </div>
 
-            <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger className="w-40" data-testid="select-date-filter">
-                <SelectValue placeholder="Date Range" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="week">This Week</SelectItem>
-                <SelectItem value="month">This Month</SelectItem>
-                <SelectItem value="all">All Time</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <Select value={dateFilter} onValueChange={setDateFilter}>
+                <SelectTrigger className="w-40" data-testid="select-date-filter">
+                  <SelectValue placeholder="Date Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">This Week</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                  <SelectItem value="all">All Time</SelectItem>
+                </SelectContent>
+              </Select>
+              <PointerTypes.Time className="absolute inset-0" />
+            </div>
 
             {/* Clear Filters Button for Jobs */}
             {(jobStatusFilter !== "all" || dateFilter !== "today") && (
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setJobStatusFilter("all");
-                  setDateFilter("today");
-                }}
-                className="flex items-center gap-2"
-                data-testid="button-clear-job-filters"
-              >
-                <X className="h-4 w-4" />
-                Clear Filters
-              </Button>
+              <div className="relative">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setJobStatusFilter("all");
+                    setDateFilter("today");
+                  }}
+                  className="flex items-center gap-2"
+                  data-testid="button-clear-job-filters"
+                >
+                  <X className="h-4 w-4" />
+                  Clear Filters
+                </Button>
+                <PointerTypes.Refresh className="absolute inset-0" />
+              </div>
             )}
           </div>
-          <CrawlJobs 
-            sites={sites} 
-            statusFilter={jobStatusFilter}
-            dateFilter={dateFilter}
+          <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
+            <CrawlJobs 
+              sites={sites} 
+              statusFilter={jobStatusFilter}
+              dateFilter={dateFilter}
           />
+          </Suspense>
         </TabsContent>
       </Tabs>
 
       {/* Add Source Form */}
-      <AddSourceForm
-        open={showAddSourceForm}
-        onOpenChange={setShowAddSourceForm}
-        onSubmit={handleAddSite}
-      />
+      <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
+        <AddSourceForm
+          open={showAddSourceForm}
+          onOpenChange={setShowAddSourceForm}
+          onSubmit={handleAddSite}
+        />
+      </Suspense>
 
       {/* Edit Source Form */}
       {editingSite && (
-        <AddSourceForm
-          open={!!editingSite}
-          onOpenChange={(open) => {
-            if (!open) setEditingSite(null);
-          }}
+        <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
+          <AddSourceForm
+            open={!!editingSite}
+            onOpenChange={(open) => {
+              if (!open) setEditingSite(null);
+            }}
           onSubmit={(data) => handleUpdateSite(editingSite, data)}
           editData={sites.find((s: any) => s.id === editingSite)}
         />
+        </Suspense>
       )}
     </div>
   );

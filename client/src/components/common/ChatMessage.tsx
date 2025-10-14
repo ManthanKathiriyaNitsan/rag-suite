@@ -1,0 +1,480 @@
+import * as React from "react";
+import { useState, useCallback } from "react";
+import { Copy, ThumbsUp, ThumbsDown, User, Bot } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Card } from "@/components/ui/Card";
+import { Avatar, AvatarFallback } from "@/components/ui/Avatar";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/HoverCard";
+// 💬 Import feedback hook
+import { useChatFeedback } from "@/hooks/useChat";
+import { linkifyTextToNodes } from "@/utils/linkify";
+import { useTheme } from "@/contexts/ThemeContext";
+import { simpleHighlight } from "@/utils/textHighlighting";
+import { useCitationFormatting } from "@/contexts/CitationFormattingContext";
+import { safeStringConversion } from "@/utils/safeStringConversion";
+// 📝 Import markdown support
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+// 🎨 Import syntax highlighting
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+interface Citation {
+  title: string;
+  url: string;
+  snippet: string;
+}
+
+interface ChatMessageProps {
+  type: "user" | "assistant";
+  content: string;
+  citations?: Citation[];
+  timestamp?: Date;
+  showFeedback?: boolean;
+  messageId?: string; // 💬 Add message ID for feedback
+  // 🎛️ RAG Settings display
+  ragSettings?: {
+    topK?: number;
+    similarityThreshold?: number;
+    maxTokens?: number;
+    useReranker?: boolean;
+  };
+  queryString?: string; // Original query string
+  // 📊 Server response data
+  serverMessage?: string; // Server response message with actual TopK
+  actualTopK?: number; // Actual TopK used by server
+  actualReranker?: boolean; // Actual reranker status from server
+}
+
+const ChatMessage = React.memo(function ChatMessage({
+  type,
+  content,
+  citations = [],
+  timestamp,
+  showFeedback = false,
+  messageId,
+  ragSettings,
+  queryString,
+  serverMessage,
+  actualTopK,
+  actualReranker,
+}: ChatMessageProps) {
+  const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
+  
+  // 💬 Use feedback hook
+  const { submitFeedback, isSubmitting } = useChatFeedback();
+  const [copied, setCopied] = useState(false);
+  
+  // 🎨 Get theme for syntax highlighting
+  const { theme } = useTheme();
+  
+  // 🎨 Get citation formatting options
+  const { formatting } = useCitationFormatting();
+  
+  // Get widget appearance settings from global context
+  const getWidgetAppearance = () => {
+    try {
+      const saved = localStorage.getItem("theme-layout");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.widgetAppearance || {
+          chatBubbleStyle: "rounded",
+          avatarStyle: "circle",
+          animationsEnabled: true,
+        };
+      }
+    } catch (error) {
+      console.warn("Failed to load widget appearance from localStorage:", error);
+    }
+    return {
+      chatBubbleStyle: "rounded",
+      avatarStyle: "circle",
+      animationsEnabled: true,
+    };
+  };
+  
+  const widgetAppearance = getWidgetAppearance();
+
+  // 🎨 Citation formatting functions
+  const getNumberingStyle = (index: number) => {
+    switch (formatting.numbering) {
+      case 'brackets': return `[${index + 1}]`;
+      case 'parentheses': return `(${index + 1})`;
+      case 'dots': return `${index + 1}.`;
+      case 'numbers': return `${index + 1}`;
+      default: return `[${index + 1}]`;
+    }
+  };
+
+  const getCitationStyleClasses = () => {
+    const baseClasses = "rounded-md border";
+    
+    switch (formatting.style) {
+      case 'compact':
+        return `${baseClasses} p-1 text-xs`;
+      case 'detailed':
+        return `${baseClasses} p-3 bg-muted/50`;
+      case 'card':
+        return `${baseClasses} p-2 shadow-sm`;
+      case 'minimal':
+        return `${baseClasses} p-1 text-xs bg-transparent border-dashed`;
+      default:
+        return `${baseClasses} p-2`;
+    }
+  };
+
+  const getLayoutClasses = () => {
+    switch (formatting.layout) {
+      case 'vertical': return "space-y-2";
+      case 'grid': return "grid grid-cols-1 sm:grid-cols-2 gap-2";
+      default: return "space-y-2";
+    }
+  };
+
+  const getColorSchemeClasses = () => {
+    switch (formatting.colorScheme) {
+      case 'primary': return "border-primary/20 bg-primary/5";
+      case 'muted': return "border-muted bg-muted/30";
+      case 'accent': return "border-accent/20 bg-accent/5";
+      default: return "border-border/20 bg-muted/30";
+    }
+  };
+
+  const truncateSnippet = (snippet: string) => {
+    if (!formatting.showSnippets) return "";
+    if (snippet.length <= formatting.maxSnippetLength) return snippet;
+    return snippet.substring(0, formatting.maxSnippetLength) + "...";
+  };
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [content]);
+
+  // 💬 Enhanced feedback handler with API call
+  const handleFeedback = useCallback((type: "up" | "down") => {
+    const newFeedback = feedback === type ? null : type;
+    setFeedback(newFeedback);
+    
+    // Submit feedback to API if we have a messageId
+    if (messageId && newFeedback) {
+      submitFeedback({
+        messageId: messageId,
+        feedback: newFeedback === "up" ? "positive" : "negative"
+      });
+      console.log(`👍 Feedback submitted: ${newFeedback} for message ${messageId}`);
+    }
+  }, [feedback, messageId, submitFeedback]);
+
+  return (
+    <div
+      className={`chat-message flex gap-3 ${type === "user" ? "justify-end" : "justify-start"}`}
+      data-testid={`message-${type}`}
+      role="article"
+      aria-label={`${type === "user" ? "User" : "Assistant"} message`}
+      aria-live="polite"
+    >
+      {type === "assistant" && (
+        <Avatar 
+          className={`h-8 w-8 mt-1 ${
+            widgetAppearance.avatarStyle === "circle" ? "rounded-full" :
+            widgetAppearance.avatarStyle === "square" ? "rounded-none" :
+            "rounded-md"
+          }`}
+          aria-label="AI Assistant avatar"
+        >
+          <AvatarFallback className="bg-primary text-primary-foreground">
+            <Bot className="h-4 w-4" aria-hidden="true" />
+          </AvatarFallback>
+        </Avatar>
+      )}
+
+      <div className={`max-w-[80%] min-w-0 ${type === "user" ? "order-first" : ""}`}>
+        <Card
+          className={`chat-bubble p-4 ${
+            type === "user"
+              ? "bg-primary ml-auto"
+              : "bg-card"
+          } ${
+            widgetAppearance.chatBubbleStyle === "sharp" ? "rounded-none" :
+            widgetAppearance.chatBubbleStyle === "minimal" ? "rounded-sm" :
+            "rounded-lg"
+          } ${
+            widgetAppearance.animationsEnabled ? "transition-all duration-200 ease-in-out" : ""
+          }`}
+        >
+          <div className="space-y-3">
+            <div className="opacity-90 w-full min-w-0">
+              {type === "assistant" ? (
+                <div
+                  className="text-sm leading-relaxed prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground prose-blockquote:text-muted-foreground prose-blockquote:border-l-muted-foreground"
+                  role="text"
+                  aria-label="Assistant message content"
+                >
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      // 🎨 Enhanced code blocks with syntax highlighting
+                      code: ({ node, className, children, ...props }: any) => {
+                        const isInline = !className?.includes('language-');
+                        if (isInline) {
+                          return (
+                            <code className="bg-muted px-1 py-0.5 rounded text-sm font-mono" {...props}>
+                              {children}
+                            </code>
+                          );
+                        }
+                        
+                        // Extract language from className (e.g., "language-javascript" -> "javascript")
+                        const match = /language-(\w+)/.exec(className || '');
+                        const language = match ? match[1] : 'text';
+                        
+                        return (
+                          <div className="my-4">
+                            <SyntaxHighlighter
+                              language={language}
+                              style={theme === 'dark' ? oneDark : oneLight}
+                              customStyle={{
+                                margin: 0,
+                                borderRadius: '0.5rem',
+                                fontSize: '0.875rem',
+                                lineHeight: '1.5',
+                              }}
+                              showLineNumbers={false}
+                              wrapLines={true}
+                              wrapLongLines={true}
+                            >
+                              {safeStringConversion(children).replace(/\n$/, '')}
+                            </SyntaxHighlighter>
+                          </div>
+                        );
+                      },
+                      // Custom styling for links
+                      a: ({ href, children, ...props }) => (
+                        <a 
+                          href={href} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                          {...props}
+                        >
+                          {children}
+                        </a>
+                      ),
+                      // Custom styling for lists
+                      ul: ({ children, ...props }) => (
+                        <ul className="list-disc list-inside space-y-1" {...props}>
+                          {children}
+                        </ul>
+                      ),
+                      ol: ({ children, ...props }) => (
+                        <ol className="list-decimal list-inside space-y-1" {...props}>
+                          {children}
+                        </ol>
+                      ),
+                      // Custom styling for blockquotes
+                      blockquote: ({ children, ...props }) => (
+                        <blockquote className="border-l-4 border-muted-foreground pl-4 italic text-muted-foreground" {...props}>
+                          {children}
+                        </blockquote>
+                      ),
+                    }}
+                  >
+                    {safeStringConversion(content)}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <p
+                  className="whitespace-pre-wrap break-words overflow-wrap-anywhere hyphens-auto word-break-break-word text-wrap"
+                  style={{
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere',
+                    whiteSpace: 'pre-wrap',
+                    hyphens: 'auto'
+                  }}
+                  role="text"
+                  aria-label="User message content"
+                >
+                  {content}
+                </p>
+              )}
+            </div>
+
+            {/* 🎨 Enhanced Citation Display with Formatting Options */}
+            {type === "assistant" && citations && citations.length > 0 && (
+              <div className="space-y-3 pt-3 border-t border-border/20">
+                {formatting.showSourceCount && (
+                  <p className="text-xs font-medium opacity-70">
+                    Sources ({citations.length}):
+                  </p>
+                )}
+                <div className={getLayoutClasses()}>
+                  {citations.map((source, index) => (
+                    <HoverCard key={index} openDelay={300} closeDelay={100}>
+                      <HoverCardTrigger asChild>
+                        <div 
+                          className={`${getCitationStyleClasses()} ${getColorSchemeClasses()} ${
+                            formatting.enableHover ? 'hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer' : ''
+                          }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs shrink-0 ${
+                                formatting.style === 'minimal' ? 'text-xs px-1 py-0' : ''
+                              }`}
+                            >
+                              {getNumberingStyle(index)}
+                            </Badge>
+                            <div className="flex-1 min-w-0">
+                              <p className={`font-medium text-foreground mb-1 ${
+                                formatting.style === 'compact' ? 'text-xs' : 'text-sm'
+                              }`}>
+                                {source.title || `Source ${index + 1}`}
+                              </p>
+                              {formatting.showSnippets && truncateSnippet(source.snippet) && (
+                                <p className={`text-muted-foreground leading-relaxed ${
+                                  formatting.style === 'compact' ? 'text-xs' : 'text-xs'
+                                }`}>
+                                  {queryString ? simpleHighlight(truncateSnippet(source.snippet), queryString) : truncateSnippet(source.snippet)}
+                                </p>
+                              )}
+                              {formatting.showUrls && source.url && source.url !== "#" && (
+                                <a 
+                                  href={source.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className={`text-primary hover:underline mt-1 inline-block ${
+                                    formatting.style === 'compact' ? 'text-xs' : 'text-xs'
+                                  }`}
+                                >
+                                  View Source →
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </HoverCardTrigger>
+                      <HoverCardContent 
+                        className="w-80 max-h-60 overflow-y-auto" 
+                        side="top"
+                        align="start"
+                        sideOffset={5}
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {getNumberingStyle(index)}
+                            </Badge>
+                            <h4 className="font-semibold text-sm">{source.title || `Source ${index + 1}`}</h4>
+                          </div>
+                          {source.snippet && (
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              {source.snippet}
+                            </p>
+                          )}
+                          {source.url && source.url !== "#" && (
+                            <div className="pt-2 border-t">
+                              <a 
+                                href={source.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline flex items-center gap-1"
+                              >
+                                <span className="truncate">{source.url}</span>
+                                <Copy className="h-3 w-3 shrink-0" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </HoverCardContent>
+                    </HoverCard>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {type === "assistant" && (
+              <div className="flex items-center justify-between pt-2 border-t border-border/20">
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCopy}
+                    data-testid="button-copy"
+                    className="h-8 px-2"
+                  >
+                    <Copy className="h-3 w-3" />
+                    {copied && <span className="ml-1 text-xs">Copied!</span>}
+                  </Button>
+                </div>
+
+                {showFeedback && (
+                  <div className="flex items-center gap-1" role="group" aria-label="Message feedback">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleFeedback("up")}
+                      data-testid="button-feedback-up"
+                      disabled={isSubmitting}
+                      className={`h-8 px-2 ${
+                        feedback === "up" ? "bg-accent" : ""
+                      }`}
+                      aria-label="Thumbs up - positive feedback"
+                      aria-pressed={feedback === "up"}
+                      tabIndex={0}
+                    >
+                      <ThumbsUp className="h-3 w-3" aria-hidden="true" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleFeedback("down")}
+                      data-testid="button-feedback-down"
+                      disabled={isSubmitting}
+                      className={`h-8 px-2 ${
+                        feedback === "down" ? "bg-accent" : ""
+                      }`}
+                      aria-label="Thumbs down - negative feedback"
+                      aria-pressed={feedback === "down"}
+                      tabIndex={0}
+                    >
+                      <ThumbsDown className="h-3 w-3" aria-hidden="true" />
+                    </Button>
+                    {isSubmitting && (
+                      <span className="text-xs text-muted-foreground">
+                        Submitting feedback...
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {timestamp && (
+          <p className="text-xs text-muted-foreground mt-1 px-1">
+            {timestamp.toLocaleTimeString()}
+          </p>
+        )}
+      </div>
+
+      {type === "user" && (
+        <Avatar className="h-8 w-8 mr-2 mt-1">
+          <AvatarFallback className="bg-secondary">
+            <User className="h-4 w-4" />
+          </AvatarFallback>
+        </Avatar>
+      )}
+    </div>
+  );
+});
+
+export default ChatMessage;

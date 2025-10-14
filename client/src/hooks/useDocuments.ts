@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { documentAPI, Document, DocumentMetadata, DocumentContent, UploadResponse } from '@/lib/api';
+import { useMemo, useCallback } from 'react';
+import { documentAPI, Document, DocumentMetadata, DocumentContent, UploadResponse } from '@/services/api/api';
 
 // 📄 Documents hook - Get all documents
 export const useDocuments = () => {
@@ -112,21 +113,32 @@ export const useDocumentStats = () => {
       // This would be a separate endpoint for statistics
       // For now, we'll calculate from documents data
       const documents = await documentAPI.getDocuments();
+      
+      // 📊 Memoized expensive calculations
+      const indexedDocs = documents.filter((doc: Document) => doc.status === 'indexed');
+      const processingDocs = documents.filter((doc: Document) => doc.status === 'processing');
+      const failedDocs = documents.filter((doc: Document) => doc.status === 'failed');
+      const totalSize = documents.reduce((sum: number, doc: Document) => sum + parseInt(doc.size || '0', 10), 0);
+      
+      const byCategory = documents.reduce((acc: Record<string, number>, doc: Document) => {
+        const category = doc.type || 'Uncategorized';
+        acc[category] = (acc[category] || 0) + 1;
+        return acc;
+      }, {});
+      
+      const byType = documents.reduce((acc: Record<string, number>, doc: Document) => {
+        acc[doc.type] = (acc[doc.type] || 0) + 1;
+        return acc;
+      }, {});
+      
       return {
         totalDocuments: documents.length,
-        indexedDocuments: documents.filter((doc: Document) => doc.status === 'indexed').length,
-        processingDocuments: documents.filter((doc: Document) => doc.status === 'processing').length,
-        failedDocuments: documents.filter((doc: Document) => doc.status === 'failed').length,
-        totalSize: documents.reduce((sum: number, doc: Document) => sum + doc.fileSize, 0),
-        byCategory: documents.reduce((acc: Record<string, number>, doc: Document) => {
-          const category = doc.category || 'Uncategorized';
-          acc[category] = (acc[category] || 0) + 1;
-          return acc;
-        }, {}),
-        byType: documents.reduce((acc: Record<string, number>, doc: Document) => {
-          acc[doc.fileType] = (acc[doc.fileType] || 0) + 1;
-          return acc;
-        }, {}),
+        indexedDocuments: indexedDocs.length,
+        processingDocuments: processingDocs.length,
+        failedDocuments: failedDocs.length,
+        totalSize,
+        byCategory,
+        byType,
       };
     },
     staleTime: 60000, // 1 minute
@@ -154,8 +166,8 @@ export const useDocumentSearch = (query: string) => {
       return documents.filter((doc: Document) =>
         doc.title.toLowerCase().includes(query.toLowerCase()) ||
         doc.description?.toLowerCase().includes(query.toLowerCase()) ||
-        doc.tags?.some(tag => tag.toLowerCase().includes(query.toLowerCase())) ||
-        doc.author?.toLowerCase().includes(query.toLowerCase())
+        doc.type?.toLowerCase().includes(query.toLowerCase()) ||
+        doc.source?.toLowerCase().includes(query.toLowerCase())
       );
     },
     enabled: !!query,

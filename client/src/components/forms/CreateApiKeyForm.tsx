@@ -1,15 +1,15 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Textarea } from "@/components/ui/Textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/Select";
 import {
   Dialog,
   DialogContent,
@@ -17,9 +17,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from "@/components/ui/Dialog";
 import { Key, Copy, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/Alert";
 
 interface CreateApiKeyFormProps {
   open: boolean;
@@ -27,7 +27,7 @@ interface CreateApiKeyFormProps {
   onSubmit: (data: any) => void;
 }
 
-export function CreateApiKeyForm({ open, onOpenChange, onSubmit }: CreateApiKeyFormProps) {
+function CreateApiKeyForm({ open, onOpenChange, onSubmit }: CreateApiKeyFormProps) {
   const [step, setStep] = useState<"form" | "created">("form");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -225,3 +225,5 @@ export function CreateApiKeyForm({ open, onOpenChange, onSubmit }: CreateApiKeyF
     </Dialog>
   );
 }
+
+export default CreateApiKeyForm;

@@ -28,8 +28,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (username === "admin" && password === "demo123") {
       res.json({
         message: "Login successful",
-        access_token: "demo-token-" + Date.now(),
+        token: "demo-token-" + Date.now(),
         token_type: "bearer",
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
         user: {
           id: "demo-user-1",
           username: "admin", 

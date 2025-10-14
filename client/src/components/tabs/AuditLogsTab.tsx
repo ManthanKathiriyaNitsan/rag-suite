@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Badge } from "@/components/ui/Badge";
+import { Switch } from "@/components/ui/Switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import { Separator } from "@/components/ui/Separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
 import { 
   FileText, 
   Clock, 
@@ -50,7 +50,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/ui/Table";
+import { VirtualizedTable } from "@/components/ui/VirtualizedTable";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,7 +59,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/ui/DropdownMenu";
 import {
   Dialog,
   DialogContent,
@@ -67,7 +68,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/ui/Dialog";
 
 // Audit Log interfaces
 interface AuditLogEntry {
@@ -83,17 +84,17 @@ interface AuditLogEntry {
   resource: string;
   resourceId?: string;
   description: string;
-  details: Record<string, any>;
+  details: Record<string, unknown>;
   ipAddress: string;
   userAgent: string;
   location?: string;
   sessionId: string;
   outcome: "success" | "failure" | "warning";
   changes?: {
-    before: Record<string, any>;
-    after: Record<string, any>;
+    before: Record<string, unknown>;
+    after: Record<string, unknown>;
   };
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface SecurityAlert {
@@ -130,7 +131,7 @@ interface ComplianceReport {
   downloadUrl?: string;
   fileSize?: string;
   recordCount: number;
-  filters: Record<string, any>;
+  filters: Record<string, unknown>;
 }
 
 interface AuditSettings {
@@ -699,34 +700,33 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
                     <p className="text-muted-foreground">No logs found matching your filters</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto max-w-full min-w-0 mx-2 sm:mx-0" style={{ maxWidth: 'calc(100% - 1rem)' }}>
-                    <div className="text-xs text-muted-foreground mb-2 sm:hidden">
-                      ← Scroll horizontally to see all columns →
+                  <div className="mx-2 sm:mx-0">
+                    <div className="text-xs text-muted-foreground mb-2">
+                      🚀 Virtualized table for optimal performance with large datasets
                     </div>
-                    <Table data-testid="table-activity-logs" className="min-w-[800px] lg:min-w-[1000px] table-fixed">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[15%]">Time</TableHead>
-                          <TableHead className="w-[20%]">User</TableHead>
-                          <TableHead className="w-[20%]">Action</TableHead>
-                          <TableHead className="w-[10%]">Category</TableHead>
-                          <TableHead className="w-[10%]">Severity</TableHead>
-                          <TableHead className="w-[10%]">Outcome</TableHead>
-                          <TableHead className="w-[15%]">Details</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                      {filteredLogs.map((log) => (
-                        <TableRow key={log.id} className="hover-elevate" data-testid={`row-log-${log.id}`}>
-                          <TableCell className="font-mono text-xs">
-                            {log.timestamp.toLocaleString()}
-                          </TableCell>
-                          <TableCell>
+                    <VirtualizedTable
+                      data={filteredLogs}
+                      columns={[
+                        {
+                          key: 'timestamp',
+                          label: 'Time',
+                          width: 150,
+                          render: (log: AuditLogEntry) => (
+                            <div className="font-mono text-xs">
+                              {log.timestamp.toLocaleString()}
+                            </div>
+                          ),
+                        },
+                        {
+                          key: 'user',
+                          label: 'User',
+                          width: 200,
+                          render: (log: AuditLogEntry) => (
                             <div className="flex items-center gap-2">
                               <Avatar className="h-6 w-6">
                                 <AvatarImage src={log.userAvatar} alt={log.userName} />
                                 <AvatarFallback className="text-xs">
-                                  {log.userName.split(' ').map(n => n[0]).join('')}
+                                  {log.userName.split(' ').map((n: string) => n[0]).join('')}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
@@ -734,27 +734,52 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
                                 <p className="text-xs text-muted-foreground">{log.userEmail}</p>
                               </div>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="font-mono text-sm">{log.action}</div>
-                            <div className="text-xs text-muted-foreground">{log.resource}</div>
-                          </TableCell>
-                          <TableCell>
+                          ),
+                        },
+                        {
+                          key: 'action',
+                          label: 'Action',
+                          width: 200,
+                          render: (log: AuditLogEntry) => (
+                            <div>
+                              <div className="font-mono text-sm">{log.action}</div>
+                              <div className="text-xs text-muted-foreground">{log.resource}</div>
+                            </div>
+                          ),
+                        },
+                        {
+                          key: 'category',
+                          label: 'Category',
+                          width: 100,
+                          render: (log: AuditLogEntry) => (
                             <div className="flex items-center gap-1">
                               {getCategoryIcon(log.category)}
                               <span className="text-sm capitalize">{log.category}</span>
                             </div>
-                          </TableCell>
-                          <TableCell>
+                          ),
+                        },
+                        {
+                          key: 'severity',
+                          label: 'Severity',
+                          width: 100,
+                          render: (log: AuditLogEntry) => (
                             <Badge variant={getSeverityBadgeVariant(log.severity)}>
                               {getSeverityIcon(log.severity)}
                               <span className="ml-1 capitalize">{log.severity}</span>
                             </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {getOutcomeIcon(log.outcome)}
-                          </TableCell>
-                          <TableCell>
+                          ),
+                        },
+                        {
+                          key: 'outcome',
+                          label: 'Outcome',
+                          width: 80,
+                          render: (log: AuditLog) => getOutcomeIcon(log.outcome),
+                        },
+                        {
+                          key: 'details',
+                          label: 'Details',
+                          width: 100,
+                          render: (log: AuditLogEntry) => (
                             <Button 
                               variant="ghost" 
                               size="sm"
@@ -764,11 +789,14 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
                               <Eye className="w-4 h-4 mr-1" />
                               View
                             </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      </TableBody>
-                    </Table>
+                          ),
+                        },
+                      ]}
+                      height={400}
+                      itemHeight={60}
+                      className="min-w-[800px] lg:min-w-[1000px]"
+                      onRowClick={(log: any) => setSelectedLog(log.id)}
+                    />
                   </div>
                 )}
               </div>

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { chatAPI, ChatResponse, ChatSession } from '@/lib/api';
+import { chatAPI, ChatResponse, ChatSession } from '@/services/api/api';
 
 // 💬 Chat hook for sending messages
 export const useChat = () => {

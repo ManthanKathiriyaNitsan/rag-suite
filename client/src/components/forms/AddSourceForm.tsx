@@ -1,17 +1,17 @@
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Textarea } from "@/components/ui/Textarea";
+import { Switch } from "@/components/ui/Switch";
+import { Badge } from "@/components/ui/Badge";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/Select";
 import {
   Dialog,
   DialogContent,
@@ -19,18 +19,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from "@/components/ui/Dialog";
 import { Plus, X } from "lucide-react";
-import { CrawlSite, CrawlSiteData } from "@/lib/api";
+import { CrawlSite, CrawlSiteData } from "@/services/api/api";
 
-interface AddSourceFormProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: (data: CrawlSiteData) => void;
-  editData?: CrawlSite;
-}
+import { AddSourceFormProps } from "@/types/forms";
 
-export function AddSourceForm({ open, onOpenChange, onSubmit, editData }: AddSourceFormProps) {
+const AddSourceForm = React.memo(function AddSourceForm({ open, onOpenChange, onSubmit, editData }: AddSourceFormProps) {
   const [url, setUrl] = useState(editData?.url || "");
   const [name, setName] = useState(editData?.name || "");
   const [description, setDescription] = useState(editData?.description || "");
@@ -55,9 +50,9 @@ export function AddSourceForm({ open, onOpenChange, onSubmit, editData }: AddSou
     setHeadless(false);
     setIncludePatterns(editData?.includePatterns || []);
     setExcludePatterns(editData?.excludePatterns || []);
-  }, [editData, open]);
+  }, [editData, open]); // Only depend on actual values
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     // Map UI fields to CrawlSiteData expected by API layer
     const mappedCadence: CrawlSiteData["cadence"] =
@@ -76,21 +71,21 @@ export function AddSourceForm({ open, onOpenChange, onSubmit, editData }: AddSou
 
     onSubmit(payload);
     onOpenChange(false);
-  };
+  }, [name, url, description, crawlDepth, cadenceUI, headless, includePatterns, excludePatterns, onSubmit, onOpenChange]);
 
-  const addAllowPattern = () => {
+  const addAllowPattern = useCallback(() => {
     if (newAllowPattern.trim()) {
       setIncludePatterns([...includePatterns, newAllowPattern.trim()]);
       setNewAllowPattern("");
     }
-  };
+  }, [newAllowPattern, includePatterns]);
 
-  const addDenyPattern = () => {
+  const addDenyPattern = useCallback(() => {
     if (newDenyPattern.trim()) {
       setExcludePatterns([...excludePatterns, newDenyPattern.trim()]);
       setNewDenyPattern("");
     }
-  };
+  }, [newDenyPattern, excludePatterns]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -200,7 +195,7 @@ export function AddSourceForm({ open, onOpenChange, onSubmit, editData }: AddSou
                   onChange={(e) => setNewAllowPattern(e.target.value)}
                   data-testid="input-allow-pattern"
                 />
-                <Button type="button" onClick={addAllowPattern} data-testid="button-add-allow">
+                <Button type="button" onClick={addAllowPattern} data-testid="button-add-allow" className="group">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -213,7 +208,10 @@ export function AddSourceForm({ open, onOpenChange, onSubmit, editData }: AddSou
                       variant="ghost"
                       size="sm"
                       className="h-4 w-4 p-0"
-                      onClick={() => setIncludePatterns(includePatterns.filter((_, i) => i !== index))}
+                      onClick={() => {
+                        const newPatterns = includePatterns.filter((_, i) => i !== index);
+                        setIncludePatterns(newPatterns);
+                      }}
                       data-testid={`button-remove-allow-${index}`}
                     >
                       <X className="h-3 w-3" />
@@ -235,7 +233,7 @@ export function AddSourceForm({ open, onOpenChange, onSubmit, editData }: AddSou
                   onChange={(e) => setNewDenyPattern(e.target.value)}
                   data-testid="input-deny-pattern"
                 />
-                <Button type="button" onClick={addDenyPattern} data-testid="button-add-deny">
+                <Button type="button" onClick={addDenyPattern} data-testid="button-add-deny" className="group">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -248,7 +246,10 @@ export function AddSourceForm({ open, onOpenChange, onSubmit, editData }: AddSou
                       variant="ghost"
                       size="sm"
                       className="h-4 w-4 p-0"
-                      onClick={() => setExcludePatterns(excludePatterns.filter((_, i) => i !== index))}
+                      onClick={() => {
+                        const newPatterns = excludePatterns.filter((_, i) => i !== index);
+                        setExcludePatterns(newPatterns);
+                      }}
                       data-testid={`button-remove-deny-${index}`}
                     >
                       <X className="h-3 w-3" />
@@ -271,4 +272,6 @@ export function AddSourceForm({ open, onOpenChange, onSubmit, editData }: AddSou
       </DialogContent>
     </Dialog>
   );
-}
+});
+
+export default AddSourceForm;

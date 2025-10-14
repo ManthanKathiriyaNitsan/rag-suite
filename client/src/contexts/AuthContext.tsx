@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { User, AuthState } from '@/lib/api';
+import { User, AuthState } from '@/services/api/api';
 
 // 🔐 Authentication Context
 interface AuthContextType {
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, 100);
 
     return () => clearTimeout(initTimer);
-  }, []);
+  }, []); // Empty dependency array - runs only on mount
 
   // Clear error when it changes
   useEffect(() => {
@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       setError(null);
     }
-  }, [loginError, logoutError]);
+  }, [loginError, logoutError]); // Only depend on actual values
 
   // 🔐 Debug authentication state changes
   useEffect(() => {

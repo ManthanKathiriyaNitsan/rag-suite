@@ -1,19 +1,20 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { User, Mail, Shield, Key, Bell, Globe, Save, Upload, Camera } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { Switch } from "@/components/ui/Switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
+import { Badge } from "@/components/ui/Badge";
+import { Separator } from "@/components/ui/Separator";
+import { PointerTypes } from "@/components/ui/AnimatedPointer";
 
-export default function Profile() {
+const Profile = React.memo(function Profile() {
   const { user: authUser } = useAuthContext();
   const [userData, setUserData] = useState({
     name: (authUser as any)?.name || authUser?.username || "User",
@@ -38,7 +39,7 @@ export default function Profile() {
         avatar: (authUser as any)?.avatar || prev.avatar,
       }));
     }
-  }, [authUser]);
+  }, [authUser]); // Only depend on authUser
 
   const [notifications, setNotifications] = useState({
     emailUpdates: true,
@@ -54,22 +55,25 @@ export default function Profile() {
     emailVisible: false
   });
 
-  const getInitials = (name: string) => {
+  // 📝 Memoized initials calculation
+  const getInitials = useCallback((name: string) => {
     return name
       .split(" ")
       .map(n => n[0])
       .join("")
       .toUpperCase()
       .slice(0, 2);
-  };
+  }, []);
 
-  const handleSave = () => {
+  // 💾 Memoized save handler
+  const handleSave = useCallback(() => {
     // Save functionality
-  };
+  }, []);
 
-  const handleAvatarUpload = () => {
+  // 📷 Memoized avatar upload handler
+  const handleAvatarUpload = useCallback(() => {
     // Avatar upload functionality
-  };
+  }, []);
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -124,10 +128,13 @@ export default function Profile() {
                 </div>
               </div>
               
-              <Button className="w-full md:w-auto " onClick={handleSave} data-testid="button-save-profile">
-                <Save className="h-4 w-4 mr-2" />
-                Save Changes
-              </Button>
+              <div className="relative">
+                <Button className="w-full md:w-auto group" onClick={handleSave} data-testid="button-save-profile">
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
+                </Button>
+                <PointerTypes.Save className="absolute inset-0" />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -317,9 +324,12 @@ export default function Profile() {
                   />
                 </div>
                 
-                <Button className="w-full" data-testid="button-update-password">
-                  Update Password
-                </Button>
+                <div className="relative">
+                  <Button className="w-full group" data-testid="button-update-password">
+                    Update Password
+                  </Button>
+                  <PointerTypes.Save className="absolute inset-0" />
+                </div>
               </CardContent>
             </Card>
 
@@ -505,4 +515,6 @@ export default function Profile() {
       </Tabs>
     </div>
   );
-}
+});
+
+export default Profile;

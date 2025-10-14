@@ -1,21 +1,23 @@
-import { useState, useEffect, useRef } from "react";
-import { Upload, Palette, Globe, Key, Activity, Eye, EyeOff, Copy, Trash2, Plus, FileText } from "lucide-react";
-import { CreateApiKeyForm } from "@/components/forms/CreateApiKeyForm";
-import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
+import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from "react";
+import { Upload, Palette, Globe, Key, Activity, Eye, EyeOff, Copy, Trash2, Plus, FileText, Loader2 } from "lucide-react";
+
+// 🚀 Lazy load heavy form components
+const CreateApiKeyForm = lazy(() => import("@/components/forms/CreateApiKeyForm"));
+import { useToast } from "@/hooks/useToast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Badge } from "@/components/ui/Badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { Switch } from "@/components/ui/Switch";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/Select";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/ui/Dialog";
 import {
   Table,
   TableBody,
@@ -31,42 +33,43 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/ui/Table";
 import { useI18n } from "@/contexts/I18nContext";
-import { PointerTypes } from "@/components/ui/animated-pointer";
+import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useCitationFormatting } from "@/contexts/CitationFormattingContext";
 
-const apiKeys = [
-  {
-    id: "key-001",
-    name: "Production API Key",
-    key: "rgs_live_1234567890abcdef",
-    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-    lastUsed: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    requests: 15420,
-    rateLimit: 1000,
-  },
-  {
-    id: "key-002",
-    name: "Development API Key",
-    key: "rgs_test_abcdef1234567890",
-    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
-    lastUsed: new Date(Date.now() - 5 * 60 * 1000),
-    requests: 2847,
-    rateLimit: 100,
-  },
-];
+const Settings = React.memo(function Settings() {
+  // 📝 Memoized API keys data
+  const apiKeys = useMemo(() => [
+    {
+      id: "key-001",
+      name: "Production API Key",
+      key: "rgs_live_1234567890abcdef",
+      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      lastUsed: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      requests: 15420,
+      rateLimit: 1000,
+    },
+    {
+      id: "key-002",
+      name: "Development API Key",
+      key: "rgs_test_abcdef1234567890",
+      createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
+      lastUsed: new Date(Date.now() - 5 * 60 * 1000),
+      requests: 2847,
+      rateLimit: 100,
+    },
+  ], []);
 
-const systemServices = [
-  { name: "API Gateway", status: "healthy", lastHeartbeat: new Date(Date.now() - 30 * 1000), uptime: "99.9%" },
-  { name: "Redis Cache", status: "healthy", lastHeartbeat: new Date(Date.now() - 45 * 1000), uptime: "99.8%" },
-  { name: "Vector Database", status: "degraded", lastHeartbeat: new Date(Date.now() - 2 * 60 * 1000), uptime: "98.5%" },
-  { name: "PostgreSQL", status: "healthy", lastHeartbeat: new Date(Date.now() - 15 * 1000), uptime: "99.9%" },
-  { name: "OpenAI API", status: "healthy", lastHeartbeat: new Date(Date.now() - 20 * 1000), uptime: "99.7%" },
-];
-
-export default function Settings() {
+  // 📊 Memoized system services data
+  const systemServices = useMemo(() => [
+    { name: "API Gateway", status: "healthy", lastHeartbeat: new Date(Date.now() - 30 * 1000), uptime: "99.9%" },
+    { name: "Redis Cache", status: "healthy", lastHeartbeat: new Date(Date.now() - 45 * 1000), uptime: "99.8%" },
+    { name: "Vector Database", status: "degraded", lastHeartbeat: new Date(Date.now() - 2 * 60 * 1000), uptime: "98.5%" },
+    { name: "PostgreSQL", status: "healthy", lastHeartbeat: new Date(Date.now() - 15 * 1000), uptime: "99.9%" },
+    { name: "OpenAI API", status: "healthy", lastHeartbeat: new Date(Date.now() - 20 * 1000), uptime: "99.7%" },
+  ], []);
   const { 
     orgName: orgNameGlobal, 
     primaryColor: primaryColorGlobal, 
@@ -107,7 +110,7 @@ export default function Settings() {
     }
   };
 
-  const handleCreateApiKey = (data: any) => {
+  const handleCreateApiKey = (data: Record<string, unknown>) => {
     console.log("Creating API key:", data);
     toast({
       title: "API Key Created",
@@ -145,7 +148,7 @@ export default function Settings() {
     } catch (e) {
       console.warn("Failed to load branding from localStorage", e);
     }
-  }, []);
+  }, []); // Empty dependency array - runs only on mount
 
   const handleLogoChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
     const file = e.target.files?.[0];
@@ -261,15 +264,18 @@ export default function Settings() {
                         )}
                       </div>
                       <div className="flex flex-col sm:flex-row gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => fileInputRef.current?.click()}
-                        data-testid="button-upload-logo"
+                      <div className="relative">
+                        <Button
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
+                          data-testid="button-upload-logo"
                           className="w-full sm:w-auto"
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload Logo
-                      </Button>
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Upload Logo
+                        </Button>
+                        <PointerTypes.Upload className="absolute inset-0" />
+                      </div>
                       {logoDataUrl && (
                           <Button variant="ghost" onClick={handleRemoveLogo} data-testid="button-remove-logo" className="w-full sm:w-auto">
                           Remove
@@ -379,8 +385,14 @@ export default function Settings() {
               </div>
 
               <div className="flex flex-col sm:flex-row justify-end gap-2">
-                <Button variant="outline" onClick={handleResetBranding} className="w-full sm:w-auto">Reset</Button>
-                <Button onClick={handleSaveBranding} data-testid="button-save-branding" className="w-full sm:w-auto">Save Changes</Button>
+                <div className="relative">
+                  <Button variant="outline" onClick={handleResetBranding} className="w-full sm:w-auto">Reset</Button>
+                  <PointerTypes.Refresh className="absolute inset-0" />
+                </div>
+                <div className="relative">
+                  <Button onClick={handleSaveBranding} data-testid="button-save-branding" className="w-full sm:w-auto group">Save Changes</Button>
+                  <PointerTypes.Save className="absolute inset-0" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -515,8 +527,14 @@ export default function Settings() {
               </div>
 
               <div className="flex flex-col sm:flex-row justify-end gap-2">
-                <Button variant="outline" className="w-full sm:w-auto">Reset to Default</Button>
-                <Button data-testid="button-save-retention" className="w-full sm:w-auto">Save Policy</Button>
+                <div className="relative">
+                  <Button variant="outline" className="w-full sm:w-auto">Reset to Default</Button>
+                  <PointerTypes.Refresh className="absolute inset-0" />
+                </div>
+                <div className="relative">
+                  <Button data-testid="button-save-retention" className="w-full sm:w-auto">Save Policy</Button>
+                  <PointerTypes.Save className="absolute inset-0" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -581,12 +599,18 @@ export default function Settings() {
               </div>
 
               <div className="flex flex-col sm:flex-row justify-end gap-2">
-                <Button variant="outline" onClick={handleResetLocale} className="w-full sm:w-auto">
-                  {t('common.clear')} / Reset to Default
-                </Button>
-                <Button data-testid="button-save-locale" onClick={handleSaveLocale} className="w-full sm:w-auto">
-                  {t('common.save')} / {t('settings.i18n.save')}
-                </Button>
+                <div className="relative">
+                  <Button variant="outline" onClick={handleResetLocale} className="w-full sm:w-auto">
+                    {t('common.clear')} / Reset to Default
+                  </Button>
+                  <PointerTypes.Refresh className="absolute inset-0" />
+                </div>
+                <div className="relative">
+                  <Button data-testid="button-save-locale" onClick={handleSaveLocale} className="w-full sm:w-auto group">
+                    {t('common.save')} / {t('settings.i18n.save')}
+                  </Button>
+                  <PointerTypes.Save className="absolute inset-0" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -789,12 +813,18 @@ export default function Settings() {
               </div>
 
               <div className="flex flex-col sm:flex-row justify-end gap-2">
-                <Button variant="outline" onClick={resetFormatting} className="w-full sm:w-auto">
-                  Reset to Default
-                </Button>
-                <Button className="w-full sm:w-auto">
-                  Save Settings
-                </Button>
+                <div className="relative">
+                  <Button variant="outline" onClick={resetFormatting} className="w-full sm:w-auto">
+                    Reset to Default
+                  </Button>
+                  <PointerTypes.Refresh className="absolute inset-0" />
+                </div>
+                <div className="relative">
+                  <Button className="w-full sm:w-auto">
+                    Save Settings
+                  </Button>
+                  <PointerTypes.Save className="absolute inset-0" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1034,11 +1064,15 @@ export default function Settings() {
       </Tabs>
 
       {/* Create API Key Form */}
-      <CreateApiKeyForm
-        open={showCreateKeyForm}
-        onOpenChange={setShowCreateKeyForm}
-        onSubmit={handleCreateApiKey}
-      />
+      <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
+        <CreateApiKeyForm
+          open={showCreateKeyForm}
+          onOpenChange={setShowCreateKeyForm}
+          onSubmit={handleCreateApiKey}
+        />
+      </Suspense>
     </div>
   );
-}
+});
+
+export default Settings;

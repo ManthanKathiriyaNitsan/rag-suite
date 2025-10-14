@@ -1,18 +1,21 @@
-import { useState } from "react";
-import { Plus, Search, Filter, Globe, Copy, Pause, Play, Archive, Settings, BarChart3, Users, Edit, ExternalLink } from "lucide-react";
-import IntegrationCreateEdit from "@/components/IntegrationCreateEdit";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import React, { useState, useMemo, useCallback, Suspense, lazy } from "react";
+import { Plus, Search, Filter, Globe, Copy, Pause, Play, Archive, Settings, BarChart3, Users, Edit, ExternalLink, Loader2 } from "lucide-react";
+
+// 🚀 Lazy load heavy integration components
+const IntegrationCreateEdit = lazy(() => import("@/components/features/integrations/IntegrationCreateEditRefactored"));
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
 import { useTranslation } from "@/contexts/I18nContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PointerTypes } from "@/components/ui/AnimatedPointer";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/Select";
 import {
   Table,
   TableBody,
@@ -20,37 +23,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
+} from "@/components/ui/Table";
+import { Checkbox } from "@/components/ui/Checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/ui/DropdownMenu";
 
-interface Integration {
-  id: string;
-  name: string;
-  slug: string;
-  publicId: string;
-  description: string;
-  status: "active" | "paused" | "archived";
-  environments: Array<"staging" | "production">;
-  lastPublish: Date | null;
-  queriesLast7d: number;
-  errorsLast7d: number;
-  queriesLast30d: number;
-  errorsLast30d: number;
-  owner: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  tags: string[];
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { Integration } from "@/types/components";
 
 // Mock data - replace with API calls
 const mockIntegrations: Integration[] = [
@@ -181,14 +163,17 @@ export default function Integrations() {
     }
   };
 
-  const filteredIntegrations = integrations.filter(integration => {
-    if (searchQuery && !integration.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        !integration.publicId.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    if (statusFilter !== "all" && integration.status !== statusFilter) return false;
-    if (ownerFilter !== "all" && integration.owner.email !== ownerFilter) return false;
-    if (envFilter !== "all" && !integration.environments.includes(envFilter as any)) return false;
-    return true;
-  });
+  // 🔍 Memoized filtered integrations
+  const filteredIntegrations = useMemo(() => {
+    return integrations.filter(integration => {
+      if (searchQuery && !integration.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+          !integration.publicId.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      if (statusFilter !== "all" && integration.status !== statusFilter) return false;
+      if (ownerFilter !== "all" && integration.owner.email !== ownerFilter) return false;
+      if (envFilter !== "all" && !integration.environments.includes(envFilter as any)) return false;
+      return true;
+    });
+  }, [integrations, searchQuery, statusFilter, ownerFilter, envFilter]);
 
   const handleBulkAction = (action: string) => {
     console.log(`${action} action for integrations:`, selectedIntegrations);
@@ -233,7 +218,7 @@ export default function Integrations() {
     setEditingIntegrationId(undefined);
   };
 
-  const handleSaveIntegration = (data: any) => {
+  const handleSaveIntegration = (data: Integration) => {
     console.log("Saving integration data:", data);
     handleBackToList();
   };
@@ -247,12 +232,14 @@ export default function Integrations() {
   // Show create/edit form if not in list view
   if (currentView === "create" || currentView === "edit") {
     return (
-      <IntegrationCreateEdit
-        integrationId={editingIntegrationId}
-        mode={currentView}
-        onBack={handleBackToList}
-        onSave={handleSaveIntegration}
-      />
+      <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
+        <IntegrationCreateEdit
+          integrationId={editingIntegrationId}
+          mode={currentView}
+          onBack={handleBackToList}
+          onSave={handleSaveIntegration}
+        />
+      </Suspense>
     );
   }
 
@@ -266,10 +253,13 @@ export default function Integrations() {
             {t('integrations.description')}
           </p>
         </div>
-        <Button onClick={handleCreateIntegration} data-testid="button-create-integration">
-          <Plus className="h-4 w-4 mr-2" />
-          Create Integration
-        </Button>
+        <div className="relative">
+          <Button onClick={handleCreateIntegration} data-testid="button-create-integration" className="group">
+            <Plus className="h-4 w-4 mr-2" />
+            Create Integration
+          </Button>
+          <PointerTypes.Add className="absolute inset-0" />
+        </div>
       </div>
 
       {/* Filters */}
@@ -284,17 +274,21 @@ export default function Integrations() {
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <div className="relative  flex-1">
               <Search className=" absolute -translate-y-[50%] top-[50%] left-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name or public ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 "
-                data-testid="input-search-integrations"
-              />
+              <div className="relative">
+                <Input
+                  placeholder="Search by name or public ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 "
+                  data-testid="input-search-integrations"
+                />
+                <PointerTypes.Search className="absolute inset-0" />
+              </div>
             </div>
 
         <div className="flex flex-wrap items-center gap-4">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <div className="relative">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full md:w-32" data-testid="select-status-filter">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -305,7 +299,10 @@ export default function Integrations() {
                 <SelectItem value="archived">Archived</SelectItem>
               </SelectContent>
             </Select>
+            <PointerTypes.Filter className="absolute inset-0" />
+          </div>
 
+          <div className="relative">
             <Select value={ownerFilter} onValueChange={setOwnerFilter}>
               <SelectTrigger className="w-full md:w-40" data-testid="select-owner-filter">
                 <SelectValue placeholder="Owner" />
@@ -317,7 +314,10 @@ export default function Integrations() {
                 <SelectItem value="bob@company.com">Bob Wilson</SelectItem>
               </SelectContent>
             </Select>
+            <PointerTypes.User className="absolute inset-0" />
+          </div>
 
+          <div className="relative">
             <Select value={envFilter} onValueChange={setEnvFilter}>
               <SelectTrigger className="w-full md:w-40" data-testid="select-env-filter">
                 <SelectValue placeholder="Environment" />
@@ -328,6 +328,8 @@ export default function Integrations() {
                 <SelectItem value="staging">Staging</SelectItem>
               </SelectContent>
             </Select>
+            <PointerTypes.Integration className="absolute inset-0" />
+          </div>
         </div>
           </div>
         </CardContent>
@@ -339,33 +341,42 @@ export default function Integrations() {
           <span className="text-sm font-medium">
             {selectedIntegrations.length} integration{selectedIntegrations.length > 1 ? "s" : ""} selected
           </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleBulkAction("pause")}
-            data-testid="button-bulk-pause"
-          >
-            <Pause className="h-4 w-4 mr-2" />
-            Pause
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleBulkAction("resume")}
-            data-testid="button-bulk-resume"
-          >
-            <Play className="h-4 w-4 mr-2" />
-            Resume
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleBulkAction("archive")}
-            data-testid="button-bulk-archive"
-          >
-            <Archive className="h-4 w-4 mr-2" />
-            Archive
-          </Button>
+          <div className="relative">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleBulkAction("pause")}
+              data-testid="button-bulk-pause"
+            >
+              <Pause className="h-4 w-4 mr-2" />
+              Pause
+            </Button>
+            <PointerTypes.Pause className="absolute inset-0" />
+          </div>
+          <div className="relative">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleBulkAction("resume")}
+              data-testid="button-bulk-resume"
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Resume
+            </Button>
+            <PointerTypes.Play className="absolute inset-0" />
+          </div>
+          <div className="relative">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleBulkAction("archive")}
+              data-testid="button-bulk-archive"
+            >
+              <Archive className="h-4 w-4 mr-2" />
+              Archive
+            </Button>
+            <PointerTypes.Archive className="absolute inset-0" />
+          </div>
         </div>
       )}
 

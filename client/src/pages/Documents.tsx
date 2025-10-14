@@ -1,33 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback, Suspense, lazy } from "react";
 import { Grid, List, Filter, Search, Upload, Trash2, RefreshCw, FileText, ExternalLink, Loader2, Eye, Edit } from "lucide-react";
-import { UploadDocumentForm } from "@/components/forms/UploadDocumentForm";
-import { EditDocumentForm } from "@/components/forms/EditDocumentForm";
-import { useToast } from "@/hooks/use-toast";
+
+// 🚀 Lazy load heavy form components
+const UploadDocumentForm = lazy(() => import("@/components/forms/UploadDocumentForm"));
+const EditDocumentForm = lazy(() => import("@/components/forms/EditDocumentForm"));
+import { useToast } from "@/hooks/useToast";
 import { useTranslation } from "@/contexts/I18nContext";
-import { PointerTypes } from "@/components/ui/animated-pointer";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
+import { PointerTypes } from "@/components/ui/AnimatedPointer";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
+import { Checkbox } from "@/components/ui/Checkbox";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/Select";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
-import { documentAPI, Document, DocumentMetadata } from "@/lib/api";
+} from "@/components/ui/Sheet";
+import { documentAPI, Document, DocumentMetadata } from "@/services/api/api";
 
 
-export default function Documents() {
+const Documents = React.memo(function Documents() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
@@ -42,7 +44,7 @@ export default function Documents() {
   const [documentsLoading, setDocumentsLoading] = useState(true);
   const [documentsError, setDocumentsError] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const loadDocuments = async () => {
+  const loadDocuments = useCallback(async () => {
     try {
       setDocumentsLoading(true);
       setDocumentsError(false);
@@ -56,12 +58,12 @@ export default function Documents() {
     } finally {
       setDocumentsLoading(false);
     }
-  };
+  }, []);
 
   // 📄 Load documents on component mount
   React.useEffect(() => {
     loadDocuments();
-  }, []);
+  }, [loadDocuments]);
 
 
   // 📄 Simple stats
@@ -72,16 +74,17 @@ export default function Documents() {
     avgChunks: 8
   };
   
-  // 📄 Simple search
-  const searchResults = searchQuery 
-    ? documents.filter(doc => 
-        doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        doc.source.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : [];
+  // 📄 Memoized search results
+  const searchResults = useMemo(() => {
+    if (!searchQuery) return [];
+    return documents.filter(doc => 
+      doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doc.source.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [documents, searchQuery]);
 
-  // 📄 Document operation handlers
-  const handleDeleteDocument = async (id: string) => {
+  // 📄 Memoized document operation handlers
+  const handleDeleteDocument = useCallback(async (id: string) => {
     try {
       setIsDeleting(true);
       await documentAPI.deleteDocument(id);
@@ -99,7 +102,7 @@ export default function Documents() {
     } finally {
       setIsDeleting(false);
     }
-  };
+  }, [loadDocuments, toast]);
 
   // 📄 Handle document upload (just refresh the list, upload is handled in form)
   const handleUploadDocument = async (data: any) => {
@@ -172,8 +175,10 @@ export default function Documents() {
     setSelectedDocs([]);
   };
 
-  // 📄 Use search results or filter documents
-  const filteredDocuments = searchQuery ? searchResults : documents;
+  // 📄 Memoized filtered documents
+  const filteredDocuments = useMemo(() => {
+    return searchQuery ? searchResults : documents;
+  }, [searchQuery, searchResults, documents]);
 
   return (
     <div className="space-y-6">
@@ -364,10 +369,13 @@ export default function Documents() {
               {searchQuery ? 'No documents found matching your search' : 'No documents found'}
             </p>
             {!searchQuery && (
-              <Button onClick={() => setShowUploadForm(true)}>
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Document
-              </Button>
+              <div className="relative">
+                <Button onClick={() => setShowUploadForm(true)} className="group">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Document
+                </Button>
+                <PointerTypes.Upload className="absolute inset-0" />
+              </div>
             )}
           </div>
         </div>
@@ -626,15 +634,18 @@ export default function Documents() {
       </Sheet>
 
       {/* Upload Document Form */}
-      <UploadDocumentForm
-        open={showUploadForm}
-        onOpenChange={setShowUploadForm}
-        onSubmit={handleUploadDocument}
-      />
+      <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
+        <UploadDocumentForm
+          open={showUploadForm}
+          onOpenChange={setShowUploadForm}
+          onSubmit={handleUploadDocument}
+        />
+      </Suspense>
 
       {/* Edit Document Form */}
       {editingDoc && (
-        <EditDocumentForm
+        <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
+          <EditDocumentForm
           open={showEditForm}
           onOpenChange={(open) => {
             setShowEditForm(open);
@@ -659,7 +670,10 @@ export default function Documents() {
             });
           }}
         />
+        </Suspense>
       )}
     </div>
   );
-}
+});
+
+export default Documents;

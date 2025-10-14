@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Label } from "@/components/ui/Label";
+import { Switch } from "@/components/ui/Switch";
+import { Slider } from "@/components/ui/Slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
+import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
+import { Alert, AlertDescription } from "@/components/ui/Alert";
+import { Separator } from "@/components/ui/Separator";
 import { 
   Settings, 
   Brain, 
@@ -23,54 +23,9 @@ import {
   AlertTriangle,
   Info
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 
-interface ConfigData {
-  // RAG Settings
-  ragModel: string;
-  temperature: number;
-  maxTokens: number;
-  topK: number;
-  topP: number;
-  contextWindow: number;
-  retrievalCount: number;
-  similarityThreshold: number;
-  
-  // Behavior Settings
-  enableChat: boolean;
-  enableSearch: boolean;
-  enableSuggestions: boolean;
-  enableCitations: boolean;
-  enableFollowUps: boolean;
-  
-  // Response Behavior
-  responseMode: "precise" | "balanced" | "creative";
-  fallbackResponse: string;
-  maxResponseLength: number;
-  enableStreaming: boolean;
-  
-  // Privacy & Security
-  logConversations: boolean;
-  retainData: boolean;
-  dataRetentionDays: number;
-  allowAnonymous: boolean;
-  requireAuth: boolean;
-  allowedDomains: string[];
-  
-  // Rate Limiting
-  rateLimitPerUser: number;
-  rateLimitWindow: number; // minutes
-  
-  // Content Filtering
-  enableProfanityFilter: boolean;
-  contentModerationLevel: "strict" | "moderate" | "relaxed";
-  blockedTerms: string[];
-}
-
-interface ConfigTabProps {
-  data: ConfigData;
-  onChange: (data: ConfigData) => void;
-}
+import { ConfigData, ConfigTabProps } from "@/types/components";
 
 export default function ConfigTab({ data, onChange }: ConfigTabProps) {
   const [config, setConfig] = useState<ConfigData>(data);
@@ -80,7 +35,7 @@ export default function ConfigTab({ data, onChange }: ConfigTabProps) {
   // Sync local state when parent data changes (for edit mode)
   useEffect(() => {
     setConfig(data);
-  }, [data]);
+  }, [data, setConfig]);
 
   // Update parent state when config changes
   useEffect(() => {

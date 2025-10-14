@@ -1,20 +1,21 @@
 import { useState } from "react";
 import { Bot, Upload, Globe, Search, CheckCircle, ArrowLeft, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Switch } from "@/components/ui/Switch";
+import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { SearchBar } from "@/components/SearchBar";
-import { ChatMessage } from "@/components/ChatMessage";
+} from "@/components/ui/Select";
+import { SearchBar } from "@/components/common/SearchBar";
+import ChatMessage from "@/components/common/ChatMessage";
 
 const steps = [
   { id: 1, title: "Branding", description: "Customize your organization" },
@@ -314,39 +315,48 @@ Your RAG system is ready to help users find information from your documentation!
 
                 {/* Navigation Buttons */}
                 <div className="flex flex-col sm:flex-row justify-between gap-3 pt-4 sm:pt-6 border-t">
-                  <Button
-                    variant="outline"
-                    onClick={handleBack}
-                    disabled={currentStep === 1}
-                    data-testid="button-back"
-                    className="w-full sm:w-auto order-2 sm:order-1"
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back
-                  </Button>
+                  <div className="relative w-full sm:w-auto order-2 sm:order-1">
+                    <Button
+                      variant="outline"
+                      onClick={handleBack}
+                      disabled={currentStep === 1}
+                      data-testid="button-back"
+                      className="w-full sm:w-auto"
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Back
+                    </Button>
+                    <PointerTypes.Back className="absolute inset-0" />
+                  </div>
                   
                   {currentStep < 3 ? (
-                    <Button
-                      onClick={handleNext}
-                      disabled={
-                        (currentStep === 1 && !orgName) ||
-                        (currentStep === 2 && !sourceUrl)
-                      }
-                      data-testid="button-next"
-                      className="w-full sm:w-auto order-1 sm:order-2"
-                    >
-                      Next
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
+                    <div className="relative w-full sm:w-auto order-1 sm:order-2">
+                      <Button
+                        onClick={handleNext}
+                        disabled={
+                          (currentStep === 1 && !orgName) ||
+                          (currentStep === 2 && !sourceUrl)
+                        }
+                        data-testid="button-next"
+                        className="w-full sm:w-auto group"
+                      >
+                        Next
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                      <PointerTypes.Next className="absolute inset-0" />
+                    </div>
                   ) : (
-                    <Button
-                      onClick={handleFinish}
-                      data-testid="button-finish"
-                      className="w-full sm:w-auto order-1 sm:order-2"
-                    >
-                      Finish Setup
-                      <CheckCircle className="h-4 w-4 ml-2" />
-                    </Button>
+                    <div className="relative w-full sm:w-auto order-1 sm:order-2">
+                      <Button
+                        onClick={handleFinish}
+                        data-testid="button-finish"
+                        className="w-full sm:w-auto group"
+                      >
+                        Finish Setup
+                        <CheckCircle className="h-4 w-4 ml-2" />
+                      </Button>
+                      <PointerTypes.Success className="absolute inset-0" />
+                    </div>
                   )}
                 </div>
               </CardContent>

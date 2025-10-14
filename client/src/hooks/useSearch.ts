@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { searchAPI, SearchResponse } from '@/lib/api';
+import { searchAPI, SearchResponse } from '@/services/api/api';
 
 // 🎣 Custom hook for search functionality
 export const useSearch = () => {

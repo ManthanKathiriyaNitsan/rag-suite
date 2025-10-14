@@ -1,15 +1,15 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import React, { useState, useMemo, useCallback } from "react";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Textarea } from "@/components/ui/Textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/Select";
 import {
   Dialog,
   DialogContent,
@@ -17,18 +17,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from "@/components/ui/Dialog";
 import { Upload, FileText, X, Loader2 } from "lucide-react";
 // 📄 Import API and types
-import { documentAPI, DocumentMetadata } from "@/lib/api";
+import { documentAPI, DocumentMetadata } from "@/services/api/api";
 
-interface UploadDocumentFormProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit?: (data: any) => void;
-}
+import { UploadDocumentFormProps } from "@/types/forms";
 
-export function UploadDocumentForm({ open, onOpenChange, onSubmit }: UploadDocumentFormProps) {
+const UploadDocumentForm = React.memo(function UploadDocumentForm({ open, onOpenChange, onSubmit }: UploadDocumentFormProps) {
   const [files, setFiles] = useState<FileList | null>(null);
   
   // 📄 Simple state for upload
@@ -38,8 +34,8 @@ export function UploadDocumentForm({ open, onOpenChange, onSubmit }: UploadDocum
   const [language, setLanguage] = useState("en");
   const [source, setSource] = useState("");
 
-  // 📄 Updated handleSubmit using real API
-  const handleSubmit = async (e: React.FormEvent) => {
+  // 📄 Memoized handleSubmit using real API
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!files || files.length === 0) {
@@ -102,11 +98,12 @@ export function UploadDocumentForm({ open, onOpenChange, onSubmit }: UploadDocum
     } finally {
       setIsUploading(false);
     }
-  };
+  }, [files, title, description, language, source, onSuccess]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 📁 Memoized file change handler
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setFiles(e.target.files);
-  };
+  }, []);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -226,4 +223,6 @@ export function UploadDocumentForm({ open, onOpenChange, onSubmit }: UploadDocum
       </DialogContent>
     </Dialog>
   );
-}
+});
+
+export default UploadDocumentForm;

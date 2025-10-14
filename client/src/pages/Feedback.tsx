@@ -1,24 +1,25 @@
 import { useState } from "react";
 import { Filter, ExternalLink, Copy, ThumbsUp, ThumbsDown, MessageSquare } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
 import { useTranslation } from "@/contexts/I18nContext";
+import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/Select";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
+} from "@/components/ui/Sheet";
 import {
   Table,
   TableBody,
@@ -26,7 +27,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/ui/Table";
 
 const feedbackData = [
   {
@@ -140,45 +141,54 @@ export default function Feedback() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap items-center gap-4">
-            <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-40" data-testid="select-time-range">
-                <SelectValue placeholder="Time Range" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Time</SelectItem>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="week">This Week</SelectItem>
-                <SelectItem value="month">This Month</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <Select value={timeRange} onValueChange={setTimeRange}>
+                <SelectTrigger className="w-40" data-testid="select-time-range">
+                  <SelectValue placeholder="Time Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">This Week</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                </SelectContent>
+              </Select>
+              <PointerTypes.Time className="absolute inset-0" />
+            </div>
 
-            <Select value={voteFilter} onValueChange={setVoteFilter}>
-              <SelectTrigger className="w-32" data-testid="select-vote-filter">
-                <SelectValue placeholder="Vote" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Votes</SelectItem>
-                <SelectItem value="up">👍 Positive</SelectItem>
-                <SelectItem value="down">👎 Negative</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <Select value={voteFilter} onValueChange={setVoteFilter}>
+                <SelectTrigger className="w-32" data-testid="select-vote-filter">
+                  <SelectValue placeholder="Vote" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Votes</SelectItem>
+                  <SelectItem value="up">👍 Positive</SelectItem>
+                  <SelectItem value="down">👎 Negative</SelectItem>
+                </SelectContent>
+              </Select>
+              <PointerTypes.Favorite className="absolute inset-0" />
+            </div>
 
-            <Select value={reasonFilter} onValueChange={setReasonFilter}>
-              <SelectTrigger className="w-40" data-testid="select-reason-filter">
-                <SelectValue placeholder="Reason" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Reasons</SelectItem>
-                <SelectItem value="helpful">Helpful</SelectItem>
-                <SelectItem value="accurate">Accurate</SelectItem>
-                <SelectItem value="complete">Complete</SelectItem>
-                <SelectItem value="clear">Clear</SelectItem>
-                <SelectItem value="not helpful">Not Helpful</SelectItem>
-                <SelectItem value="outdated">Outdated</SelectItem>
-                <SelectItem value="missing sources">Missing Sources</SelectItem>
-                <SelectItem value="too technical">Too Technical</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <Select value={reasonFilter} onValueChange={setReasonFilter}>
+                <SelectTrigger className="w-40" data-testid="select-reason-filter">
+                  <SelectValue placeholder="Reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Reasons</SelectItem>
+                  <SelectItem value="helpful">Helpful</SelectItem>
+                  <SelectItem value="accurate">Accurate</SelectItem>
+                  <SelectItem value="complete">Complete</SelectItem>
+                  <SelectItem value="clear">Clear</SelectItem>
+                  <SelectItem value="not helpful">Not Helpful</SelectItem>
+                  <SelectItem value="outdated">Outdated</SelectItem>
+                  <SelectItem value="missing sources">Missing Sources</SelectItem>
+                  <SelectItem value="too technical">Too Technical</SelectItem>
+                </SelectContent>
+              </Select>
+              <PointerTypes.Filter className="absolute inset-0" />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -287,16 +297,19 @@ export default function Feedback() {
                   <div className="mt-2 p-3 bg-secondary rounded-lg">
                     <p className="text-sm">{selectedFeedback.query}</p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => handleCopyToClipboard(selectedFeedback.query)}
-                    data-testid="button-copy-query"
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy Query
-                  </Button>
+                  <div className="relative">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => handleCopyToClipboard(selectedFeedback.query)}
+                      data-testid="button-copy-query"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy Query
+                    </Button>
+                    <PointerTypes.Copy className="absolute inset-0" />
+                  </div>
                 </div>
 
                 {/* Answer */}
@@ -307,16 +320,19 @@ export default function Feedback() {
                       <p className="whitespace-pre-wrap text-sm">{selectedFeedback.fullAnswer}</p>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => handleCopyToClipboard(selectedFeedback.fullAnswer)}
-                    data-testid="button-copy-answer"
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy Answer
-                  </Button>
+                  <div className="relative">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => handleCopyToClipboard(selectedFeedback.fullAnswer)}
+                      data-testid="button-copy-answer"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy Answer
+                    </Button>
+                    <PointerTypes.Copy className="absolute inset-0" />
+                  </div>
                 </div>
 
                 {/* Citations */}

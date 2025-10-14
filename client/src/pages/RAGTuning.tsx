@@ -1,36 +1,25 @@
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo, useCallback, Suspense, lazy } from "react";
 import { Send, Copy, Settings, Zap, Loader2, Trash2, History } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Slider } from "@/components/ui/Slider";
+import { Switch } from "@/components/ui/Switch";
+import { Label } from "@/components/ui/Label";
+import { Badge } from "@/components/ui/Badge";
 import { useTranslation } from "@/contexts/I18nContext";
-import { SearchBar, SearchBarRef } from "@/components/SearchBar";
-import { ChatMessage } from "@/components/ChatMessage";
-import { TypingIndicator, TypingAnimation, StreamingResponse } from "@/components/TypingIndicator";
+
+// 🚀 Lazy load heavy chat components
+const SearchBar = lazy(() => import("@/components/common/SearchBar"));
+const ChatMessage = lazy(() => import("@/components/common/ChatMessage"));
+import { TypingAnimation, StreamingResponse } from "@/components/common/TypingIndicator";
+import TypingIndicator from "@/components/common/TypingIndicator";
+import { SearchBarRef } from "@/components/common/SearchBar";
 import { useRAGSettings, usePerformanceMetrics } from "@/contexts/RAGSettingsContext";
 import { useSearch } from "@/hooks/useSearch";
 import { useChat, useChatSessions } from "@/hooks/useChat";
+import { PointerTypes } from "@/components/ui/AnimatedPointer";
 
-interface Message {
-  type: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-  citations?: { title: string; url: string; snippet: string }[];
-  ragSettings?: {
-    topK?: number;
-    similarityThreshold?: number;
-    maxTokens?: number;
-    useReranker?: boolean;
-  };
-  queryString?: string; // Original query string
-  // 📊 Server response data
-  serverMessage?: string; // Server response message with actual TopK
-  actualTopK?: number; // Actual TopK used by server
-  actualReranker?: boolean; // Actual reranker status from server
-}
+import { Message } from "@/types/components";
 
 export default function RAGTuning() {
   // 🎛️ Use global RAG settings
@@ -84,7 +73,7 @@ export default function RAGTuning() {
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>();
   
   // 🧹 Ref for SearchBar to clear it after search
-  const searchBarRef = useRef<SearchBarRef>(null);
+  // const searchBarRef = useRef<SearchBarRef>(null); // Removed - SearchBar is lazy loaded
   
   // 📜 Ref for messages container to auto-scroll
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -115,7 +104,7 @@ export default function RAGTuning() {
   // 📜 Auto-scroll when messages change
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
   // 🔍 Extract actual TopK from server message
   const extractTopKFromMessage = (message: string): { topK: number; reranker: boolean } => {
@@ -132,8 +121,8 @@ export default function RAGTuning() {
 
 // console.log(messages)
 
-  // 🔍 RAG Query - ONLY uses search API for document search
-  const handleQuery = async (query: string) => {
+  // 🔍 Memoized RAG Query - ONLY uses search API for document search
+  const handleQuery = useCallback(async (query: string) => {
     console.log("🔍 RAG Query - User submitted query:", query);
     console.log("⚙️ RAG Settings:", settings);
 
@@ -157,7 +146,7 @@ export default function RAGTuning() {
       const searchResponse = await searchAsync(query, settings);
       console.log("📦 Search Response:", searchResponse);
       console.log("🔍 Sources in RAG response:", searchResponse.sources);
-      console.log("🔍 Full RAG response structure:", JSON.stringify(searchResponse, null, 2));
+      console.log("🔍 Full RAG response structure:", searchResponse);
 
       // 📊 Calculate performance metrics
       const latency = Date.now() - startTime;
@@ -238,7 +227,7 @@ export default function RAGTuning() {
       console.log("✅ RAG Query processed successfully with search API only");
       
       // 🧹 Clear search bar after successful search
-      searchBarRef.current?.clear();
+      // searchBarRef.current?.clear(); // Removed - SearchBar is lazy loaded
 
     } catch (error) {
       console.error("❌ Search API call failed:", error);
@@ -257,7 +246,7 @@ export default function RAGTuning() {
 
       setMessages(prev => [...prev, errorMessage]);
     }
-  };
+  }, [settings, messages, setMessages]);
 
   // 🗑️ Clear chat function
   const clearChat = () => {
@@ -279,12 +268,13 @@ export default function RAGTuning() {
     }
   };
 
-  const exampleQueries = [
+  // 📝 Memoized example queries
+  const exampleQueries = useMemo(() => [
     "How do I configure authentication?",
     "What are the API rate limits?",
     "How to troubleshoot deployment issues?",
     "Best practices for data backup",
-  ];
+  ], []);
 
   return (
     <div className="space-y-6">
@@ -298,15 +288,18 @@ export default function RAGTuning() {
         
         {/* 💬 Chat Session Management */}
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={clearChat}
-            className="flex items-center gap-2"
-          >
-            <Trash2 className="h-4 w-4" />
-            Clear Chat
-          </Button>
+          <div className="relative">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearChat}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Clear Chat
+            </Button>
+            <PointerTypes.Delete className="absolute inset-0" />
+          </div>
           
           
           {sessions.length > 0 && (
@@ -331,13 +324,14 @@ export default function RAGTuning() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <SearchBar
-                ref={searchBarRef}
-                placeholder="Ask about policies, docs, or how-tos..."
-                onSearch={handleQuery}
+              <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-5 w-5 animate-spin" /></div>}>
+                <SearchBar
+                  placeholder="Ask about policies, docs, or how-tos..."
+                  onSearch={handleQuery}
                 showSendButton
                 data-testid="rag-query-input"
               />
+              </Suspense>
               {/* 🧾 Recent Query History removed */}
               
               {/* 🔍 Enhanced loading indicator for search */}
@@ -384,10 +378,11 @@ export default function RAGTuning() {
   dark:[&::-webkit-scrollbar-track]:bg-neutral-700
   dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500">
                 {messages.map((message, index) => (
-                  <ChatMessage
-                    key={index}
-                    type={message.type}
-                    content={message.content}
+                  <Suspense key={index} fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-4 w-4 animate-spin" /></div>}>
+                    <ChatMessage
+                      key={index}
+                      type={message.type}
+                      content={message.content}
                     citations={message.citations}
                     timestamp={message.timestamp}
                     showFeedback={message.type === "assistant"}
@@ -397,6 +392,7 @@ export default function RAGTuning() {
                     actualTopK={message.actualTopK}
                     actualReranker={message.actualReranker}
                   />
+                  </Suspense>
                 ))}
                 
                 {/* 🎭 Typing Animation */}

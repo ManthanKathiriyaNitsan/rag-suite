@@ -7,7 +7,7 @@ import {
 } from "motion/react"
 import { createPortal } from "react-dom"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils"
 
 /**
  * A custom pointer component that displays an animated cursor.
@@ -39,7 +39,7 @@ export function Pointer({
     window.addEventListener('resize', checkScreenSize)
     
     return () => window.removeEventListener('resize', checkScreenSize)
-  }, [])
+  }, [setIsDesktop])
 
   useEffect(() => {
     // Don't initialize pointers on mobile/tablet

@@ -1,10 +1,12 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.tsx'
-import './index.css'
+import { createRoot } from "react-dom/client";
+import App from "./App";
+import "./styles/globals.css";
+import { ErrorBoundary } from "./components/error";
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
+// Wrap the entire app in an error boundary
+createRoot(document.getElementById("root")!).render(
+  <ErrorBoundary level="critical">
     <App />
-  </React.StrictMode>,
-)
+  </ErrorBoundary>
+);
+    

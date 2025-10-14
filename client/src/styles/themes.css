@@ -1,0 +1,319 @@
+/**
+ * Theme Styles
+ * Light and dark theme definitions
+ */
+
+/* Light Theme */
+:root {
+  /* Colors */
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-primary-active: #1d4ed8;
+  --color-primary-light: #dbeafe;
+  --color-primary-dark: #1e40af;
+  
+  --color-secondary: #6b7280;
+  --color-secondary-hover: #4b5563;
+  --color-secondary-active: #374151;
+  --color-secondary-light: #f3f4f6;
+  --color-secondary-dark: #1f2937;
+  
+  --color-success: #10b981;
+  --color-success-hover: #059669;
+  --color-success-active: #047857;
+  --color-success-light: #d1fae5;
+  --color-success-dark: #064e3b;
+  
+  --color-warning: #f59e0b;
+  --color-warning-hover: #d97706;
+  --color-warning-active: #b45309;
+  --color-warning-light: #fef3c7;
+  --color-warning-dark: #78350f;
+  
+  --color-error: #ef4444;
+  --color-error-hover: #dc2626;
+  --color-error-active: #b91c1c;
+  --color-error-light: #fee2e2;
+  --color-error-dark: #7f1d1d;
+  
+  --color-info: #06b6d4;
+  --color-info-hover: #0891b2;
+  --color-info-active: #0e7490;
+  --color-info-light: #cffafe;
+  --color-info-dark: #164e63;
+  
+  /* Background Colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  --bg-overlay: rgba(0, 0, 0, 0.5);
+  
+  /* Text Colors */
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --text-inverse: #ffffff;
+  --text-muted: #6b7280;
+  
+  /* Border Colors */
+  --border-primary: #e5e7eb;
+  --border-secondary: #d1d5db;
+  --border-focus: #3b82f6;
+  --border-error: #ef4444;
+  
+  /* Shadow Colors */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  
+  /* Border Radius */
+  --radius-sm: 0.125rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-full: 9999px;
+  
+  /* Typography */
+  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'Fira Code', Consolas, 'Courier New', monospace;
+  
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+  
+  /* Transitions */
+  --transition-fast: 150ms ease-in-out;
+  --transition-normal: 300ms ease-in-out;
+  --transition-slow: 500ms ease-in-out;
+  
+  /* Z-Index */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+  --z-toast: 1080;
+}
+
+/* Dark Theme */
+[data-theme="dark"] {
+  /* Colors */
+  --color-primary: #60a5fa;
+  --color-primary-hover: #3b82f6;
+  --color-primary-active: #2563eb;
+  --color-primary-light: #1e3a8a;
+  --color-primary-dark: #1e40af;
+  
+  --color-secondary: #9ca3af;
+  --color-secondary-hover: #d1d5db;
+  --color-secondary-active: #f3f4f6;
+  --color-secondary-light: #374151;
+  --color-secondary-dark: #111827;
+  
+  --color-success: #34d399;
+  --color-success-hover: #10b981;
+  --color-success-active: #059669;
+  --color-success-light: #064e3b;
+  --color-success-dark: #047857;
+  
+  --color-warning: #fbbf24;
+  --color-warning-hover: #f59e0b;
+  --color-warning-active: #d97706;
+  --color-warning-light: #78350f;
+  --color-warning-dark: #b45309;
+  
+  --color-error: #f87171;
+  --color-error-hover: #ef4444;
+  --color-error-active: #dc2626;
+  --color-error-light: #7f1d1d;
+  --color-error-dark: #b91c1c;
+  
+  --color-info: #22d3ee;
+  --color-info-hover: #06b6d4;
+  --color-info-active: #0891b2;
+  --color-info-light: #164e63;
+  --color-info-dark: #0e7490;
+  
+  /* Background Colors */
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --bg-tertiary: #374151;
+  --bg-overlay: rgba(0, 0, 0, 0.75);
+  
+  /* Text Colors */
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-tertiary: #9ca3af;
+  --text-inverse: #111827;
+  --text-muted: #6b7280;
+  
+  /* Border Colors */
+  --border-primary: #374151;
+  --border-secondary: #4b5563;
+  --border-focus: #60a5fa;
+  --border-error: #f87171;
+  
+  /* Shadow Colors */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+}
+
+/* System Theme (follows system preference) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    /* Dark theme variables */
+    --color-primary: #60a5fa;
+    --color-primary-hover: #3b82f6;
+    --color-primary-active: #2563eb;
+    --color-primary-light: #1e3a8a;
+    --color-primary-dark: #1e40af;
+    
+    --color-secondary: #9ca3af;
+    --color-secondary-hover: #d1d5db;
+    --color-secondary-active: #f3f4f6;
+    --color-secondary-light: #374151;
+    --color-secondary-dark: #111827;
+    
+    --color-success: #34d399;
+    --color-success-hover: #10b981;
+    --color-success-active: #059669;
+    --color-success-light: #064e3b;
+    --color-success-dark: #047857;
+    
+    --color-warning: #fbbf24;
+    --color-warning-hover: #f59e0b;
+    --color-warning-active: #d97706;
+    --color-warning-light: #78350f;
+    --color-warning-dark: #b45309;
+    
+    --color-error: #f87171;
+    --color-error-hover: #ef4444;
+    --color-error-active: #dc2626;
+    --color-error-light: #7f1d1d;
+    --color-error-dark: #b91c1c;
+    
+    --color-info: #22d3ee;
+    --color-info-hover: #06b6d4;
+    --color-info-active: #0891b2;
+    --color-info-light: #164e63;
+    --color-info-dark: #0e7490;
+    
+    --bg-primary: #111827;
+    --bg-secondary: #1f2937;
+    --bg-tertiary: #374151;
+    --bg-overlay: rgba(0, 0, 0, 0.75);
+    
+    --text-primary: #f9fafb;
+    --text-secondary: #d1d5db;
+    --text-tertiary: #9ca3af;
+    --text-inverse: #111827;
+    --text-muted: #6b7280;
+    
+    --border-primary: #374151;
+    --border-secondary: #4b5563;
+    --border-focus: #60a5fa;
+    --border-error: #f87171;
+    
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Theme Utility Classes */
+.bg-primary {
+  background-color: var(--bg-primary);
+}
+
+.bg-secondary {
+  background-color: var(--bg-secondary);
+}
+
+.bg-tertiary {
+  background-color: var(--bg-tertiary);
+}
+
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-tertiary {
+  color: var(--text-tertiary);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.border-primary {
+  border-color: var(--border-primary);
+}
+
+.border-secondary {
+  border-color: var(--border-secondary);
+}
+
+.border-focus {
+  border-color: var(--border-focus);
+}
+
+.border-error {
+  border-color: var(--border-error);
+}
+
+/* Theme Transition */
+* {
+  transition: background-color var(--transition-fast), 
+              color var(--transition-fast), 
+              border-color var(--transition-fast);
+}
+
+/* Theme-specific components */
+.theme-light .theme-dark-only {
+  display: none;
+}
+
+.theme-dark .theme-light-only {
+  display: none;
+}
+
+[data-theme="dark"] .theme-light-only {
+  display: none;
+}
+
+[data-theme="dark"] .theme-dark-only {
+  display: block;
+}

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { crawlAPI, CrawlSiteData, CrawlSite, CrawlStatus, UrlPreview } from '@/lib/api';
+import { useMemo, useCallback } from 'react';
+import { crawlAPI, CrawlSiteData, CrawlSite, CrawlStatus, UrlPreview } from '@/services/api/api';
 
 // 🕷️ Crawl sites hook - Get all crawling targets
 export const useCrawlSites = () => {
@@ -197,17 +198,27 @@ export const useCrawlStats = () => {
   });
 
   const sites = (sitesQuery.data || []) as CrawlSite[];
-  const stats = {
-    totalSites: sites.length,
-    activeSites: sites.filter((site: CrawlSite) => site.status === 'active').length,
-    crawlingSites: sites.filter((site: CrawlSite) => site.status === 'crawling').length,
-    totalPages: sites.reduce((sum: number, site: CrawlSite) => sum + (site.pagesCrawled || 0), 0),
-    lastCrawled: sites
+  
+  // 📊 Memoized crawl statistics
+  const stats = useMemo(() => {
+    const activeSites = sites.filter((site: CrawlSite) => site.status === 'active');
+    const crawlingSites = sites.filter((site: CrawlSite) => site.status === 'crawling');
+    const totalPages = sites.reduce((sum: number, site: CrawlSite) => sum + (site.pagesCrawled || 0), 0);
+    
+    const lastCrawled = sites
       .filter((site: CrawlSite) => site.lastCrawled)
       .sort((a: CrawlSite, b: CrawlSite) => 
         new Date(b.lastCrawled || '').getTime() - new Date(a.lastCrawled || '').getTime()
-      )[0]?.lastCrawled,
-  };
+      )[0]?.lastCrawled;
+    
+    return {
+      totalSites: sites.length,
+      activeSites: activeSites.length,
+      crawlingSites: crawlingSites.length,
+      totalPages,
+      lastCrawled,
+    };
+  }, [sites]);
 
   return {
     stats,

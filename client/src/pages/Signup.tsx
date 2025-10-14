@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Bot, Eye, EyeOff, Shield, Zap, BarChart3, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Alert, AlertDescription } from "@/components/ui/Alert";
+import { PointerTypes } from "@/components/ui/AnimatedPointer";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
@@ -167,21 +168,24 @@ export default function Signup() {
                   </Link>
                 </div>
                 
-                <Button
-                  type="submit"
-                  className="w-full h-11"
-                  disabled={isLoading}
-                  data-testid="button-signup"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating account...
-                    </>
-                  ) : (
-                    "Create Account"
-                  )}
-                </Button>
+                <div className="relative">
+                  <Button
+                    type="submit"
+                    className="w-full h-11 group"
+                    disabled={isLoading}
+                    data-testid="button-signup"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating account...
+                      </>
+                    ) : (
+                      "Create Account"
+                    )}
+                  </Button>
+                  <PointerTypes.Add className="absolute inset-0" />
+                </div>
               </form>
               
               <div className="pt-4 border-t">
