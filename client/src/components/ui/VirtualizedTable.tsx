@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback } from 'react';
-import ReactWindow from 'react-window';
+import * as ReactWindow from 'react-window';
 import {
   Table,
   TableBody,

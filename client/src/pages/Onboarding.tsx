@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/Select";
 import { SearchBar } from "@/components/common/SearchBar";
 import ChatMessage from "@/components/common/ChatMessage";
+import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
+import { GlassCard } from "@/components/ui/GlassCard";
 
 const steps = [
   { id: 1, title: "Branding", description: "Customize your organization" },
@@ -78,8 +80,16 @@ Your RAG system is ready to help users find information from your documentation!
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
+    <div className="relative min-h-screen">
+      {/* Theme-aware Background */}
+      <div className="fixed inset-0 -z-10">
+        <ResponsiveDarkVeil 
+          className="w-full h-full"
+        />
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8">
           <div className="flex items-center justify-center gap-2 mb-3 sm:mb-4">
@@ -135,7 +145,7 @@ Your RAG system is ready to help users find information from your documentation!
         <div className="max-w-6xl mx-auto">
           <div className="grid gap-4 sm:gap-6 lg:gap-8 lg:grid-cols-2">
             {/* Left Panel - Form */}
-            <Card className="order-2 lg:order-1">
+            <GlassCard className="order-2 lg:order-1">
               <CardHeader className="pb-4">
                 <CardTitle className="text-lg sm:text-xl">Step {currentStep}: {steps[currentStep - 1].title}</CardTitle>
               </CardHeader>
@@ -360,10 +370,10 @@ Your RAG system is ready to help users find information from your documentation!
                   )}
                 </div>
               </CardContent>
-            </Card>
+            </GlassCard>
 
             {/* Right Panel - Live Preview */}
-            <Card className="order-1 lg:order-2">
+            <GlassCard className="order-1 lg:order-2">
               <CardHeader className="pb-4">
                 <CardTitle className="text-lg sm:text-xl">Live Preview</CardTitle>
               </CardHeader>
@@ -441,7 +451,7 @@ Your RAG system is ready to help users find information from your documentation!
                   </div>
                 )}
               </CardContent>
-            </Card>
+            </GlassCard>
           </div>
         </div>
       </div>

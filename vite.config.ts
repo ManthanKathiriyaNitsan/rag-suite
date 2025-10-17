@@ -16,6 +16,9 @@ export default defineConfig({
         ]
       : []),
   ],
+  define: {
+    __VUE_PROD_DEVTOOLS__: false,
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
@@ -30,6 +33,11 @@ export default defineConfig({
   },
   server: {
     port: 5000,
+    host: true,
+    hmr: {
+      port: 5000,
+      host: 'localhost'
+    },
     fs: {
       strict: true,
       deny: ["**/.*"],

@@ -180,7 +180,7 @@ const NotificationInbox = React.memo(function NotificationInbox({ open, onOpenCh
               <Bell className="h-5 w-5" />
               Notifications
               {unreadCount > 0 && (
-                <Badge variant="destructive" className="ml-auto">
+                <Badge variant="destructive" className="ml-auto ">
                   {unreadCount}
                 </Badge>
               )}
@@ -351,7 +351,7 @@ const NotificationInbox = React.memo(function NotificationInbox({ open, onOpenCh
               {selectedNotification.actionUrl && (
                 <Button
                   onClick={() => handleActionClick(selectedNotification)}
-                  className="w-full"
+                  className="w-full  "
                   data-testid="button-detail-action"
                 >
                   {selectedNotification.actionText}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Filter, ExternalLink, Copy, ThumbsUp, ThumbsDown, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
@@ -28,6 +29,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
+import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
+import GlassGlassCard from "@/components/ui/GlassGlassCard";
 
 const feedbackData = [
   {
@@ -121,7 +124,16 @@ export default function Feedback() {
   };
 
   return (
-    <div className="space-y-6 w-full max-w-full overflow-hidden min-w-0" style={{ maxWidth: '92vw' }}>
+    <div className="relative min-h-screen">
+      {/* Theme-aware Background */}
+      <div className="fixed inset-0 -z-10">
+        <ResponsiveDarkVeil 
+          className="w-full h-full"
+        />
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 space-y-6 w-full max-w-full overflow-hidden min-w-0 p-6" style={{ maxWidth: '92vw' }}>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('feedback.title')}</h1>
@@ -132,7 +144,7 @@ export default function Feedback() {
       </div>
 
       {/* Filters */}
-      <Card className="w-full overflow-hidden">
+      <GlassCard className="w-full overflow-hidden">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
@@ -191,10 +203,10 @@ export default function Feedback() {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </GlassCard>
 
       {/* Feedback Table */}
-      <Card className="w-full overflow-hidden">
+      <GlassCard className="w-full overflow-hidden">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
@@ -273,7 +285,7 @@ export default function Feedback() {
           </Table>
           </div>
         </CardContent>
-      </Card>
+      </GlassCard>
 
       {/* Feedback Detail Sheet */}
       <Sheet open={!!selectedFeedback} onOpenChange={() => setSelectedFeedback(null)}>
@@ -424,6 +436,7 @@ export default function Feedback() {
           )}
         </SheetContent>
       </Sheet>
+      </div>
     </div>
   );
 }

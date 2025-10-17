@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Label } from "@/components/ui/Label";
@@ -13,6 +13,7 @@ import {
   Info
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
+import { useBranding } from "@/contexts/BrandingContext";
 
 interface ColorToken {
   name: string;
@@ -38,7 +39,7 @@ interface ThemeColorsSectionProps {
     successColor: string;
     infoColor: string;
   };
-  onUpdateTheme: (updates: Partial<typeof theme>) => void;
+  onUpdateTheme: (updates: Partial<ThemeColorsSectionProps['theme']>) => void;
   activePreviewMode: "light" | "dark";
   copiedColor: string | null;
   onSetCopiedColor: (color: string | null) => void;
@@ -50,84 +51,6 @@ const colorTokens: ColorToken[] = [
     light: "#3b82f6",
     dark: "#60a5fa",
     description: "Main brand color for buttons and links"
-  },
-  {
-    name: "Secondary", 
-    light: "#6b7280",
-    dark: "#9ca3af",
-    description: "Secondary actions and elements"
-  },
-  {
-    name: "Accent",
-    light: "#f59e0b",
-    dark: "#fbbf24", 
-    description: "Highlighted elements and call-to-actions"
-  },
-  {
-    name: "Background",
-    light: "#ffffff",
-    dark: "#111827",
-    description: "Main background color"
-  },
-  {
-    name: "Surface",
-    light: "#f9fafb",
-    dark: "#1f2937",
-    description: "Card and panel backgrounds"
-  },
-  {
-    name: "Card",
-    light: "#ffffff",
-    dark: "#374151",
-    description: "Card component backgrounds"
-  },
-  {
-    name: "Text Primary",
-    light: "#111827",
-    dark: "#f9fafb",
-    description: "Primary text color"
-  },
-  {
-    name: "Text Secondary",
-    light: "#6b7280",
-    dark: "#d1d5db",
-    description: "Secondary text color"
-  },
-  {
-    name: "Text Muted",
-    light: "#9ca3af",
-    dark: "#6b7280",
-    description: "Muted text color"
-  },
-  {
-    name: "Border",
-    light: "#e5e7eb",
-    dark: "#4b5563",
-    description: "Border and divider colors"
-  },
-  {
-    name: "Error",
-    light: "#ef4444",
-    dark: "#f87171",
-    description: "Error states and validation"
-  },
-  {
-    name: "Warning",
-    light: "#f59e0b",
-    dark: "#fbbf24",
-    description: "Warning states"
-  },
-  {
-    name: "Success",
-    light: "#10b981",
-    dark: "#34d399",
-    description: "Success states"
-  },
-  {
-    name: "Info",
-    light: "#3b82f6",
-    dark: "#60a5fa",
-    description: "Information states"
   }
 ];
 
@@ -139,6 +62,7 @@ const ThemeColorsSection: React.FC<ThemeColorsSectionProps> = ({
   onSetCopiedColor
 }) => {
   const { toast } = useToast();
+  const { primaryColor: globalPrimaryColor, setBranding } = useBranding();
 
   const copyToClipboard = useCallback(async (text: string, colorName: string) => {
     try {
@@ -158,22 +82,16 @@ const ThemeColorsSection: React.FC<ThemeColorsSectionProps> = ({
     }
   }, [toast, onSetCopiedColor]);
 
+  // Sync with global primary color
+  useEffect(() => {
+    if (globalPrimaryColor && globalPrimaryColor !== theme.primaryColor) {
+      onUpdateTheme({ primaryColor: globalPrimaryColor });
+    }
+  }, [globalPrimaryColor, theme.primaryColor, onUpdateTheme]);
+
   const getColorValue = (token: ColorToken) => {
     const colorMap: Record<string, string> = {
       "Primary": theme.primaryColor,
-      "Secondary": theme.secondaryColor,
-      "Accent": theme.accentColor,
-      "Background": theme.backgroundColor,
-      "Surface": theme.surfaceColor,
-      "Card": theme.cardColor,
-      "Text Primary": theme.textPrimary,
-      "Text Secondary": theme.textSecondary,
-      "Text Muted": theme.textMuted,
-      "Border": theme.borderColor,
-      "Error": theme.errorColor,
-      "Warning": theme.warningColor,
-      "Success": theme.successColor,
-      "Info": theme.infoColor,
     };
     return colorMap[token.name] || token.light;
   };
@@ -181,24 +99,16 @@ const ThemeColorsSection: React.FC<ThemeColorsSectionProps> = ({
   const updateColor = (tokenName: string, value: string) => {
     const colorMap: Record<string, keyof typeof theme> = {
       "Primary": "primaryColor",
-      "Secondary": "secondaryColor", 
-      "Accent": "accentColor",
-      "Background": "backgroundColor",
-      "Surface": "surfaceColor",
-      "Card": "cardColor",
-      "Text Primary": "textPrimary",
-      "Text Secondary": "textSecondary",
-      "Text Muted": "textMuted",
-      "Border": "borderColor",
-      "Error": "errorColor",
-      "Warning": "warningColor",
-      "Success": "successColor",
-      "Info": "infoColor",
     };
     
     const property = colorMap[tokenName];
     if (property) {
       onUpdateTheme({ [property]: value });
+      
+      // Also update global branding context for primary color
+      if (tokenName === "Primary") {
+        setBranding({ primaryColor: value });
+      }
     }
   };
 
@@ -227,7 +137,7 @@ const ThemeColorsSection: React.FC<ThemeColorsSectionProps> = ({
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          Colors automatically adapt between light and dark modes. Click on color values to copy them to clipboard.
+          Colors automatically adapt between light and dark modes. Primary color syncs with global settings. Click on color values to copy them to clipboard.
         </AlertDescription>
       </Alert>
 
@@ -261,17 +171,29 @@ const ThemeColorsSection: React.FC<ThemeColorsSectionProps> = ({
                     className="w-8 h-8 rounded border border-border"
                     style={{ backgroundColor: colorValue }}
                   />
-                  <div className="flex-1">
-                    <Label htmlFor={`${token.name}-color`} className="text-xs text-muted-foreground">
-                      Color Value
-                    </Label>
-                    <Input
-                      id={`${token.name}-color`}
-                      value={colorValue}
-                      onChange={(e) => updateColor(token.name, e.target.value)}
-                      className="h-8 text-xs font-mono"
-                      placeholder="#000000"
-                    />
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id={`${token.name}-color-picker`}
+                        type="color"
+                        value={colorValue}
+                        onChange={(e) => updateColor(token.name, e.target.value)}
+                        className="w-12 h-8 p-1 border rounded"
+                        title="Color picker"
+                      />
+                      <Input
+                        id={`${token.name}-color-text`}
+                        value={colorValue}
+                        onChange={(e) => {
+                          let v = e.target.value.trim();
+                          if (/^[0-9a-fA-F]{6}$/.test(v)) v = '#' + v; // add # for 6-char hex
+                          updateColor(token.name, v);
+                        }}
+                        className="h-8 text-xs font-mono flex-1"
+                        placeholder="#000000"
+                      />
+                    </div>
+                
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">{token.description}</p>

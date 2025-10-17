@@ -6,7 +6,7 @@ const UploadDocumentForm = lazy(() => import("@/components/forms/UploadDocumentF
 const EditDocumentForm = lazy(() => import("@/components/forms/EditDocumentForm"));
 import { useToast } from "@/hooks/useToast";
 import { useTranslation } from "@/contexts/I18nContext";
-import { PointerTypes } from "@/components/ui/AnimatedPointer";
+import { ConditionalPointerTypes } from "@/components/ui/ConditionalPointer";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -27,6 +27,8 @@ import {
   SheetTitle,
 } from "@/components/ui/Sheet";
 import { documentAPI, Document, DocumentMetadata } from "@/services/api/api";
+import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
+import { GlassCard } from "@/components/ui/GlassCard";
 
 
 const Documents = React.memo(function Documents() {
@@ -181,7 +183,16 @@ const Documents = React.memo(function Documents() {
   }, [searchQuery, searchResults, documents]);
 
   return (
-    <div className="space-y-6">
+    <div className="relative min-h-screen">
+      {/* Theme-aware Background */}
+      <div className="fixed inset-0 -z-10">
+        <ResponsiveDarkVeil 
+          className="w-full h-full"
+        />
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 space-y-6 p-6">
       <div className="flex flex-col md:flex-row items-start gap-4 md:gap-0 md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('documents.title')}</h1>
@@ -197,7 +208,7 @@ const Documents = React.memo(function Documents() {
             <Upload className="h-4 w-4 mr-2" />
             {t('documents.upload')}
           </Button>
-          <PointerTypes.Upload className="absolute inset-0" />
+          <ConditionalPointerTypes.Upload className="absolute inset-0" />
         </div>
       </div>
 
@@ -214,7 +225,7 @@ const Documents = React.memo(function Documents() {
               className="pl-10 w-64"
               data-testid="input-search-documents"
             />
-              <PointerTypes.Search className="absolute inset-0" />
+              <ConditionalPointerTypes.Search className="absolute inset-0" />
             </div>
           </div>
 
@@ -230,7 +241,7 @@ const Documents = React.memo(function Documents() {
                 <SelectItem value="help">help.company.com</SelectItem>
               </SelectContent>
             </Select>
-            <PointerTypes.Filter className="absolute inset-0" />
+            <ConditionalPointerTypes.Filter className="absolute inset-0" />
           </div>
 
           <div className="relative">
@@ -246,7 +257,7 @@ const Documents = React.memo(function Documents() {
                 <SelectItem value="txt">TXT</SelectItem>
               </SelectContent>
             </Select>
-            <PointerTypes.Filter className="absolute inset-0" />
+            <ConditionalPointerTypes.Filter className="absolute inset-0" />
           </div>
 
           <Select defaultValue="all-status">
@@ -279,7 +290,7 @@ const Documents = React.memo(function Documents() {
               >
                 <Grid className="h-4 w-4" />
               </Button>
-              <PointerTypes.Grid className="absolute inset-0" />
+              <ConditionalPointerTypes.Grid className="absolute inset-0" />
             </div>
             <div className="relative">
               <Button
@@ -291,7 +302,7 @@ const Documents = React.memo(function Documents() {
               >
                 <List className="h-4 w-4" />
               </Button>
-              <PointerTypes.List className="absolute inset-0" />
+              <ConditionalPointerTypes.List className="absolute inset-0" />
             </div>
           </div>
         </div>
@@ -374,7 +385,7 @@ const Documents = React.memo(function Documents() {
                   <Upload className="h-4 w-4 mr-2" />
                   Upload Document
                 </Button>
-                <PointerTypes.Upload className="absolute inset-0" />
+                <ConditionalPointerTypes.Upload className="absolute inset-0" />
               </div>
             )}
           </div>
@@ -387,7 +398,7 @@ const Documents = React.memo(function Documents() {
       {viewMode === "grid" ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredDocuments.map((doc) => (
-            <Card
+            <GlassCard
               key={doc.id}
               className="cursor-pointer hover-elevate"
               onClick={() => handleViewDocument(doc)}
@@ -470,11 +481,11 @@ const Documents = React.memo(function Documents() {
                   </Button>
                 </div>
               </CardContent>
-            </Card>
+            </GlassCard>
           ))}
         </div>
       ) : (
-        <Card>
+        <GlassCard>
           <CardContent className="p-0">
             <div className="divide-y">
               {filteredDocuments.map((doc) => (
@@ -521,7 +532,7 @@ const Documents = React.memo(function Documents() {
               ))}
             </div>
           </CardContent>
-        </Card>
+        </GlassCard>
       )}
         </>
       )}
@@ -672,6 +683,7 @@ const Documents = React.memo(function Documents() {
         />
         </Suspense>
       )}
+      </div>
     </div>
   );
 });

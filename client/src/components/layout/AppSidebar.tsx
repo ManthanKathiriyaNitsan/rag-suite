@@ -40,7 +40,9 @@ import {
 import { Button } from "@/components/ui/Button";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useTranslation } from "@/contexts/I18nContext";
-import { PointerTypes } from "@/components/ui/AnimatedPointer";
+import { ConditionalPointerTypes } from "@/components/ui/ConditionalPointer";
+import { useTheme } from "@/contexts/ThemeContext";
+import { cn } from "@/lib/utils";
 
 const menuItems = [
   {
@@ -145,8 +147,21 @@ const AppSidebar = React.memo(function AppSidebar() {
     setSelectedProject(project);
   }, []);
 
+  const { theme } = useTheme();
+  
   return (
-    <Sidebar>
+    <Sidebar 
+      className={cn(
+        "backdrop-blur-xl border-r transition-all duration-300",
+        theme === 'dark' 
+          ? "glass-sidebar-dark" 
+          : "glass-sidebar-light"
+      )}
+      style={{
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+      }}
+    >
       <SidebarHeader className="px-6 py-4">
         <div className="flex items-center gap-2">
           {logoDataUrl ? (
@@ -179,7 +194,7 @@ const AppSidebar = React.memo(function AppSidebar() {
                 </div>
                 <ChevronDown className="h-4 w-4 opacity-50" />
               </Button>
-              <PointerTypes.Filter className="absolute inset-0" />
+              <ConditionalPointerTypes.Filter className="absolute inset-0" />
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent 
@@ -220,7 +235,7 @@ const AppSidebar = React.memo(function AppSidebar() {
                 <Plus className="h-4 w-4" />
                 <span className="text-sm">Create New Project</span>
               </DropdownMenuItem>
-              <PointerTypes.Add className="absolute inset-0" />
+              <ConditionalPointerTypes.Add className="absolute inset-0" />
             </div>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -248,15 +263,15 @@ const AppSidebar = React.memo(function AppSidebar() {
                 // Map menu items to pointer types
                 const getPointerType = (title: string) => {
                   switch (title) {
-                    case 'Overview': return PointerTypes.Star;
-                    case 'Crawl': return PointerTypes.Crawl;
-                    case 'Documents': return PointerTypes.Documents;
-                    case 'RAG Tuning': return PointerTypes.AI;
-                    case 'Analytics': return PointerTypes.Analytics;
-                    case 'Feedback': return PointerTypes.Favorite;
-                    case 'Integrations': return PointerTypes.Integration;
-                    case 'Settings': return PointerTypes.Settings;
-                    default: return PointerTypes.Click;
+                    case 'Overview': return ConditionalPointerTypes.Star;
+                    case 'Crawl': return ConditionalPointerTypes.Crawl;
+                    case 'Documents': return ConditionalPointerTypes.Documents;
+                    case 'RAG Tuning': return ConditionalPointerTypes.AI;
+                    case 'Analytics': return ConditionalPointerTypes.Analytics;
+                    case 'Feedback': return ConditionalPointerTypes.Favorite;
+                    case 'Integrations': return ConditionalPointerTypes.Integration;
+                    case 'Settings': return ConditionalPointerTypes.Settings;
+                    default: return ConditionalPointerTypes.Click;
                   }
                 };
                 
@@ -293,10 +308,10 @@ const AppSidebar = React.memo(function AppSidebar() {
                 // Map management items to pointer types
                 const getManagementPointerType = (title: string) => {
                   switch (title) {
-                    case 'Settings': return PointerTypes.Settings;
-                    case 'API Keys': return PointerTypes.Save;
-                    case 'System Health': return PointerTypes.Star;
-                    default: return PointerTypes.Click;
+                    case 'Settings': return ConditionalPointerTypes.Settings;
+                    case 'API Keys': return ConditionalPointerTypes.Save;
+                    case 'System Health': return ConditionalPointerTypes.Star;
+                    default: return ConditionalPointerTypes.Click;
                   }
                 };
                 
@@ -307,7 +322,7 @@ const AppSidebar = React.memo(function AppSidebar() {
                     <div className="relative">
                        <SidebarMenuButton
                          asChild
-                         className="p-5"
+                         className="p-4"
                          isActive={location === item.url}
                          data-testid={`link-${item.title.toLowerCase().replace(' ', '-')}`}
                        >

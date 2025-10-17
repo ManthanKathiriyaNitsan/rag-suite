@@ -39,7 +39,7 @@ export function Pointer({
     window.addEventListener('resize', checkScreenSize)
     
     return () => window.removeEventListener('resize', checkScreenSize)
-  }, [setIsDesktop])
+  }, []) // Empty dependency array - runs only on mount
 
   useEffect(() => {
     // Don't initialize pointers on mobile/tablet
@@ -92,7 +92,7 @@ export function Pointer({
         }
       }
     }
-  }, [x, y, isDesktop])
+  }, [isDesktop]) // Only depend on isDesktop
 
   // Don't render pointers on mobile/tablet
   if (!isDesktop) return null

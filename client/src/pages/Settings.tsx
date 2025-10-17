@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from "react";
-import { Upload, Palette, Globe, Key, Activity, Eye, EyeOff, Copy, Trash2, Plus, FileText, Loader2 } from "lucide-react";
+import { Upload, Palette, Globe, Key, Activity, Eye, EyeOff, Copy, Trash2, Plus, FileText, Loader2, MousePointer } from "lucide-react";
 
 // 🚀 Lazy load heavy form components
 const CreateApiKeyForm = lazy(() => import("@/components/forms/CreateApiKeyForm"));
@@ -36,8 +36,12 @@ import {
 } from "@/components/ui/Table";
 import { useI18n } from "@/contexts/I18nContext";
 import { PointerTypes } from "@/components/ui/AnimatedPointer";
+import { ConditionalPointerTypes } from "@/components/ui/ConditionalPointer";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useCitationFormatting } from "@/contexts/CitationFormattingContext";
+import { useCursor } from "@/contexts/CursorContext";
+import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
+import { GlassCard } from "@/components/ui/GlassCard";
 
 const Settings = React.memo(function Settings() {
   // 📝 Memoized API keys data
@@ -90,6 +94,9 @@ const Settings = React.memo(function Settings() {
   const [widgetPosition, setWidgetPosition] = useState(widgetPositionGlobal || "bottom-right");
   const [widgetOffsetX, setWidgetOffsetX] = useState(widgetOffsetXGlobal || 0);
   const [widgetOffsetY, setWidgetOffsetY] = useState(widgetOffsetYGlobal || 0);
+  
+  // Custom cursor context
+  const { customCursorEnabled, setCustomCursorEnabled, pointerIconsEnabled, setPointerIconsEnabled } = useCursor();
   // const [locale, setLocale] = useState("en");
   const { locale, setLocale, t } = useI18n();
   const { formatting, updateFormatting, resetFormatting } = useCitationFormatting();
@@ -203,8 +210,35 @@ const Settings = React.memo(function Settings() {
     });
   };
 
+  // Custom cursor toggle handlers
+  const handleCursorToggle = (enabled: boolean) => {
+    setCustomCursorEnabled(enabled);
+    toast({
+      title: "Cursor Setting Updated",
+      description: enabled ? "Custom cursor is now enabled" : "Default cursor is now enabled",
+    });
+  };
+
+  // Pointer icons toggle handlers
+  const handlePointerIconsToggle = (enabled: boolean) => {
+    setPointerIconsEnabled(enabled);
+    toast({
+      title: "Pointer Icons Setting Updated",
+      description: enabled ? "Animated pointer icons are now enabled" : "Animated pointer icons are now disabled",
+    });
+  };
+
   return (
-    <div className="space-y-6 sm:px-6 lg:px-8">
+    <div className="relative min-h-screen">
+      {/* Theme-aware Background */}
+      <div className="fixed inset-0 -z-10">
+        <ResponsiveDarkVeil 
+          className="w-full h-full"
+        />
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 space-y-6 sm:px-6 lg:px-8 p-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('settings.title')}</h1>
         <p className="text-muted-foreground text-sm sm:text-base">
@@ -224,7 +258,7 @@ const Settings = React.memo(function Settings() {
 
         {/* Profile & Branding */}
         <TabsContent value="profile" className="space-y-6">
-          <Card>
+          <GlassCard>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Palette className="h-5 w-5" />
@@ -274,7 +308,7 @@ const Settings = React.memo(function Settings() {
                           <Upload className="h-4 w-4 mr-2" />
                           Upload Logo
                         </Button>
-                        <PointerTypes.Upload className="absolute inset-0" />
+                        <ConditionalPointerTypes.Upload className="absolute inset-0" />
                       </div>
                       {logoDataUrl && (
                           <Button variant="ghost" onClick={handleRemoveLogo} data-testid="button-remove-logo" className="w-full sm:w-auto">
@@ -387,18 +421,18 @@ const Settings = React.memo(function Settings() {
               <div className="flex flex-col sm:flex-row justify-end gap-2">
                 <div className="relative">
                   <Button variant="outline" onClick={handleResetBranding} className="w-full sm:w-auto">Reset</Button>
-                  <PointerTypes.Refresh className="absolute inset-0" />
+                  <ConditionalPointerTypes.Refresh className="absolute inset-0" />
                 </div>
                 <div className="relative">
                   <Button onClick={handleSaveBranding} data-testid="button-save-branding" className="w-full sm:w-auto group">Save Changes</Button>
-                  <PointerTypes.Save className="absolute inset-0" />
+                  <ConditionalPointerTypes.Save className="absolute inset-0" />
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </GlassCard>
 
           {/* Widget Positioning Controls */}
-          <Card>
+          <GlassCard>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5" />
@@ -491,12 +525,162 @@ const Settings = React.memo(function Settings() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </GlassCard>
+
+          {/* Custom Cursor Toggle */}
+          <GlassCard>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MousePointer className="h-5 w-5" />
+                Custom Cursor Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Enable Custom Cursor</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Toggle between custom animated cursor and default system cursor
+                    </p>
+                  </div>
+                  <div className="relative">
+                    <Switch
+                      checked={customCursorEnabled}
+                      onCheckedChange={handleCursorToggle}
+                      data-testid="switch-custom-cursor"
+                    />
+                    <ConditionalPointerTypes.Settings className="absolute inset-0" />
+                  </div>
+                </div>
+
+                <div className="p-4 bg-secondary rounded-lg">
+                  <h4 className="font-medium mb-2">Cursor Preview</h4>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-6 w-6 bg-primary rounded flex items-center justify-center">
+                        <MousePointer className="h-3 w-3 text-primary-foreground" />
+                      </div>
+                      <span className="text-sm">
+                        {customCursorEnabled ? "Custom animated cursor" : "Default system cursor"}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {customCursorEnabled 
+                        ? "Smooth animated cursor with theme-aware colors" 
+                        : "Standard browser cursor"
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-end gap-2">
+                <div className="relative">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handleCursorToggle(true)}
+                    className="w-full sm:w-auto"
+                    data-testid="button-enable-cursor"
+                  >
+                    Enable Custom Cursor
+                  </Button>
+                  <ConditionalPointerTypes.Settings className="absolute inset-0" />
+                </div>
+                <div className="relative">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handleCursorToggle(false)}
+                    className="w-full sm:w-auto"
+                    data-testid="button-disable-cursor"
+                  >
+                    Use Default Cursor
+                  </Button>
+                  <ConditionalPointerTypes.Refresh className="absolute inset-0" />
+                </div>
+              </div>
+            </CardContent>
+          </GlassCard>
+
+          {/* Pointer Icons Toggle */}
+          <GlassCard>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MousePointer className="h-5 w-5" />
+                Animated Pointer Icons Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Enable Animated Pointer Icons</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Toggle animated pointer icons on buttons and interactive elements
+                    </p>
+                  </div>
+                  <div className="relative">
+                    <Switch
+                      checked={pointerIconsEnabled}
+                      onCheckedChange={handlePointerIconsToggle}
+                      data-testid="switch-pointer-icons"
+                    />
+                    <ConditionalPointerTypes.Settings className="absolute inset-0" />
+                  </div>
+                </div>
+
+                <div className="p-4 bg-secondary rounded-lg">
+                  <h4 className="font-medium mb-2">Pointer Icons Preview</h4>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-6 w-6 bg-primary rounded flex items-center justify-center">
+                        <MousePointer className="h-3 w-3 text-primary-foreground" />
+                      </div>
+                      <span className="text-sm">
+                        {pointerIconsEnabled ? "Animated pointer icons enabled" : "Animated pointer icons disabled"}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {pointerIconsEnabled 
+                        ? "Interactive elements show animated pointer icons on hover" 
+                        : "Interactive elements show no animated pointer icons"
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-end gap-2">
+                <div className="relative">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handlePointerIconsToggle(true)}
+                    className="w-full sm:w-auto"
+                    data-testid="button-enable-pointer-icons"
+                  >
+                    Enable Pointer Icons
+                  </Button>
+                  <ConditionalPointerTypes.Settings className="absolute inset-0" />
+                </div>
+                <div className="relative">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handlePointerIconsToggle(false)}
+                    className="w-full sm:w-auto"
+                    data-testid="button-disable-pointer-icons"
+                  >
+                    Disable Pointer Icons
+                  </Button>
+                  <ConditionalPointerTypes.Refresh className="absolute inset-0" />
+                </div>
+              </div>
+            </CardContent>
+          </GlassCard>
         </TabsContent>
 
         {/* Data Retention */}
         <TabsContent value="retention" className="space-y-6">
-          <Card>
+          <GlassCard>
             <CardHeader>
               <CardTitle>Data Retention Policy</CardTitle>
             </CardHeader>
@@ -529,20 +713,20 @@ const Settings = React.memo(function Settings() {
               <div className="flex flex-col sm:flex-row justify-end gap-2">
                 <div className="relative">
                   <Button variant="outline" className="w-full sm:w-auto">Reset to Default</Button>
-                  <PointerTypes.Refresh className="absolute inset-0" />
+                  <ConditionalPointerTypes.Refresh className="absolute inset-0" />
                 </div>
                 <div className="relative">
                   <Button data-testid="button-save-retention" className="w-full sm:w-auto">Save Policy</Button>
-                  <PointerTypes.Save className="absolute inset-0" />
+                  <ConditionalPointerTypes.Save className="absolute inset-0" />
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </GlassCard>
         </TabsContent>
 
         {/* Internationalization */}
         <TabsContent value="i18n" className="space-y-6" >
-          <Card>
+          <GlassCard>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Globe className="h-5 w-5" />
@@ -589,7 +773,7 @@ const Settings = React.memo(function Settings() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Error Messages</span>
-                    <Badge variant="secondary">85% Complete</Badge>
+                    <Badge className=" bg-red-600 text-white ">85% Complete</Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Documentation</span>
@@ -603,22 +787,22 @@ const Settings = React.memo(function Settings() {
                   <Button variant="outline" onClick={handleResetLocale} className="w-full sm:w-auto">
                     {t('common.clear')} / Reset to Default
                   </Button>
-                  <PointerTypes.Refresh className="absolute inset-0" />
+                  <ConditionalPointerTypes.Refresh className="absolute inset-0" />
                 </div>
                 <div className="relative">
                   <Button data-testid="button-save-locale" onClick={handleSaveLocale} className="w-full sm:w-auto group">
                     {t('common.save')} / {t('settings.i18n.save')}
                   </Button>
-                  <PointerTypes.Save className="absolute inset-0" />
+                  <ConditionalPointerTypes.Save className="absolute inset-0" />
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </GlassCard>
         </TabsContent>
 
         {/* Citation Formatting */}
         <TabsContent value="citations" className="space-y-6">
-          <Card>
+          <GlassCard>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
@@ -728,7 +912,7 @@ const Settings = React.memo(function Settings() {
                       checked={formatting.showSnippets}
                       onCheckedChange={(checked: boolean) => updateFormatting({ showSnippets: checked })}
                     />
-                    <PointerTypes.Settings className="absolute inset-0" />
+                    <ConditionalPointerTypes.Settings className="absolute inset-0" />
                   </div>
                 </div>
 
@@ -744,7 +928,7 @@ const Settings = React.memo(function Settings() {
                       checked={formatting.showUrls}
                       onCheckedChange={(checked: boolean) => updateFormatting({ showUrls: checked })}
                     />
-                    <PointerTypes.Settings className="absolute inset-0" />
+                    <ConditionalPointerTypes.Settings className="absolute inset-0" />
                   </div>
                 </div>
 
@@ -760,7 +944,7 @@ const Settings = React.memo(function Settings() {
                       checked={formatting.showSourceCount}
                       onCheckedChange={(checked: boolean) => updateFormatting({ showSourceCount: checked })}
                     />
-                    <PointerTypes.Settings className="absolute inset-0" />
+                    <ConditionalPointerTypes.Settings className="absolute inset-0" />
                   </div>
                 </div>
 
@@ -776,7 +960,7 @@ const Settings = React.memo(function Settings() {
                       checked={formatting.enableHover}
                       onCheckedChange={(checked: boolean) => updateFormatting({ enableHover: checked })}
                     />
-                    <PointerTypes.Settings className="absolute inset-0" />
+                    <ConditionalPointerTypes.Settings className="absolute inset-0" />
                   </div>
                 </div>
               </div>
@@ -817,22 +1001,22 @@ const Settings = React.memo(function Settings() {
                   <Button variant="outline" onClick={resetFormatting} className="w-full sm:w-auto">
                     Reset to Default
                   </Button>
-                  <PointerTypes.Refresh className="absolute inset-0" />
+                  <ConditionalPointerTypes.Refresh className="absolute inset-0" />
                 </div>
                 <div className="relative">
                   <Button className="w-full sm:w-auto">
                     Save Settings
                   </Button>
-                  <PointerTypes.Save className="absolute inset-0" />
+                  <ConditionalPointerTypes.Save className="absolute inset-0" />
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </GlassCard>
         </TabsContent>
 
         {/* API Keys */}
         <TabsContent value="api-keys" className="space-y-6">
-          <Card>
+          <GlassCard>
             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <CardTitle className="flex items-center gap-2">
                 <Key className="h-5 w-5" />
@@ -998,12 +1182,12 @@ const Settings = React.memo(function Settings() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </GlassCard>
         </TabsContent>
 
         {/* System Health */}
         <TabsContent value="health" className="space-y-6">
-          <Card>
+          <GlassCard>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5" />
@@ -1013,7 +1197,7 @@ const Settings = React.memo(function Settings() {
             <CardContent>
               <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {systemServices.map((service, index) => (
-                  <Card key={index} data-testid={`service-card-${index}`}>
+                  <GlassCard key={index} data-testid={`service-card-${index}`}>
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-base">{service.name}</CardTitle>
@@ -1037,7 +1221,7 @@ const Settings = React.memo(function Settings() {
                         </span>
                       </div>
                     </CardContent>
-                  </Card>
+                  </GlassCard>
                 ))}
               </div>
 
@@ -1059,7 +1243,7 @@ const Settings = React.memo(function Settings() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </GlassCard>
         </TabsContent>
       </Tabs>
 
@@ -1071,6 +1255,7 @@ const Settings = React.memo(function Settings() {
           onSubmit={handleCreateApiKey}
         />
       </Suspense>
+      </div>
     </div>
   );
 });

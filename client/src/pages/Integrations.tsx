@@ -2,13 +2,16 @@ import React, { useState, useMemo, useCallback, Suspense, lazy } from "react";
 import { Plus, Search, Filter, Globe, Copy, Pause, Play, Archive, Settings, BarChart3, Users, Edit, ExternalLink, Loader2 } from "lucide-react";
 
 // 🚀 Lazy load heavy integration components
-const IntegrationCreateEdit = lazy(() => import("@/components/features/integrations/IntegrationCreateEditRefactored"));
+const IntegrationCreateEdit = lazy(() => import("@/components/features/integrations/IntegrationCreatePage"));
+import { IntegrationCreateErrorBoundary } from "@/components/features/integrations/IntegrationCreateErrorBoundary";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { useTranslation } from "@/contexts/I18nContext";
 import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { GlassCard } from "@/components/ui/GlassCard";
+import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
 import {
   Select,
   SelectContent,
@@ -232,20 +235,31 @@ export default function Integrations() {
   // Show create/edit form if not in list view
   if (currentView === "create" || currentView === "edit") {
     return (
-      <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
-        <IntegrationCreateEdit
-          integrationId={editingIntegrationId}
-          mode={currentView}
-          onBack={handleBackToList}
-          onSave={handleSaveIntegration}
-        />
-      </Suspense>
+      <IntegrationCreateErrorBoundary onRetry={handleBackToList}>
+        <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
+          <IntegrationCreateEdit
+            integrationId={editingIntegrationId}
+            mode={currentView}
+            onBack={handleBackToList}
+            onSave={handleSaveIntegration}
+          />
+        </Suspense>
+      </IntegrationCreateErrorBoundary>
     );
   }
 
   // Show list view
   return (
-    <div className="space-y-6 w-full max-w-full overflow-hidden min-w-0" style={{ maxWidth: '92vw' }}>
+    <div className="relative min-h-screen">
+      {/* Theme-aware Background */}
+      <div className="fixed inset-0 -z-10">
+        <ResponsiveDarkVeil 
+          className="w-full h-full"
+        />
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 space-y-6 w-full max-w-full overflow-hidden min-w-0 p-6" style={{ maxWidth: '92vw' }}>
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('nav.integrations')}</h1>
@@ -263,14 +277,13 @@ export default function Integrations() {
       </div>
 
       {/* Filters */}
-      <Card className="w-full overflow-hidden">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <GlassCard className="w-full overflow-hidden">
+        <div className="p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Filter className="h-5 w-5" />
             Filters & Search
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+          <div>
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <div className="relative  flex-1">
               <Search className=" absolute -translate-y-[50%] top-[50%] left-3 h-4 w-4 text-muted-foreground" />
@@ -332,8 +345,9 @@ export default function Integrations() {
           </div>
         </div>
           </div>
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      </GlassCard>
 
       {/* Bulk Actions */}
       {selectedIntegrations.length > 0 && (
@@ -381,8 +395,8 @@ export default function Integrations() {
       )}
 
       {/* Integrations Table */}
-      <Card className="w-full overflow-hidden">
-        <CardContent className="p-0">
+      <GlassCard className="w-full overflow-hidden">
+        <div className="p-0">
           <div className="overflow-x-auto max-w-full" style={{ maxWidth: '100%' }}>
             <Table className="min-w-[1000px] w-full table-fixed">
             <TableHeader>
@@ -578,8 +592,10 @@ export default function Integrations() {
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </GlassCard>
+      </div>
     </div>
   );
 }
+

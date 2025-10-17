@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Alert, AlertDescription } from "@/components/ui/Alert";
 import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import { mockLogin } from "@/utils/mockAuth";
+import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
+import { GlassCard } from "@/components/ui/GlassCard";
 const Login = React.memo(function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -80,7 +82,16 @@ const Login = React.memo(function Login() {
   }, [username, password, setLocation]);
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="relative min-h-screen flex">
+      {/* Theme-aware Background */}
+      <div className="fixed inset-0 -z-10">
+        <ResponsiveDarkVeil 
+          className="w-full h-full"
+        />
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 w-full flex">
       {/* Left Panel - Branding & Features */}
       <div className="hidden lg:flex lg:w-1/2 bg-primary/5 relative overflow-hidden">
         <div className="flex flex-col justify-center px-12 py-16 w-full relative z-10">
@@ -153,7 +164,7 @@ const Login = React.memo(function Login() {
             <span className="text-2xl font-bold">RAGSuite</span>
           </div>
           
-          <Card className="border-0 shadow-lg">
+          <GlassCard className="border-0 shadow-lg">
             <CardHeader className="space-y-4 pb-6">
               <div className="text-center">
                 <CardTitle className="text-2xl font-semibold">Welcome back</CardTitle>
@@ -247,7 +258,7 @@ const Login = React.memo(function Login() {
                 </div>
                 
             </CardContent>
-          </Card>
+          </GlassCard>
           
           <div className="text-center mt-8">
             <p className="text-xs text-muted-foreground">
@@ -255,6 +266,7 @@ const Login = React.memo(function Login() {
             </p>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

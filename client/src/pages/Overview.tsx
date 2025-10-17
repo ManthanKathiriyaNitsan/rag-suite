@@ -6,7 +6,11 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useTranslation } from "@/contexts/I18nContext";
-import { PointerTypes } from "@/components/ui/AnimatedPointer";
+import { ConditionalPointerTypes } from "@/components/ui/ConditionalPointer";
+import { HeroSection } from "@/components/ui/HeroSection";
+import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { GlassStatsCard } from "@/components/ui/GlassStatsCard";
 
 const chartData = [
   { name: "Mon", queries: 145 },
@@ -37,38 +41,47 @@ const Overview = React.memo(function Overview() {
   const { t } = useTranslation();
   
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('nav.overview')}</h1>
-        <p className="text-muted-foreground">
-          {t('overview.description')}
-        </p>
+    <div className="relative min-h-screen">
+      {/* Theme-aware Background */}
+      <div className="fixed inset-0 -z-10">
+        <ResponsiveDarkVeil 
+          className="w-full h-full"
+        />
       </div>
+      
+      {/* Content */}
+      <div className="relative z-10 space-y-6 p-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{t('nav.overview')}</h1>
+          <p className="text-muted-foreground">
+            {t('overview.description')}
+          </p>
+        </div>
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard
+        <GlassStatsCard
           title="Queries Today"
           value="1,234"
           description="from yesterday"
           trend={{ value: 12, isPositive: true }}
           icon={<Search className="h-4 w-4" />}
         />
-        <StatsCard
+        <GlassStatsCard
           title="p95 Latency"
           value="245ms"
           description="avg response time"
           trend={{ value: 5, isPositive: false }}
           icon={<Activity className="h-4 w-4" />}
         />
-        <StatsCard
+        <GlassStatsCard
           title="Thumbs-up Rate"
           value="89%"
           description="user satisfaction"
           trend={{ value: 3, isPositive: true }}
           icon={<Users className="h-4 w-4" />}
         />
-        <StatsCard
+        <GlassStatsCard
           title="Crawl Errors"
           value="3"
           description="need attention"
@@ -78,42 +91,40 @@ const Overview = React.memo(function Overview() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Queries Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+        <GlassCard>
+          <div className="p-6">
+            <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="h-5 w-5" />
-              Queries Over Time
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Line 
-                  type="monotone" 
-                  dataKey="queries" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+              <h3 className="text-lg font-semibold">Queries Over Time</h3>
+            </div>
+            <div>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line 
+                    type="monotone" 
+                    dataKey="queries" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </GlassCard>
 
         {/* Top Sources */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Sources</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <GlassCard>
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Top Sources</h3>
             <div className="space-y-3">
               {topSources.map((source, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-3 rounded-lg border hover-elevate"
+                  className="flex items-center justify-between p-3 rounded-lg border hover-elevate bg-background/30 backdrop-blur-sm shadow-sm"
                   data-testid={`source-${index}`}
                 >
                   <div className="space-y-1">
@@ -130,21 +141,19 @@ const Overview = React.memo(function Overview() {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </GlassCard>
       </div>
 
       {/* Latest Feedback */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Latest Feedback</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <GlassCard>
+        <div className="p-6">
+          <h3 className="text-lg font-semibold mb-4">Latest Feedback</h3>
           <div className="space-y-3">
             {latestFeedback.map((feedback, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-3 rounded-lg border hover-elevate"
+                 className="flex items-center justify-between p-3 rounded-lg border hover-elevate bg-background/30 backdrop-blur-sm shadow-sm"
                 data-testid={`feedback-${index}`}
               >
                 <div className="space-y-1">
@@ -165,10 +174,13 @@ const Overview = React.memo(function Overview() {
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </GlassCard>
+      </div>
     </div>
   );
 });
 
 export default Overview;
+
+

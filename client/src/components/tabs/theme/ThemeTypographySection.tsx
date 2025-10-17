@@ -1,308 +1,387 @@
-import React, { useCallback } from "react";
-import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Label } from "@/components/ui/Label";
-import { Input } from "@/components/ui/Input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
-import { Alert, AlertDescription } from "@/components/ui/Alert";
-import { 
-  Type,
-  Info,
-  AlertTriangle
-} from "lucide-react";
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Label } from '@/components/ui/Label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
+import { Slider } from '@/components/ui/Slider';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Input } from '@/components/ui/Input';
+import { useTypography } from '@/contexts/TypographyContext';
+import { Type, AlignLeft, AlignCenter, AlignRight, AlignJustify, Eye } from 'lucide-react';
 
 interface ThemeTypographySectionProps {
-  theme: {
-    fontFamily: string;
-    fontSize: {
-      xs: string;
-      sm: string;
-      base: string;
-      lg: string;
-      xl: string;
-      "2xl": string;
-      "3xl": string;
-      "4xl": string;
-    };
-    fontWeight: {
-      light: string;
-      normal: string;
-      medium: string;
-      semibold: string;
-      bold: string;
-    };
-    lineHeight: {
-      tight: string;
-      normal: string;
-      relaxed: string;
-    };
-    letterSpacing: {
-      tight: string;
-      normal: string;
-      wide: string;
-    };
-  };
-  onUpdateTheme: (updates: Partial<typeof theme>) => void;
+  theme?: any;
+  onUpdateTheme?: (updates: any) => void;
 }
 
-const fontOptions = [
-  { value: "Inter", label: "Inter" },
-  { value: "Roboto", label: "Roboto" },
-  { value: "Open Sans", label: "Open Sans" },
-  { value: "Lato", label: "Lato" },
-  { value: "Poppins", label: "Poppins" },
-  { value: "Source Sans Pro", label: "Source Sans Pro" },
-  { value: "Nunito", label: "Nunito" },
-  { value: "system-ui", label: "System UI" },
-  { value: "sans-serif", label: "Sans Serif" },
-  { value: "serif", label: "Serif" },
-  { value: "monospace", label: "Monospace" }
-];
+export default function ThemeTypographySection({ theme, onUpdateTheme }: ThemeTypographySectionProps = {}) {
+  const typography = useTypography();
 
-const ThemeTypographySection: React.FC<ThemeTypographySectionProps> = ({
-  theme,
-  onUpdateTheme
-}) => {
-  const updateTypography = useCallback((updates: Partial<typeof theme>) => {
-    onUpdateTheme(updates);
-  }, [onUpdateTheme]);
+  const fontFamilies = [
+    { value: 'Inter', label: 'Inter' },
+    { value: 'Roboto', label: 'Roboto' },
+    { value: 'Open Sans', label: 'Open Sans' },
+    { value: 'Lato', label: 'Lato' },
+    { value: 'Poppins', label: 'Poppins' },
+    { value: 'Source Sans Pro', label: 'Source Sans Pro' },
+    { value: 'Nunito', label: 'Nunito' },
+    { value: 'Montserrat', label: 'Montserrat' },
+    { value: 'Playfair Display', label: 'Playfair Display' },
+    { value: 'Merriweather', label: 'Merriweather' },
+    { value: 'Fira Sans', label: 'Fira Sans' },
+    { value: 'IBM Plex Sans', label: 'IBM Plex Sans' },
+    { value: 'system-ui', label: 'System UI' },
+    { value: 'sans-serif', label: 'Sans Serif' },
+  ];
 
-  const updateFontSize = useCallback((size: keyof typeof theme.fontSize, value: string) => {
-    updateTypography({
-      fontSize: {
-        ...theme.fontSize,
-        [size]: value
+  const fontWeights = [
+    { value: 'light', label: 'Light (300)' },
+    { value: 'normal', label: 'Normal (400)' },
+    { value: 'medium', label: 'Medium (500)' },
+    { value: 'semibold', label: 'Semibold (600)' },
+    { value: 'bold', label: 'Bold (700)' },
+    { value: 'extrabold', label: 'Extrabold (800)' },
+  ];
+
+  const textAlignments = [
+    { value: 'left', label: 'Left', icon: AlignLeft },
+    { value: 'center', label: 'Center', icon: AlignCenter },
+    { value: 'right', label: 'Right', icon: AlignRight },
+    { value: 'justify', label: 'Justify', icon: AlignJustify },
+  ];
+
+  const handleFontFamilyChange = (value: string) => {
+    typography.setTypography({ fontFamily: value });
+  };
+
+  const handleBaseFontSizeChange = (value: number) => {
+    const minSize = 16; // Minimum 16px
+    const adjustedValue = Math.max(minSize, value);
+    typography.setTypography({ 
+      baseFontSize: adjustedValue,
+      fontSizeScale: {
+        ...typography.fontSizeScale,
+        base: adjustedValue
       }
     });
-  }, [theme.fontSize, updateTypography]);
+  };
 
-  const updateFontWeight = useCallback((weight: keyof typeof theme.fontWeight, value: string) => {
-    updateTypography({
-      fontWeight: {
-        ...theme.fontWeight,
-        [weight]: value
-      }
-    });
-  }, [theme.fontWeight, updateTypography]);
+  const handleFontSizeScaleChange = (size: keyof typeof typography.fontSizeScale, value: number) => {
+    const minSize = size === 'base' ? 16 : 8; // Minimum 16px for base, 8px for others
+    const adjustedValue = Math.max(minSize, value);
+    
+    const newFontSizeScale = {
+      ...typography.fontSizeScale,
+      [size]: adjustedValue,
+    };
+    
+    typography.setTypography({ fontSizeScale: newFontSizeScale });
+    
+    // If base size is being changed, update baseFontSize too
+    if (size === 'base') {
+      typography.setTypography({ baseFontSize: adjustedValue });
+    }
+  };
 
-  const updateLineHeight = useCallback((height: keyof typeof theme.lineHeight, value: string) => {
-    updateTypography({
-      lineHeight: {
-        ...theme.lineHeight,
-        [height]: value
-      }
-    });
-  }, [theme.lineHeight, updateTypography]);
+  const handleLineHeightChange = (value: number) => {
+    typography.setTypography({ lineHeight: value });
+  };
 
-  const updateLetterSpacing = useCallback((spacing: keyof typeof theme.letterSpacing, value: string) => {
-    updateTypography({
-      letterSpacing: {
-        ...theme.letterSpacing,
-        [spacing]: value
-      }
-    });
-  }, [theme.letterSpacing, updateTypography]);
+  const handleFontWeightChange = (value: string) => {
+    typography.setTypography({ fontWeight: value });
+  };
+
+  const handleLetterSpacingChange = (value: number) => {
+    typography.setTypography({ letterSpacing: value });
+  };
+
+  const handleTextAlignChange = (value: string) => {
+    typography.setTypography({ textAlign: value });
+  };
+
+  const handleReset = () => {
+    typography.resetTypography();
+  };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold flex items-center gap-2">
-          <Type className="h-5 w-5" />
-          Typography Settings
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          Configure font families, sizes, weights, and spacing for your theme
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Type className="h-5 w-5" />
+            Typography Settings
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Customize fonts, sizes, and text styling globally
+          </p>
+        </div>
       </div>
 
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertDescription>
-          Typography settings affect the overall readability and visual hierarchy of your application.
-          Choose fonts that match your brand and ensure good legibility across all devices.
-        </AlertDescription>
-      </Alert>
-
-      {/* Font Family */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Font Family</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="font-family">Primary Font Family</Label>
-            <Select value={theme.fontFamily} onValueChange={(value) => updateTypography({ fontFamily: value })}>
-              <SelectTrigger id="font-family">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Font Family */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Font Family</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Select value={typography.fontFamily} onValueChange={handleFontFamilyChange}>
+              <SelectTrigger>
                 <SelectValue placeholder="Select font family" />
               </SelectTrigger>
               <SelectContent>
-                {fontOptions.map((font) => (
+                {fontFamilies.map((font) => (
                   <SelectItem key={font.value} value={font.value}>
-                    <span style={{ fontFamily: font.value }}>{font.label}</span>
+                    <span style={{ fontFamily: `${font.value}, system-ui, sans-serif` }}>{font.label}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="p-4 border rounded-lg bg-muted/50">
-            <p className="text-sm text-muted-foreground mb-2">Preview:</p>
-            <div style={{ fontFamily: theme.fontFamily }}>
-              <p className="text-2xl font-bold">Heading Text</p>
-              <p className="text-base">Body text with the selected font family</p>
-              <p className="text-sm text-muted-foreground">Small text for captions and labels</p>
+            
+            {/* Font Preview */}
+            <div 
+              className="p-4 border rounded-lg bg-muted/50"
+              style={{ 
+                fontFamily: `${typography.fontFamily}, system-ui, sans-serif`,
+                color: 'inherit',
+                minHeight: '80px'
+              }}
+            >
+              <p className="text-lg font-medium" style={{ color: 'inherit', margin: '0 0 8px 0' }}>Sample Text</p>
+              <p className="text-sm" style={{ color: 'inherit', margin: 0 }}>The quick brown fox jumps over the lazy dog.</p>
+              <p className="text-xs" style={{ color: 'rgba(0,0,0,0.6)', margin: '8px 0 0 0' }}>
+                Font: {typography.fontFamily}
+              </p>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Font Sizes */}
+        {/* Base Font Size */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Base Font Size</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="base-font-size">Base Size</Label>
+                <Badge variant="outline">{typography.baseFontSize}px</Badge>
+              </div>
+              <Slider
+                id="base-font-size"
+                value={[typography.baseFontSize]}
+                onValueChange={(value) => handleBaseFontSizeChange(value[0])}
+                min={16}
+                max={32}
+                step={1}
+                className="w-full"
+              />
+            </div>
+
+            {/* Size Preview */}
+            <div 
+              className="p-4 border rounded-lg bg-muted/50"
+              style={{ 
+                fontSize: `${typography.baseFontSize}px`,
+                fontFamily: `${typography.fontFamily}, system-ui, sans-serif`,
+                color: 'inherit'
+              }}
+            >
+              <p style={{ margin: 0 }}>Base font size preview</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Font Size Scale */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Font Sizes</CardTitle>
+          <CardTitle className="text-base">Font Size Scale</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {Object.entries(theme.fontSize).map(([size, value]) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Object.entries(typography.fontSizeScale).map(([size, value]) => (
               <div key={size} className="space-y-2">
-                <Label htmlFor={`font-size-${size}`} className="text-xs capitalize">
-                  {size}
-                </Label>
-                <Input
-                  id={`font-size-${size}`}
-                  value={value}
-                  onChange={(e) => updateFontSize(size as keyof typeof theme.fontSize, e.target.value)}
-                  className="h-8 text-xs"
-                  placeholder="1rem"
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">{size.toUpperCase()}</Label>
+                  <Badge variant="outline">{value as number}px</Badge>
+                </div>
+                <Slider
+                  value={[value as number]}
+                  onValueChange={(sliderValue) => handleFontSizeScaleChange(size as keyof typeof typography.fontSizeScale, sliderValue[0] as number)}
+                  min={size === 'base' ? 16 : 8}
+                  max={48}
+                  step={1}
+                  className="w-full"
                 />
+                <div 
+                  className="text-xs p-2 border rounded bg-muted/30"
+                  style={{ 
+                    fontSize: `${value}px`, 
+                    fontFamily: `${typography.fontFamily}, system-ui, sans-serif`,
+                    color: 'inherit'
+                  }}
+                >
+                  Sample text
+                </div>
               </div>
             ))}
-          </div>
-          <div className="p-4 border rounded-lg bg-muted/50">
-            <p className="text-sm text-muted-foreground mb-2">Size Preview:</p>
-            <div className="space-y-1">
-              <p style={{ fontSize: theme.fontSize.xs }}>Extra Small (xs)</p>
-              <p style={{ fontSize: theme.fontSize.sm }}>Small (sm)</p>
-              <p style={{ fontSize: theme.fontSize.base }}>Base (base)</p>
-              <p style={{ fontSize: theme.fontSize.lg }}>Large (lg)</p>
-              <p style={{ fontSize: theme.fontSize.xl }}>Extra Large (xl)</p>
-              <p style={{ fontSize: theme.fontSize["2xl"] }}>2X Large (2xl)</p>
-              <p style={{ fontSize: theme.fontSize["3xl"] }}>3X Large (3xl)</p>
-              <p style={{ fontSize: theme.fontSize["4xl"] }}>4X Large (4xl)</p>
-            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Font Weights */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Font Weights</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {Object.entries(theme.fontWeight).map(([weight, value]) => (
-              <div key={weight} className="space-y-2">
-                <Label htmlFor={`font-weight-${weight}`} className="text-xs capitalize">
-                  {weight}
-                </Label>
-                <Input
-                  id={`font-weight-${weight}`}
-                  value={value}
-                  onChange={(e) => updateFontWeight(weight as keyof typeof theme.fontWeight, e.target.value)}
-                  className="h-8 text-xs"
-                  placeholder="400"
-                />
-              </div>
-            ))}
-          </div>
-          <div className="p-4 border rounded-lg bg-muted/50">
-            <p className="text-sm text-muted-foreground mb-2">Weight Preview:</p>
-            <div className="space-y-1">
-              <p style={{ fontWeight: theme.fontWeight.light }}>Light Text</p>
-              <p style={{ fontWeight: theme.fontWeight.normal }}>Normal Text</p>
-              <p style={{ fontWeight: theme.fontWeight.medium }}>Medium Text</p>
-              <p style={{ fontWeight: theme.fontWeight.semibold }}>Semibold Text</p>
-              <p style={{ fontWeight: theme.fontWeight.bold }}>Bold Text</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Line Heights */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Line Heights</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
-            {Object.entries(theme.lineHeight).map(([height, value]) => (
-              <div key={height} className="space-y-2">
-                <Label htmlFor={`line-height-${height}`} className="text-xs capitalize">
-                  {height}
-                </Label>
-                <Input
-                  id={`line-height-${height}`}
-                  value={value}
-                  onChange={(e) => updateLineHeight(height as keyof typeof theme.lineHeight, e.target.value)}
-                  className="h-8 text-xs"
-                  placeholder="1.5"
-                />
-              </div>
-            ))}
-          </div>
-          <div className="p-4 border rounded-lg bg-muted/50">
-            <p className="text-sm text-muted-foreground mb-2">Line Height Preview:</p>
+      {/* Text Styling */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Line Height & Font Weight */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Text Styling</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Line Height */}
             <div className="space-y-2">
-              <p style={{ lineHeight: theme.lineHeight.tight }}>Tight line height for headings and short text</p>
-              <p style={{ lineHeight: theme.lineHeight.normal }}>Normal line height for body text and general content</p>
-              <p style={{ lineHeight: theme.lineHeight.relaxed }}>Relaxed line height for better readability in long paragraphs</p>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="line-height">Line Height</Label>
+                <Badge variant="outline">{typography.lineHeight}</Badge>
+              </div>
+              <Slider
+                id="line-height"
+                value={[typography.lineHeight]}
+                onValueChange={(value) => handleLineHeightChange(value[0])}
+                min={1}
+                max={3}
+                step={0.1}
+                className="w-full"
+              />
             </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Letter Spacing */}
+            {/* Font Weight */}
+            <div className="space-y-2">
+              <Label htmlFor="font-weight">Font Weight</Label>
+              <Select value={typography.fontWeight} onValueChange={handleFontWeightChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select font weight" />
+                </SelectTrigger>
+                <SelectContent>
+                  {fontWeights.map((weight) => (
+                    <SelectItem key={weight.value} value={weight.value}>
+                      <span style={{ fontWeight: weight.value === 'light' ? 300 : weight.value === 'normal' ? 400 : weight.value === 'medium' ? 500 : weight.value === 'semibold' ? 600 : weight.value === 'bold' ? 700 : 800 }}>
+                        {weight.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Letter Spacing */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="letter-spacing">Letter Spacing</Label>
+                <Badge variant="outline">{typography.letterSpacing}px</Badge>
+              </div>
+              <Slider
+                id="letter-spacing"
+                value={[typography.letterSpacing]}
+                onValueChange={(value) => handleLetterSpacingChange(value[0])}
+                min={-2}
+                max={5}
+                step={0.5}
+                className="w-full"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Text Alignment */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Text Alignment</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-2">
+              {textAlignments.map((alignment) => {
+                const Icon = alignment.icon;
+                return (
+                  <Button
+                    key={alignment.value}
+                    variant={typography.textAlign === alignment.value ? 'default' : 'outline'}
+                    onClick={() => handleTextAlignChange(alignment.value)}
+                    className="flex items-center gap-2"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {alignment.label}
+                  </Button>
+                );
+              })}
+            </div>
+
+            {/* Alignment Preview */}
+            <div 
+              className="p-4 border rounded-lg bg-muted/50"
+              style={{
+                fontFamily: `${typography.fontFamily}, system-ui, sans-serif`,
+                fontSize: `${typography.baseFontSize}px`,
+                lineHeight: typography.lineHeight,
+                fontWeight: typography.fontWeight,
+                letterSpacing: `${typography.letterSpacing}px`,
+                textAlign: typography.textAlign as any,
+                color: 'inherit'
+              }}
+            >
+              <p style={{ margin: '0 0 8px 0' }}>This text demonstrates the current alignment setting.</p>
+              <p style={{ margin: 0 }}>Multiple lines show how the alignment affects paragraph layout.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Live Preview */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Letter Spacing</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            Live Preview
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
-            {Object.entries(theme.letterSpacing).map(([spacing, value]) => (
-              <div key={spacing} className="space-y-2">
-                <Label htmlFor={`letter-spacing-${spacing}`} className="text-xs capitalize">
-                  {spacing}
-                </Label>
-                <Input
-                  id={`letter-spacing-${spacing}`}
-                  value={value}
-                  onChange={(e) => updateLetterSpacing(spacing as keyof typeof theme.letterSpacing, e.target.value)}
-                  className="h-8 text-xs"
-                  placeholder="0"
-                />
-              </div>
-            ))}
-          </div>
-          <div className="p-4 border rounded-lg bg-muted/50">
-            <p className="text-sm text-muted-foreground mb-2">Letter Spacing Preview:</p>
-            <div className="space-y-2">
-              <p style={{ letterSpacing: theme.letterSpacing.tight }}>Tight letter spacing</p>
-              <p style={{ letterSpacing: theme.letterSpacing.normal }}>Normal letter spacing</p>
-              <p style={{ letterSpacing: theme.letterSpacing.wide }}>Wide letter spacing</p>
-            </div>
+          <div 
+            className="p-6 border rounded-lg bg-muted/50 space-y-4"
+            style={{
+              fontFamily: `${typography.fontFamily}, system-ui, sans-serif`,
+              fontSize: `${typography.baseFontSize}px`,
+              lineHeight: typography.lineHeight,
+              fontWeight: typography.fontWeight,
+              letterSpacing: `${typography.letterSpacing}px`,
+              textAlign: typography.textAlign as any,
+              color: 'inherit'
+            }}
+          >
+            <h1 style={{ fontSize: `${typography.fontSizeScale['2xl']}px`, fontWeight: 'bold', margin: 0 }}>
+              Heading 1 - Large Title
+            </h1>
+            <h2 style={{ fontSize: `${typography.fontSizeScale.xl}px`, fontWeight: 'semibold', margin: 0 }}>
+              Heading 2 - Section Title
+            </h2>
+            <h3 style={{ fontSize: `${typography.fontSizeScale.lg}px`, fontWeight: 'medium', margin: 0 }}>
+              Heading 3 - Subsection
+            </h3>
+            <p style={{ fontSize: `${typography.fontSizeScale.base}px`, margin: 0 }}>
+              This is a paragraph with the base font size. The quick brown fox jumps over the lazy dog. 
+              This demonstrates how your typography settings will look across the application.
+            </p>
+            <p style={{ fontSize: `${typography.fontSizeScale.sm}px`, color: '#6b7280', margin: 0 }}>
+              This is smaller text for captions or secondary information.
+            </p>
           </div>
         </CardContent>
       </Card>
 
-      <Alert>
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>
-          <strong>Accessibility Tip:</strong> Ensure line heights are at least 1.5 times the font size for optimal readability.
-          Consider using relative units (em, rem) instead of absolute units (px) for better scalability.
-        </AlertDescription>
-      </Alert>
+      {/* Actions */}
+      <div className="flex gap-2">
+        <Button variant="outline" onClick={handleReset} className="flex-1">
+          Reset to Defaults
+        </Button>
+      </div>
     </div>
   );
-};
-
-export default ThemeTypographySection;
+}

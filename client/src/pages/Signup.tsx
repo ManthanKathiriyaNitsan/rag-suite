@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/Label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Alert, AlertDescription } from "@/components/ui/Alert";
 import { PointerTypes } from "@/components/ui/AnimatedPointer";
+import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
+import { GlassCard } from "@/components/ui/GlassCard";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
@@ -71,7 +73,16 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="relative min-h-screen flex">
+      {/* Theme-aware Background */}
+      <div className="fixed inset-0 -z-10">
+        <ResponsiveDarkVeil 
+          className="w-full h-full"
+        />
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 w-full flex">
 
   {/* Left Panel - Branding & Features */}
      
@@ -83,7 +94,7 @@ export default function Signup() {
             <span className="text-2xl font-bold">RAGSuite</span>
           </div>
           
-          <Card className="border-0 shadow-lg">
+          <GlassCard className="border-0 shadow-lg">
             <CardHeader className="space-y-4 pb-6">
               <div className="text-center">
                 <CardTitle className="text-2xl font-semibold">Create your account</CardTitle>
@@ -195,7 +206,7 @@ export default function Signup() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </GlassCard>
           
           <div className="text-center mt-8">
             <p className="text-xs text-muted-foreground">
@@ -266,6 +277,7 @@ export default function Signup() {
           <div className="absolute top-10 left-10 w-32 h-32 bg-primary rounded-full blur-3xl"></div>
           <div className="absolute bottom-20 right-20 w-40 h-40 bg-primary rounded-full blur-3xl"></div>
         </div>
+      </div>
       </div>
 
     </div>

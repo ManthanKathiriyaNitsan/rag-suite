@@ -13,6 +13,8 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Badge } from "@/components/ui/Badge";
 import { Separator } from "@/components/ui/Separator";
 import { PointerTypes } from "@/components/ui/AnimatedPointer";
+import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
+import { GlassCard } from "@/components/ui/GlassCard";
 
 const Profile = React.memo(function Profile() {
   const { user: authUser } = useAuthContext();
@@ -76,7 +78,16 @@ const Profile = React.memo(function Profile() {
   }, []);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="relative min-h-screen">
+      {/* Theme-aware Background */}
+      <div className="fixed inset-0 -z-10">
+        <ResponsiveDarkVeil 
+          className="w-full h-full"
+        />
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 max-w-6xl mx-auto space-y-8 p-6">
       {/* Header */}
       <div className="flex flex-col gap-6">
         <div>
@@ -87,7 +98,7 @@ const Profile = React.memo(function Profile() {
         </div>
         
         {/* Profile Summary Card */}
-        <Card>
+        <GlassCard>
           <CardContent className=" py-6  px-2 lg:p-6">
             <div className="flex flex-col lg:flex-row  items-center gap-6">
               <div className="relative  ">
@@ -137,7 +148,7 @@ const Profile = React.memo(function Profile() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </GlassCard>
       </div>
 
       {/* Profile Settings Tabs */}
@@ -164,7 +175,7 @@ const Profile = React.memo(function Profile() {
         {/* General Settings */}
         <TabsContent value="general" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+            <GlassCard>
               <CardHeader>
                 <CardTitle>Personal Information</CardTitle>
                 <CardDescription>
@@ -220,9 +231,9 @@ const Profile = React.memo(function Profile() {
                   </Select>
                 </div>
               </CardContent>
-            </Card>
+            </GlassCard>
 
-            <Card>
+            <GlassCard>
               <CardHeader>
                 <CardTitle>Contact & Location</CardTitle>
                 <CardDescription>
@@ -279,14 +290,14 @@ const Profile = React.memo(function Profile() {
                   />
                 </div>
               </CardContent>
-            </Card>
+            </GlassCard>
           </div>
         </TabsContent>
 
         {/* Security Settings */}
         <TabsContent value="security" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+            <GlassCard>
               <CardHeader>
                 <CardTitle>Password & Authentication</CardTitle>
                 <CardDescription>
@@ -331,9 +342,9 @@ const Profile = React.memo(function Profile() {
                   <PointerTypes.Save className="absolute inset-0" />
                 </div>
               </CardContent>
-            </Card>
+            </GlassCard>
 
-            <Card>
+            <GlassCard>
               <CardHeader>
                 <CardTitle>Security Settings</CardTitle>
                 <CardDescription>
@@ -369,13 +380,13 @@ const Profile = React.memo(function Profile() {
                   <Button variant="outline" size="sm" data-testid="button-view-sessions">View Sessions</Button>
                 </div>
               </CardContent>
-            </Card>
+            </GlassCard>
           </div>
         </TabsContent>
 
         {/* Notification Settings */}
         <TabsContent value="notifications" className="space-y-6">
-          <Card>
+          <GlassCard>
             <CardHeader>
               <CardTitle>Notification Preferences</CardTitle>
               <CardDescription>
@@ -453,12 +464,12 @@ const Profile = React.memo(function Profile() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </GlassCard>
         </TabsContent>
 
         {/* Privacy Settings */}
         <TabsContent value="privacy" className="space-y-6">
-          <Card>
+          <GlassCard>
             <CardHeader>
               <CardTitle>Privacy Settings</CardTitle>
               <CardDescription>
@@ -510,9 +521,10 @@ const Profile = React.memo(function Profile() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </GlassCard>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 });

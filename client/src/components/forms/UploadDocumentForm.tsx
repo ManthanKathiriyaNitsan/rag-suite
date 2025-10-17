@@ -98,7 +98,7 @@ const UploadDocumentForm = React.memo(function UploadDocumentForm({ open, onOpen
     } finally {
       setIsUploading(false);
     }
-  }, [files, title, description, language, source, onSuccess]);
+  }, [files, title, description, language, source, onSubmit]);
 
   // 📁 Memoized file change handler
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {

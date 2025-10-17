@@ -10,6 +10,8 @@ import { useTranslation } from "@/contexts/I18nContext";
 import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { GlassCard } from "@/components/ui/GlassCard";
+import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
@@ -216,7 +218,16 @@ export default function Crawl() {
  
 
   return (
-    <div className="space-y-6 w-full max-w-full overflow-hidden min-w-0" style={{ maxWidth: '92vw' }}>
+    <div className="relative min-h-screen">
+      {/* Theme-aware Background */}
+      <div className="fixed inset-0 -z-10">
+        <ResponsiveDarkVeil 
+          className="w-full h-full"
+        />
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 space-y-6 w-full max-w-full overflow-hidden min-w-0 p-6" style={{ maxWidth: '92vw' }}>
       <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 lg:gap-0 lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('crawl.title')}</h1>
@@ -417,6 +428,7 @@ export default function Crawl() {
         />
         </Suspense>
       )}
+      </div>
     </div>
   );
 }

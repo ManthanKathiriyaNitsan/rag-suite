@@ -1,857 +1,503 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
+import { Textarea } from "@/components/ui/Textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Switch } from "@/components/ui/Switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { Slider } from "@/components/ui/Slider";
-import { Textarea } from "@/components/ui/Textarea";
-import { Progress } from "@/components/ui/Progress";
-import { Separator } from "@/components/ui/Separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/Table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/Dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/DropdownMenu";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/Tabs";
 import { 
+  Plus,
+  TestTube,
   Play, 
   Pause, 
-  BarChart3, 
+  Square,
+  Settings,
+  Trash2,
+  MoreHorizontal,
+  CheckCircle,
+  AlertTriangle,
+  Clock,
+  Trophy,
   Target, 
   Users, 
   TrendingUp, 
-  Trophy, 
-  AlertTriangle,
-  Plus,
-  Trash2,
-  Settings,
-  Calendar,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  Activity
+  BarChart3,
+  Zap,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
-// A/B Testing data interfaces
-interface ABTestVariant {
+interface Experiment {
   id: string;
   name: string;
   description: string;
-  configVersionId?: string;
-  trafficWeight: number;
-  isControl: boolean;
-  isActive: boolean;
-  metrics: {
-    visitors: number;
-    conversions: number;
-    conversionRate: number;
-    confidenceInterval: [number, number];
-    significance: number;
-    isWinner: boolean;
-    liftOverControl: number;
-  };
-}
-
-interface ABTestExperiment {
-  id: string;
-  name: string;
-  description: string;
-  status: "draft" | "running" | "paused" | "completed" | "archived";
-  hypothesis: string;
-  successMetric: string;
-  targetAudience: string;
-  sampleSize: number;
-  confidenceLevel: number;
-  startDate?: string;
+  status: "draft" | "running" | "paused" | "completed";
+  startDate: string;
   endDate?: string;
-  duration: number; // days
-  variants: ABTestVariant[];
-  results: {
-    totalVisitors: number;
-    totalConversions: number;
-    overallConversionRate: number;
-    statisticalPower: number;
-    pValue: number;
-    winner?: string;
-    liftAmount: number;
-    liftPercentage: number;
+  trafficSplit: number; // Percentage of traffic to send to variant
+  variants: {
+  id: string;
+  name: string;
+  description: string;
+    traffic: number;
+    isControl: boolean;
+  }[];
+  metrics: {
+    primary: string;
+    secondary: string[];
   };
-}
-
-interface ABTestingSettings {
-  enableTestingFramework: boolean;
-  defaultConfidenceLevel: number;
-  defaultTestDuration: number;
-  autoPromoteWinners: boolean;
-  minSampleSize: number;
-  maxConcurrentTests: number;
-  trackingEvents: string[];
-  advancedSegmentation: boolean;
-  multiVariateEnabled: boolean;
-}
-
-interface ABTestingData {
-  experiments: ABTestExperiment[];
-  settings: ABTestingSettings;
-  templates: {
+  results?: {
+    winner?: string;
+    confidence: number;
+    improvement: number;
+    significance: boolean;
+  };
+  audience: {
+    type: "all" | "segment";
+    criteria: Record<string, any>;
+  };
+  createdAt: string;
+  createdBy: {
     id: string;
     name: string;
-    description: string;
-    defaultHypothesis: string;
-    suggestedMetrics: string[];
-  }[];
+    email: string;
+  };
 }
 
-// Default A/B testing data with enterprise-grade examples
-const defaultABTestingData: ABTestingData = {
-  experiments: [
-    {
-      id: "exp-1",
-      name: "Search Result Layout Optimization",
-      description: "Testing different layout styles for search results to improve user engagement",
-      status: "running",
-      hypothesis: "A card-based layout will increase click-through rates by 15% compared to the current list layout",
-      successMetric: "Click-through Rate",
-      targetAudience: "All users",
-      sampleSize: 10000,
-      confidenceLevel: 95,
-      startDate: "2024-09-15",
-      duration: 14,
-      variants: [
-        {
-          id: "var-control",
-          name: "Control (Current List)",
-          description: "Current list-based search results layout",
-          trafficWeight: 50,
-          isControl: true,
-          isActive: true,
-          metrics: {
-            visitors: 4247,
-            conversions: 892,
-            conversionRate: 21.0,
-            confidenceInterval: [19.8, 22.2],
-            significance: 95.2,
-            isWinner: false,
-            liftOverControl: 0
-          }
-        },
-        {
-          id: "var-cards",
-          name: "Card Layout",
-          description: "New card-based search results with enhanced visuals",
-          trafficWeight: 50,
-          isControl: false,
-          isActive: true,
-          metrics: {
-            visitors: 4183,
-            conversions: 1046,
-            conversionRate: 25.0,
-            confidenceInterval: [23.7, 26.3],
-            significance: 97.8,
-            isWinner: true,
-            liftOverControl: 19.0
-          }
-        }
-      ],
-      results: {
-        totalVisitors: 8430,
-        totalConversions: 1938,
-        overallConversionRate: 23.0,
-        statisticalPower: 97.8,
-        pValue: 0.022,
-        winner: "var-cards",
-        liftAmount: 154,
-        liftPercentage: 19.0
-      }
-    },
-    {
-      id: "exp-2",
-      name: "Response Generation Speed Test",
-      description: "Testing different AI model configurations for response generation speed vs quality",
-      status: "completed",
-      hypothesis: "Faster response times will improve user satisfaction even with slight quality reduction",
-      successMetric: "User Satisfaction Score",
-      targetAudience: "Enterprise users",
-      sampleSize: 5000,
-      confidenceLevel: 95,
-      startDate: "2024-09-01",
-      endDate: "2024-09-14",
-      duration: 14,
-      variants: [
-        {
-          id: "var-quality",
-          name: "High Quality (Control)",
-          description: "Current high-quality model with 3s avg response time",
-          trafficWeight: 33,
-          isControl: true,
-          isActive: false,
-          metrics: {
-            visitors: 1647,
-            conversions: 1394,
-            conversionRate: 84.6,
-            confidenceInterval: [82.8, 86.4],
-            significance: 95.0,
-            isWinner: false,
-            liftOverControl: 0
-          }
-        },
-        {
-          id: "var-balanced",
-          name: "Balanced",
-          description: "Balanced model with 1.5s avg response time",
-          trafficWeight: 33,
-          isControl: false,
-          isActive: false,
-          metrics: {
-            visitors: 1663,
-            conversions: 1429,
-            conversionRate: 85.9,
-            confidenceInterval: [84.2, 87.6],
-            significance: 92.1,
-            isWinner: true,
-            liftOverControl: 1.5
-          }
-        },
-        {
-          id: "var-fast",
-          name: "Fast Response",
-          description: "Optimized for speed with 0.8s avg response time",
-          trafficWeight: 34,
-          isControl: false,
-          isActive: false,
-          metrics: {
-            visitors: 1690,
-            conversions: 1370,
-            conversionRate: 81.1,
-            confidenceInterval: [79.2, 83.0],
-            significance: 78.4,
-            isWinner: false,
-            liftOverControl: -4.1
-          }
-        }
-      ],
-      results: {
-        totalVisitors: 5000,
-        totalConversions: 4193,
-        overallConversionRate: 83.9,
-        statisticalPower: 92.1,
-        pValue: 0.041,
-        winner: "var-balanced",
-        liftAmount: 35,
-        liftPercentage: 1.5
-      }
-    }
-  ],
-  settings: {
-    enableTestingFramework: true,
-    defaultConfidenceLevel: 95,
-    defaultTestDuration: 14,
-    autoPromoteWinners: false,
-    minSampleSize: 1000,
-    maxConcurrentTests: 5,
-    trackingEvents: ["search_query", "result_click", "session_end", "conversion"],
-    advancedSegmentation: true,
-    multiVariateEnabled: true
-  },
-  templates: [
-    {
-      id: "template-layout",
-      name: "UI Layout Test",
-      description: "Test different user interface layouts and designs",
-      defaultHypothesis: "The new layout will improve user engagement metrics",
-      suggestedMetrics: ["Click-through Rate", "Time on Page", "Bounce Rate"]
-    },
-    {
-      id: "template-performance",
-      name: "Performance Optimization",
-      description: "Test different performance optimizations and their impact",
-      defaultHypothesis: "Faster response times will improve user satisfaction",
-      suggestedMetrics: ["User Satisfaction", "Task Completion Rate", "Session Duration"]
-    },
-    {
-      id: "template-content",
-      name: "Content Strategy Test",
-      description: "Test different content presentation strategies",
-      defaultHypothesis: "Enhanced content presentation will increase engagement",
-      suggestedMetrics: ["Engagement Rate", "Content Interaction", "Conversion Rate"]
-    }
-  ]
-};
-
 interface ABTestingTabProps {
-  data: ABTestingData;
-  onChange: (data: ABTestingData) => void;
+  data: Experiment[];
+  onChange: (experiments: Experiment[]) => void;
 }
 
 export default function ABTestingTab({ data, onChange }: ABTestingTabProps) {
-  const [activeTab, setActiveTab] = useState("experiments");
-  const [selectedExperiment, setSelectedExperiment] = useState<string | null>(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-
-  // Use data directly from props (controlled component pattern)
-  
-  const updateABTesting = (updates: Partial<ABTestingData>) => {
-    onChange({ ...data, ...updates });
-  };
-
-  const createExperiment = () => {
-    const newExperiment: ABTestExperiment = {
-      id: `exp-${Date.now()}`,
-      name: "New Experiment",
-      description: "",
-      status: "draft",
-      hypothesis: "",
-      successMetric: "Conversion Rate",
-      targetAudience: "All users",
-      sampleSize: 1000,
-      confidenceLevel: 95,
-      duration: 14,
+  const [experiments, setExperiments] = useState<Experiment[]>(data || []);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingExperiment, setEditingExperiment] = useState<Experiment | null>(null);
+  const [newExperiment, setNewExperiment] = useState<Partial<Experiment>>({
+    name: "",
+    description: "",
+    trafficSplit: 50,
       variants: [
-        {
-          id: "control",
-          name: "Control",
-          description: "Current version",
-          trafficWeight: 50,
-          isControl: true,
-          isActive: true,
+      { id: "control", name: "Control", description: "Current version", traffic: 50, isControl: true },
+      { id: "variant", name: "Variant A", description: "New version", traffic: 50, isControl: false },
+    ],
           metrics: {
-            visitors: 0,
-            conversions: 0,
-            conversionRate: 0,
-            confidenceInterval: [0, 0],
-            significance: 0,
-            isWinner: false,
-            liftOverControl: 0
-          }
-        },
-        {
-          id: "variant-a",
-          name: "Variant A",
-          description: "Test version",
-          trafficWeight: 50,
-          isControl: false,
-          isActive: true,
-          metrics: {
-            visitors: 0,
-            conversions: 0,
-            conversionRate: 0,
-            confidenceInterval: [0, 0],
-            significance: 0,
-            isWinner: false,
-            liftOverControl: 0
-          }
-        }
-      ],
-      results: {
-        totalVisitors: 0,
-        totalConversions: 0,
-        overallConversionRate: 0,
-        statisticalPower: 0,
-        pValue: 1.0,
-        liftAmount: 0,
-        liftPercentage: 0
-      }
+      primary: "click_through_rate",
+      secondary: ["conversion_rate", "engagement_time"],
+    },
+    audience: {
+      type: "all",
+      criteria: {},
+    },
+  });
+
+  useEffect(() => {
+    setExperiments(data || []);
+  }, [data]);
+
+  const handleCreateExperiment = () => {
+    if (!newExperiment.name || !newExperiment.description) return;
+
+    const experiment: Experiment = {
+      id: `exp-${Date.now()}`,
+      name: newExperiment.name,
+      description: newExperiment.description,
+      status: "draft",
+      startDate: new Date().toISOString(),
+      trafficSplit: newExperiment.trafficSplit || 50,
+      variants: newExperiment.variants || [],
+      metrics: newExperiment.metrics || {
+        primary: "click_through_rate",
+        secondary: [],
+      },
+      audience: newExperiment.audience || {
+        type: "all",
+        criteria: {},
+      },
+      createdAt: new Date().toISOString(),
+      createdBy: {
+        id: "current-user",
+        name: "Current User",
+        email: "user@example.com",
+      },
     };
-    
-    updateABTesting({
-      experiments: [...data.experiments, newExperiment]
+
+    const updated = [...experiments, experiment];
+    setExperiments(updated);
+    onChange(updated);
+    setIsCreateOpen(false);
+    setNewExperiment({
+      name: "",
+      description: "",
+      trafficSplit: 50,
+      variants: [
+        { id: "control", name: "Control", description: "Current version", traffic: 50, isControl: true },
+        { id: "variant", name: "Variant A", description: "New version", traffic: 50, isControl: false },
+      ],
+          metrics: {
+        primary: "click_through_rate",
+        secondary: [],
+      },
+      audience: {
+        type: "all",
+        criteria: {},
+      },
     });
-    setSelectedExperiment(newExperiment.id);
-    setShowCreateForm(true);
   };
 
-  const updateExperiment = (experimentId: string, updates: Partial<ABTestExperiment>) => {
-    const experiments = data.experiments.map(exp => 
-      exp.id === experimentId ? { ...exp, ...updates } : exp
+  const handleUpdateExperiment = (id: string, updates: Partial<Experiment>) => {
+    const updated = experiments.map(experiment =>
+      experiment.id === id ? { ...experiment, ...updates } : experiment
     );
-    updateABTesting({ experiments });
+    setExperiments(updated);
+    onChange(updated);
   };
 
-  const deleteExperiment = (experimentId: string) => {
-    const experiments = data.experiments.filter(exp => exp.id !== experimentId);
-    updateABTesting({ experiments });
-    if (selectedExperiment === experimentId) {
-      setSelectedExperiment(null);
-    }
+  const handleDeleteExperiment = (id: string) => {
+    const updated = experiments.filter(experiment => experiment.id !== id);
+    setExperiments(updated);
+    onChange(updated);
   };
 
-  const updateSettings = (updates: Partial<ABTestingSettings>) => {
-    updateABTesting({
-      settings: { ...data.settings, ...updates }
+  const handleStartExperiment = (id: string) => {
+    handleUpdateExperiment(id, {
+      status: "running",
+      startDate: new Date().toISOString(),
     });
   };
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case "running": return "default";
-      case "completed": return "secondary";
-      case "paused": return "outline";
-      case "draft": return "secondary";
-      case "archived": return "secondary";
-      default: return "secondary";
-    }
+  const handlePauseExperiment = (id: string) => {
+    handleUpdateExperiment(id, { status: "paused" });
+  };
+
+  const handleStopExperiment = (id: string) => {
+    handleUpdateExperiment(id, {
+      status: "completed",
+      endDate: new Date().toISOString(),
+    });
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "running": return <Play className="w-3 h-3" />;
-      case "completed": return <CheckCircle2 className="w-3 h-3" />;
-      case "paused": return <Pause className="w-3 h-3" />;
-      case "draft": return <Clock className="w-3 h-3" />;
-      case "archived": return <XCircle className="w-3 h-3" />;
-      default: return <Clock className="w-3 h-3" />;
+      case "running":
+        return <Play className="h-4 w-4 text-green-500" />;
+      case "paused":
+        return <Pause className="h-4 w-4 text-yellow-500" />;
+      case "completed":
+        return <CheckCircle className="h-4 w-4 text-blue-500" />;
+      case "draft":
+        return <Clock className="h-4 w-4 text-gray-500" />;
+      default:
+        return <Clock className="h-4 w-4 text-gray-500" />;
     }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "running":
+        return <Badge variant="default" className="bg-green-500">Running</Badge>;
+      case "paused":
+        return <Badge variant="outline" className="border-yellow-500 text-yellow-500">Paused</Badge>;
+      case "completed":
+        return <Badge variant="secondary">Completed</Badge>;
+      case "draft":
+        return <Badge variant="outline">Draft</Badge>;
+      default:
+        return <Badge variant="secondary">Unknown</Badge>;
+    }
+  };
+
+  const getMetricName = (metric: string) => {
+    const names: Record<string, string> = {
+      click_through_rate: "Click-through Rate",
+      conversion_rate: "Conversion Rate",
+      engagement_time: "Engagement Time",
+      bounce_rate: "Bounce Rate",
+      revenue: "Revenue",
+    };
+    return names[metric] || metric;
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col lg:flex-row items-start gap-3 lg:gap-0 lg:items-center justify-between">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">A/B Testing & Experiments</h3>
           <p className="text-sm text-muted-foreground">
             Create and manage experiments to optimize user experience and performance
           </p>
         </div>
-        <Button onClick={createExperiment} data-testid="button-create-experiment">
-          <Plus className="w-4 h-4 mr-2" />
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
           New Experiment
         </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create New Experiment</DialogTitle>
+              <DialogDescription>
+                Set up a new A/B test to optimize your integration
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="exp-name">Experiment Name</Label>
+                  <Input
+                    id="exp-name"
+                    value={newExperiment.name || ""}
+                    onChange={(e) => setNewExperiment(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g., Search Result Layout Optimization"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="exp-traffic">Traffic Split (%)</Label>
+                  <div className="flex items-center gap-2">
+                    <Slider
+                      value={[newExperiment.trafficSplit || 50]}
+                      onValueChange={(value) => setNewExperiment(prev => ({ ...prev, trafficSplit: value[0] }))}
+                      max={100}
+                      step={5}
+                      className="flex-1"
+                    />
+                    <span className="text-sm font-medium w-12">{newExperiment.trafficSplit || 50}%</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="exp-description">Description</Label>
+                <Textarea
+                  id="exp-description"
+                  value={newExperiment.description || ""}
+                  onChange={(e) => setNewExperiment(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="What are you testing?"
+                />
+              </div>
+              <div>
+                <Label>Primary Metric</Label>
+                <Select
+                  value={newExperiment.metrics?.primary || "click_through_rate"}
+                  onValueChange={(value) => setNewExperiment(prev => ({
+                    ...prev,
+                    metrics: { ...prev.metrics!, primary: value }
+                  }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="click_through_rate">Click-through Rate</SelectItem>
+                    <SelectItem value="conversion_rate">Conversion Rate</SelectItem>
+                    <SelectItem value="engagement_time">Engagement Time</SelectItem>
+                    <SelectItem value="bounce_rate">Bounce Rate</SelectItem>
+                    <SelectItem value="revenue">Revenue</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateExperiment}>
+                Create Experiment
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto">
-          <TabsTrigger value="experiments" data-testid="tab-experiments">Experiments</TabsTrigger>
-          <TabsTrigger value="results" data-testid="tab-results">Results</TabsTrigger>
-          <TabsTrigger value="templates" data-testid="tab-templates">Templates</TabsTrigger>
-          <TabsTrigger value="settings" data-testid="tab-settings">Settings</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="experiments" className="space-y-4">
-          <div className="grid gap-4">
-            {data.experiments.length === 0 ? (
+      {/* Experiments List */}
+      {experiments.length === 0 ? (
               <Card>
-                <CardContent className="p-8 text-center">
-                  <BarChart3 className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold mb-2">No experiments created yet</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Create your first A/B test to start optimizing your integration
-                  </p>
-                  <Button onClick={createExperiment} data-testid="button-create-first-experiment">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Your First Experiment
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <TestTube className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">No Experiments</h3>
+            <p className="text-muted-foreground text-center mb-4">
+              Create your first experiment to start optimizing your integration
+            </p>
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Experiment
                   </Button>
                 </CardContent>
               </Card>
             ) : (
-              data.experiments.map((experiment) => (
-                <Card key={experiment.id} className="hover-elevate">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <CardTitle className="text-base">{experiment.name}</CardTitle>
-                          <Badge variant={getStatusBadgeVariant(experiment.status)}>
-                            {getStatusIcon(experiment.status)}
-                            <span className="ml-1 capitalize">{experiment.status}</span>
-                          </Badge>
-                        </div>
-                        <CardDescription>{experiment.description}</CardDescription>
+        <div className="space-y-4">
+          {experiments.map((experiment) => (
+            <Card key={experiment.id}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <TestTube className="h-5 w-5 text-primary" />
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => setSelectedExperiment(experiment.id)}
-                          data-testid={`button-edit-experiment-${experiment.id}`}
-                        >
-                          <Settings className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => deleteExperiment(experiment.id)}
-                          data-testid={`button-delete-experiment-${experiment.id}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                      <div>
+                      <CardTitle className="text-base">{experiment.name}</CardTitle>
+                      <p className="text-sm text-muted-foreground">{experiment.description}</p>
                       </div>
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Success Metric</p>
-                        <p className="font-medium">{experiment.successMetric}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Target Audience</p>
-                        <p className="font-medium">{experiment.targetAudience}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Sample Size</p>
-                        <p className="font-medium">{experiment.sampleSize.toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Duration</p>
-                        <p className="font-medium">{experiment.duration} days</p>
-                      </div>
-                    </div>
-                    
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(experiment.status)}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setEditingExperiment(experiment)}>
+                          <Settings className="h-4 w-4 mr-2" />
+                          Configure
+                        </DropdownMenuItem>
+                        {experiment.status === "draft" && (
+                          <DropdownMenuItem onClick={() => handleStartExperiment(experiment.id)}>
+                            <Play className="h-4 w-4 mr-2" />
+                            Start
+                          </DropdownMenuItem>
+                        )}
                     {experiment.status === "running" && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Progress</span>
-                          <span>{Math.round((experiment.results.totalVisitors / experiment.sampleSize) * 100)}%</span>
+                          <DropdownMenuItem onClick={() => handlePauseExperiment(experiment.id)}>
+                            <Pause className="h-4 w-4 mr-2" />
+                            Pause
+                          </DropdownMenuItem>
+                        )}
+                        {experiment.status === "paused" && (
+                          <DropdownMenuItem onClick={() => handleStartExperiment(experiment.id)}>
+                            <Play className="h-4 w-4 mr-2" />
+                            Resume
+                          </DropdownMenuItem>
+                        )}
+                        {(experiment.status === "running" || experiment.status === "paused") && (
+                          <DropdownMenuItem onClick={() => handleStopExperiment(experiment.id)}>
+                            <Square className="h-4 w-4 mr-2" />
+                            Stop
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteExperiment(experiment.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                          </div>
                         </div>
-                        <Progress value={(experiment.results.totalVisitors / experiment.sampleSize) * 100} className="h-2" />
-                      </div>
-                    )}
-
-                    {experiment.results.winner && (
-                      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
-                        <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
-                          <Trophy className="w-4 h-4" />
-                          <span className="font-medium">Winner Determined</span>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                    <Label className="text-xs text-muted-foreground">Primary Metric</Label>
+                    <p className="text-sm font-medium mt-1">
+                      {getMetricName(experiment.metrics.primary)}
+                    </p>
                         </div>
-                        <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                          {experiment.variants.find(v => v.id === experiment.results.winner)?.name} shows {experiment.results.liftPercentage}% improvement
-                        </p>
+                        <div>
+                    <Label className="text-xs text-muted-foreground">Traffic Split</Label>
+                    <p className="text-sm font-medium mt-1">
+                      {experiment.trafficSplit}% to variant
+                    </p>
+                        </div>
+                        <div>
+                    <Label className="text-xs text-muted-foreground">Created</Label>
+                    <p className="text-sm mt-1">
+                      {new Date(experiment.createdAt).toLocaleDateString()}
+                    </p>
+                        </div>
                       </div>
-                    )}
 
-                    <div className="grid grid-cols-2 gap-2">
+                {experiment.variants.length > 0 && (
+                  <div className="mt-4">
+                    <Label className="text-xs text-muted-foreground">Variants</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
                       {experiment.variants.map((variant) => (
-                        <div key={variant.id} className="border rounded-lg p-3 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-medium text-sm">{variant.name}</h4>
-                            {variant.metrics.isWinner && <Trophy className="w-3 h-3 text-yellow-500" />}
-                          </div>
-                          <div className="text-xs space-y-1">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Traffic</span>
-                              <span>{variant.trafficWeight}%</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Visitors</span>
-                              <span>{variant.metrics.visitors.toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Conv. Rate</span>
-                              <span>{variant.metrics.conversionRate}%</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="results" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Active Experiments</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold" data-testid="metric-active-experiments">
-                  {data.experiments.filter(e => e.status === "running").length}
-                </div>
-                <p className="text-xs text-muted-foreground">Currently running</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Total Visitors</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold" data-testid="metric-total-visitors">
-                  {data.experiments.reduce((sum, exp) => sum + exp.results.totalVisitors, 0).toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground">Across all experiments</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Avg. Conversion Rate</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold" data-testid="metric-avg-conversion">
-                  {data.experiments.length > 0 
-                    ? (data.experiments.reduce((sum, exp) => sum + exp.results.overallConversionRate, 0) / data.experiments.length).toFixed(1)
-                    : "0"
-                  }%
-                </div>
-                <p className="text-xs text-muted-foreground">Average across experiments</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Experiment Results Summary</CardTitle>
-              <CardDescription>Overview of all completed and running experiments</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {data.experiments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <BarChart3 className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">No experiment results to display</p>
-                  </div>
-                ) : (
-                  data.experiments.map((experiment) => (
-                    <div key={experiment.id} className="border rounded-lg p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium">{experiment.name}</h4>
-                        <Badge variant={getStatusBadgeVariant(experiment.status)}>
-                          {experiment.status}
-                        </Badge>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Visitors</p>
-                          <p className="font-medium">{experiment.results.totalVisitors.toLocaleString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Conversions</p>
-                          <p className="font-medium">{experiment.results.totalConversions.toLocaleString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Conversion Rate</p>
-                          <p className="font-medium">{experiment.results.overallConversionRate}%</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Statistical Power</p>
-                          <p className="font-medium">{experiment.results.statisticalPower}%</p>
-                        </div>
-                      </div>
-
-                      {experiment.results.winner && (
-                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
-                          <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
-                            <Trophy className="w-4 h-4" />
-                            <span className="font-medium">
-                              Winner: {experiment.variants.find(v => v.id === experiment.results.winner)?.name}
-                            </span>
-                          </div>
-                          <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                            {experiment.results.liftPercentage > 0 ? '+' : ''}{experiment.results.liftPercentage}% lift over control
-                          </p>
-                        </div>
+                        <div key={variant.id} className="flex items-center justify-between p-2 border rounded">
+                          <div>
+                            <span className="text-sm font-medium">{variant.name}</span>
+                            {variant.isControl && (
+                              <Badge variant="outline" className="ml-2 text-xs">Control</Badge>
                       )}
                     </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="templates" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Experiment Templates</CardTitle>
-              <CardDescription>
-                Pre-configured experiment templates to get started quickly
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
-                {data.templates.map((template) => (
-                  <div key={template.id} className="border rounded-lg p-4 space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-medium">{template.name}</h4>
-                        <p className="text-sm text-muted-foreground">{template.description}</p>
+                          <span className="text-sm text-muted-foreground">{variant.traffic}%</span>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        data-testid={`button-use-template-${template.id}`}
-                      >
-                        Use Template
-                      </Button>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground">Default Hypothesis</p>
-                        <p className="text-sm">{template.defaultHypothesis}</p>
-                      </div>
-                      
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground">Suggested Metrics</p>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {template.suggestedMetrics.map((metric) => (
-                            <Badge key={metric} variant="secondary" className="text-xs">
-                              {metric}
-                            </Badge>
                           ))}
                         </div>
                       </div>
+                )}
+
+                {experiment.results && (
+                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Trophy className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-800">
+                        Winner Determined: {experiment.results.winner} shows {experiment.results.improvement}% improvement
+                      </span>
+                </div>
+                    <div className="text-xs text-green-700">
+                      Confidence: {experiment.results.confidence}% • 
+                      Significance: {experiment.results.significance ? "Yes" : "No"}
                     </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                )}
 
-        <TabsContent value="settings" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>A/B Testing Settings</CardTitle>
-              <CardDescription>
-                Configure global settings for your A/B testing framework
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-sm font-medium">Enable A/B Testing Framework</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Enable or disable the entire A/B testing system
-                  </p>
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">4,247</div>
+                    <div className="text-xs text-muted-foreground">Control Visitors</div>
                 </div>
-                <Switch
-                  checked={data.settings.enableTestingFramework}
-                  onCheckedChange={(checked) => updateSettings({ enableTestingFramework: checked })}
-                  data-testid="switch-enable-testing"
-                />
-              </div>
-
-              <Separator />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="confidence-level">Default Confidence Level (%)</Label>
-                  <div className="space-y-2">
-                    <Slider
-                      id="confidence-level"
-                      min={80}
-                      max={99}
-                      step={1}
-                      value={[data.settings.defaultConfidenceLevel]}
-                      onValueChange={(value) => updateSettings({ defaultConfidenceLevel: value[0] })}
-                      data-testid="slider-confidence-level"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>80%</span>
-                      <span>{data.settings.defaultConfidenceLevel}%</span>
-                      <span>99%</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="test-duration">Default Test Duration (days)</Label>
-                  <Input
-                    id="test-duration"
-                    type="number"
-                    min="1"
-                    max="90"
-                    value={data.settings.defaultTestDuration}
-                    onChange={(e) => updateSettings({ defaultTestDuration: parseInt(e.target.value) || 14 })}
-                    data-testid="input-test-duration"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="min-sample-size">Minimum Sample Size</Label>
-                  <Input
-                    id="min-sample-size"
-                    type="number"
-                    min="100"
-                    value={data.settings.minSampleSize}
-                    onChange={(e) => updateSettings({ minSampleSize: parseInt(e.target.value) || 1000 })}
-                    data-testid="input-min-sample-size"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="max-tests">Max Concurrent Tests</Label>
-                  <Input
-                    id="max-tests"
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={data.settings.maxConcurrentTests}
-                    onChange={(e) => updateSettings({ maxConcurrentTests: parseInt(e.target.value) || 5 })}
-                    data-testid="input-max-tests"
-                  />
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Auto-promote Winners</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Automatically promote winning variants when statistical significance is reached
-                    </p>
-                  </div>
-                  <Switch
-                    checked={data.settings.autoPromoteWinners}
-                    onCheckedChange={(checked) => updateSettings({ autoPromoteWinners: checked })}
-                    data-testid="switch-auto-promote"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Advanced Segmentation</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Enable advanced user segmentation and targeting options
-                    </p>
-                  </div>
-                  <Switch
-                    checked={data.settings.advancedSegmentation}
-                    onCheckedChange={(checked) => updateSettings({ advancedSegmentation: checked })}
-                    data-testid="switch-advanced-segmentation"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Multivariate Testing</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Enable testing multiple elements simultaneously (requires larger sample sizes)
-                    </p>
-                  </div>
-                  <Switch
-                    checked={data.settings.multiVariateEnabled}
-                    onCheckedChange={(checked) => updateSettings({ multiVariateEnabled: checked })}
-                    data-testid="switch-multivariate"
-                  />
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label>Tracking Events</Label>
-                <p className="text-xs text-muted-foreground">
-                  Events that will be tracked for A/B testing analysis
-                </p>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {data.settings.trackingEvents.map((event) => (
-                    <Badge key={event} variant="secondary">
-                      {event}
-                    </Badge>
-                  ))}
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">4,183</div>
+                    <div className="text-xs text-muted-foreground">Variant Visitors</div>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

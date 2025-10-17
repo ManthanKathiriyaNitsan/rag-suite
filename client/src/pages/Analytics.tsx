@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { TrendingUp, Download, Clock, Users, ThumbsUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { GlassCard } from "@/components/ui/GlassCard";
+import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useTranslation } from "@/contexts/I18nContext";
@@ -87,7 +89,16 @@ const Analytics = React.memo(function Analytics() {
   }, []);
 
   return (
-    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden min-w-0 px-2 sm:px-0" style={{ maxWidth: '93vw' }}>
+    <div className="relative min-h-screen">
+      {/* Theme-aware Background */}
+      <div className="fixed inset-0 -z-10">
+        <ResponsiveDarkVeil 
+          className="w-full h-full"
+        />
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden min-w-0 p-6" style={{ maxWidth: '93vw' }}>
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('analytics.title')}</h1>
@@ -121,66 +132,64 @@ const Analytics = React.memo(function Analytics() {
 
       {/* Key Metrics Cards */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Queries</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+        <GlassCard>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium">Total Queries</h3>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </div>
             <div className="text-2xl font-bold">1,777</div>
             <p className="text-xs text-muted-foreground">
               +12% from last period
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </GlassCard>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Latency (p95)</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+        <GlassCard>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium">Avg Latency (p95)</h3>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </div>
             <div className="text-2xl font-bold">259ms</div>
             <p className="text-xs text-muted-foreground">
               -5% from last period
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </GlassCard>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Satisfaction Rate</CardTitle>
-            <ThumbsUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+        <GlassCard>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium">Satisfaction Rate</h3>
+              <ThumbsUp className="h-4 w-4 text-muted-foreground" />
+            </div>
             <div className="text-2xl font-bold">89%</div>
             <p className="text-xs text-muted-foreground">
               +3% from last period
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </GlassCard>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Daily Average</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+        <GlassCard>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium">Daily Average</h3>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </div>
             <div className="text-2xl font-bold">254</div>
             <p className="text-xs text-muted-foreground">
               queries per day
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </GlassCard>
       </div>
 
       <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
         {/* Query Volume Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Daily Queries</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <GlassCard>
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Daily Queries</h3>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={queryData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -190,15 +199,13 @@ const Analytics = React.memo(function Analytics() {
                 <Line type="monotone" dataKey="queries" stroke="hsl(var(--primary))" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </div>
+        </GlassCard>
 
         {/* Latency Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Response Latency</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <GlassCard>
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Response Latency</h3>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={queryData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -212,15 +219,13 @@ const Analytics = React.memo(function Analytics() {
                 <Line type="monotone" dataKey="p50" stroke="hsl(var(--chart-2))" strokeWidth={2} name="p50" />
               </LineChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </div>
+        </GlassCard>
 
         {/* Satisfaction Rate Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>User Satisfaction</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <GlassCard>
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">User Satisfaction</h3>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={queryData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -233,15 +238,13 @@ const Analytics = React.memo(function Analytics() {
                 <Line type="monotone" dataKey="satisfaction" stroke="hsl(var(--chart-2))" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </div>
+        </GlassCard>
 
         {/* Source Coverage */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Source Coverage</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <GlassCard>
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Source Coverage</h3>
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
@@ -259,22 +262,20 @@ const Analytics = React.memo(function Analytics() {
                 <Tooltip formatter={(value) => `${value}%`} />
               </PieChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </div>
+        </GlassCard>
       </div>
 
       <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
         {/* Popular Queries */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Popular Queries</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <GlassCard>
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Popular Queries</h3>
             <div className="space-y-3">
               {popularQueries.map((item, index) => (
                 <div
                   key={index}
-                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 rounded-lg border hover-elevate"
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 rounded-lg border hover-elevate bg-background/30 backdrop-blur-sm shadow-sm"
                   data-testid={`popular-query-${index}`}
                 >
                   <div className="space-y-1 flex-1 min-w-0">
@@ -289,23 +290,21 @@ const Analytics = React.memo(function Analytics() {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </GlassCard>
 
         {/* Hard Queries */}
-        <Card className="" >
-          <CardHeader>
-            <CardTitle>Hard Queries</CardTitle>
-            <p className="text-sm text-muted-foreground">
+        <GlassCard>
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Hard Queries</h3>
+            <p className="text-sm text-muted-foreground mb-4">
               Queries with low satisfaction scores that need attention
             </p>
-          </CardHeader  >
-          <CardContent>
             <div className="space-y-3">
               {hardQueries.map((item, index) => (
                 <div
                   key={index}
-                  className="p-3 rounded-lg border hover-elevate cursor-pointer"
+                  className="p-3 rounded-lg border hover-elevate cursor-pointer bg-background/30 backdrop-blur-sm shadow-sm"
                   data-testid={`hard-query-${index}`}
                 >
                   <div className="space-y-2">
@@ -324,8 +323,9 @@ const Analytics = React.memo(function Analytics() {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </GlassCard>
+      </div>
       </div>
     </div>
   );

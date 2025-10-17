@@ -2,11 +2,22 @@ import { AlertTriangle, Home, ArrowLeft, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Link } from "wouter";
+import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
+import { GlassCard } from "@/components/ui/GlassCard";
 
 export function NotFound() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md text-center">
+    <div className="relative min-h-screen flex items-center justify-center p-4">
+      {/* Theme-aware Background */}
+      <div className="fixed inset-0 -z-10">
+        <ResponsiveDarkVeil 
+          className="w-full h-full"
+        />
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 w-full max-w-md text-center">
+        <GlassCard className="w-full max-w-md text-center">
         <CardHeader>
           <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-secondary flex items-center justify-center">
             <AlertTriangle className="h-6 w-6 text-muted-foreground" />
@@ -34,15 +45,25 @@ export function NotFound() {
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </GlassCard>
+      </div>
     </div>
   );
 }
 
 export function PermissionDenied() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md text-center">
+    <div className="relative min-h-screen flex items-center justify-center p-4">
+      {/* Theme-aware Background */}
+      <div className="fixed inset-0 -z-10">
+        <ResponsiveDarkVeil 
+          className="w-full h-full"
+        />
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 w-full max-w-md text-center">
+        <GlassCard className="w-full max-w-md text-center">
         <CardHeader>
           <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
             <AlertTriangle className="h-6 w-6 text-destructive" />
@@ -70,15 +91,25 @@ export function PermissionDenied() {
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </GlassCard>
+      </div>
     </div>
   );
 }
 
 export function ServerError() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md text-center">
+    <div className="relative min-h-screen flex items-center justify-center p-4">
+      {/* Theme-aware Background */}
+      <div className="fixed inset-0 -z-10">
+        <ResponsiveDarkVeil 
+          className="w-full h-full"
+        />
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 w-full max-w-md text-center">
+        <GlassCard className="w-full max-w-md text-center">
         <CardHeader>
           <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
             <AlertTriangle className="h-6 w-6 text-destructive" />
@@ -105,7 +136,8 @@ export function ServerError() {
             </Link>
           </div>
         </CardContent>
-      </Card>
+      </GlassCard>
+      </div>
     </div>
   );
 }

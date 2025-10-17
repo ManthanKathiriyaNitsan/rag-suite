@@ -18,6 +18,8 @@ import { useRAGSettings, usePerformanceMetrics } from "@/contexts/RAGSettingsCon
 import { useSearch } from "@/hooks/useSearch";
 import { useChat, useChatSessions } from "@/hooks/useChat";
 import { PointerTypes } from "@/components/ui/AnimatedPointer";
+import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
+import { GlassCard } from "@/components/ui/GlassCard";
 
 import { Message } from "@/types/components";
 
@@ -277,7 +279,16 @@ export default function RAGTuning() {
   ], []);
 
   return (
-    <div className="space-y-6">
+    <div className="relative min-h-screen">
+      {/* Theme-aware Background */}
+      <div className="fixed inset-0 -z-10">
+        <ResponsiveDarkVeil 
+          className="w-full h-full"
+        />
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 space-y-6 p-6">
       <div className="flex justify-between items-start">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{t('rag-tuning.title')}</h1>
@@ -316,7 +327,7 @@ export default function RAGTuning() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Query Interface */}
         <div className="lg:col-span-2 space-y-4">
-          <Card>
+          <GlassCard>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Zap className="h-5 w-5" />
@@ -344,7 +355,7 @@ export default function RAGTuning() {
               )}
               
               <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Quick Examples:</Label>
+                <Label className="text-sm text-muted-foreground">Suggested Questions:</Label>
                 <div className="flex flex-wrap gap-2">
                   {exampleQueries.map((query, index) => (
                     <Button
@@ -362,10 +373,10 @@ export default function RAGTuning() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </GlassCard>
 
           {/* Response Area */}
-          <Card className="flex-1">
+          <GlassCard className="flex-1">
             <CardHeader>
               <CardTitle>Response</CardTitle>
             </CardHeader>
@@ -422,12 +433,12 @@ export default function RAGTuning() {
                  <div ref={messagesEndRef} />
                </div>
             </CardContent>
-          </Card>
+          </GlassCard>
         </div>
 
         {/* Settings Panel */}
         <div className="space-y-4">
-          <Card>
+          <GlassCard>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
@@ -507,10 +518,10 @@ export default function RAGTuning() {
                 />
               </div>
             </CardContent>
-          </Card>
+          </GlassCard>
 
           {/* Performance Stats */}
-          <Card>
+          <GlassCard>
             <CardHeader>
               <CardTitle>Performance</CardTitle>
             </CardHeader>
@@ -545,8 +556,9 @@ export default function RAGTuning() {
                 </div>
               )}
             </CardContent>
-          </Card>
+          </GlassCard>
         </div>
+      </div>
       </div>
     </div>
   );

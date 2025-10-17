@@ -3,6 +3,8 @@
  * Extracted from components to improve type safety and reusability
  */
 
+import { User } from "./api";
+
 // =============================================================================
 // TAB COMPONENTS
 // =============================================================================
@@ -19,6 +21,7 @@ export interface OverviewTabData {
 
 export interface OverviewTabProps {
   data: OverviewTabData;
+  users?: User[];
   onChange: (data: OverviewTabData) => void;
 }
 

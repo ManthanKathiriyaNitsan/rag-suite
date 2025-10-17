@@ -1,7 +1,9 @@
+import React from "react"
 import { motion } from "framer-motion"
 import { Pointer } from "@/components/ui/Pointer"
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils"
 import { useState, useEffect, useRef } from "react"
+import { useTheme } from "@/contexts/ThemeContext"
 import { 
   MousePointer, 
   Send, 
@@ -135,38 +137,102 @@ export function AnimatedPointer({
   children,
 }: AnimatedPointerProps) {
   const [isHovered, setIsHovered] = useState(false)
+  const [hoveredElement, setHoveredElement] = useState<HTMLElement | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const { theme } = useTheme()
+
+  // Function to check if an element has primary color styling
+  const hasPrimaryColor = (element: HTMLElement): boolean => {
+    // Check for primary color classes - focus on background colors
+    const hasPrimaryClass = element.classList.contains('bg-primary') || 
+                           (typeof element.className === 'string' && element.className.includes('bg-primary'))
+    
+    // Check if element has primary color in computed styles
+    const computedStyle = window.getComputedStyle(element)
+    const backgroundColor = computedStyle.backgroundColor
+    
+    // Get the actual primary color from CSS custom properties
+    const rootStyle = getComputedStyle(document.documentElement)
+    const primaryColorValue = rootStyle.getPropertyValue('--primary').trim()
+    
+    // Convert primary color to a comparable format
+    let primaryRgb = ''
+    if (primaryColorValue) {
+      // Convert HSL to RGB for comparison
+      const hslMatch = primaryColorValue.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/)
+      if (hslMatch) {
+        const [, h, s, l] = hslMatch
+        const hNum = parseInt(h) / 360
+        const sNum = parseInt(s) / 100
+        const lNum = parseInt(l) / 100
+        
+        // Simple HSL to RGB conversion
+        const hue2rgb = (p: number, q: number, t: number) => {
+          if (t < 0) t += 1
+          if (t > 1) t -= 1
+          if (t < 1/6) return p + (q - p) * 6 * t
+          if (t < 1/2) return q
+          if (t < 2/3) return p + (q - p) * (2/3 - t) * 6
+          return p
+        }
+        
+        const q = lNum < 0.5 ? lNum * (1 + sNum) : lNum + sNum - lNum * sNum
+        const p = 2 * lNum - q
+        const r = Math.round(hue2rgb(p, q, hNum + 1/3) * 255)
+        const g = Math.round(hue2rgb(p, q, hNum) * 255)
+        const b = Math.round(hue2rgb(p, q, hNum - 1/3) * 255)
+        
+        primaryRgb = `rgb(${r}, ${g}, ${b})`
+      }
+    }
+    
+    // Check if background color matches primary color
+    const matchesPrimaryColor = primaryRgb && backgroundColor === primaryRgb
+    
+    // Only return true if we have a clear indication of primary color
+    return hasPrimaryClass || matchesPrimaryColor
+  }
+
+  // Function to get contrasting color
+  const getContrastingColor = (): string => {
+    if (!hoveredElement || !isHovered) return 'hsl(var(--primary) / 0.9)'
+    
+    const hasPrimary = hasPrimaryColor(hoveredElement)
+    
+    if (hasPrimary) {
+      // Return theme-appropriate contrasting color
+      // Black for light theme, white for dark theme
+      return theme === 'light' ? 'black' : 'white'
+    }
+    
+    // Return primary color for non-primary elements
+    return 'hsl(var(--primary) / 0.9)'
+  }
 
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
-    // Find the parent button with group class
-    const findGroupButton = (element: HTMLElement): HTMLElement | null => {
-      let current = element.parentElement
-      while (current) {
-        if (current.classList.contains('group')) {
-          return current
-        }
-        current = current.parentElement
+    // Global mouse event listeners to detect hovered elements
+    const handleMouseMove = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (target && target !== hoveredElement) {
+        setHoveredElement(target)
+        setIsHovered(true)
       }
-      return null
     }
 
-    const groupButton = findGroupButton(container)
-    if (!groupButton) return
+    const handleMouseLeave = () => {
+      setIsHovered(false)
+      setHoveredElement(null)
+    }
 
-    const handleMouseEnter = () => setIsHovered(true)
-    const handleMouseLeave = () => setIsHovered(false)
-
-    groupButton.addEventListener('mouseenter', handleMouseEnter)
-    groupButton.addEventListener('mouseleave', handleMouseLeave)
+    // Add global event listeners
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseleave', handleMouseLeave)
 
     return () => {
-      groupButton.removeEventListener('mouseenter', handleMouseEnter)
-      groupButton.removeEventListener('mouseleave', handleMouseLeave)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseleave', handleMouseLeave)
     }
-  }, [setIsHovered])
+  }, [hoveredElement])
 
   return (
     <Pointer className={className}>
@@ -184,7 +250,7 @@ export function AnimatedPointer({
               "drop-shadow-lg transition-colors inline-block"
             )}
             style={{
-              color: isHovered ? 'white' : 'hsl(var(--primary) / 0.9)'
+              color: isHovered ? getContrastingColor() : 'hsl(var(--primary) / 0.9)'
             }}
           >
             <Icon 

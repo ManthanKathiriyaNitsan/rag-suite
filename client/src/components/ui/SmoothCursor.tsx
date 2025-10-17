@@ -24,11 +24,11 @@ const DefaultCursorSVG: FC = () => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      width={33}
-      height={33}
+      width={24}
+      height={24}
       viewBox="0 0 50 54"
       fill="none"
-      style={{ scale: 1 }}
+      style={{ scale: 0.8 }}
     >
       <g filter="url(#filter0_d_91_7928)">
         <path
@@ -85,15 +85,22 @@ const DefaultCursorSVG: FC = () => {
 export function SmoothCursor({
   cursor = <DefaultCursorSVG />,
   springConfig = {
-    damping: 25,
-    stiffness: 800,
-    mass: 0.5,
+    damping: 30,
+    stiffness: 1000,
+    mass: 0.3,
     restDelta: 0.001,
   },
 }: SmoothCursorProps) {
   const [isMoving, setIsMoving] = useState(false)
   const [isDesktop, setIsDesktop] = useState(true)
   const [isPointerActive, setIsPointerActive] = useState(false)
+  
+  // Apply immediate cursor hiding on component mount (before useEffect)
+  if (typeof window !== 'undefined' && isDesktop) {
+    document.body.style.cursor = "none"
+    document.body.classList.add('smooth-cursor-active')
+    document.documentElement.classList.add('smooth-cursor-active')
+  }
   const lastMousePos = useRef<Position>({ x: 0, y: 0 })
   const velocity = useRef<Position>({ x: 0, y: 0 })
   const lastUpdateTime = useRef(Date.now())
@@ -108,14 +115,14 @@ export function SmoothCursor({
   const springX = useSpring(cursorX, springConfig)
   const springY = useSpring(cursorY, springConfig)
   const springRotation = useSpring(rotation, {
-    damping: 30,
-    stiffness: 600,
-    mass: 0.3,
+    damping: 35,
+    stiffness: 800,
+    mass: 0.2,
   })
   const springScale = useSpring(scale, {
-    damping: 20,
-    stiffness: 1000,
-    mass: 0.2,
+    damping: 25,
+    stiffness: 1200,
+    mass: 0.1,
   })
 
   // Check screen size and hide cursor on mobile/tablet
@@ -128,7 +135,7 @@ export function SmoothCursor({
     window.addEventListener('resize', checkScreenSize)
     
     return () => window.removeEventListener('resize', checkScreenSize)
-  }, [setIsDesktop])
+  }, []) // Empty dependency array - runs only on mount
 
   // Monitor for active pointers and hide SmoothCursor when they're active
   useEffect(() => {
@@ -149,14 +156,153 @@ export function SmoothCursor({
     })
 
     return () => observer.disconnect()
-  }, [setIsPointerActive])
+  }, []) // Empty dependency array - runs only on mount
 
+  // Apply cursor hiding immediately when component mounts
   useEffect(() => {
     // Don't initialize cursor on mobile/tablet
     if (!isDesktop) return
 
-    // Add smooth cursor active class to body
+    // IMMEDIATELY hide cursor on body and all elements
+    document.body.style.cursor = "none"
     document.body.classList.add('smooth-cursor-active')
+    
+    // Add immediate CSS injection to prevent any cursor flashing
+    const immediateStyle = document.createElement('style')
+    immediateStyle.id = 'smooth-cursor-immediate'
+    immediateStyle.textContent = `
+      * {
+        cursor: none !important;
+      }
+      html, body {
+        cursor: none !important;
+      }
+    `
+    document.head.appendChild(immediateStyle)
+    
+    // Force cursor none on all existing elements immediately
+    const allElements = document.querySelectorAll('*')
+    allElements.forEach(el => {
+      if (el instanceof HTMLElement) {
+        el.style.cursor = 'none'
+      }
+    })
+    
+    // Add comprehensive CSS to hide all cursors with maximum specificity
+    const style = document.createElement('style')
+    style.id = 'smooth-cursor-hide'
+    style.textContent = `
+      /* Maximum specificity cursor hiding */
+      html.smooth-cursor-active,
+      html.smooth-cursor-active *,
+      html.smooth-cursor-active *:before,
+      html.smooth-cursor-active *:after,
+      body.smooth-cursor-active,
+      body.smooth-cursor-active *,
+      body.smooth-cursor-active *:before,
+      body.smooth-cursor-active *:after {
+        cursor: none !important;
+      }
+      
+      /* Ultra-specific element overrides */
+      html.smooth-cursor-active a,
+      html.smooth-cursor-active button,
+      html.smooth-cursor-active [role="button"],
+      html.smooth-cursor-active input,
+      html.smooth-cursor-active textarea,
+      html.smooth-cursor-active select,
+      html.smooth-cursor-active [data-pointer-active="true"],
+      html.smooth-cursor-active .cursor-pointer,
+      html.smooth-cursor-active [class*="cursor-"],
+      html.smooth-cursor-active [class*="hover:cursor-"],
+      html.smooth-cursor-active [class*="focus:cursor-"],
+      html.smooth-cursor-active [class*="active:cursor-"],
+      body.smooth-cursor-active a,
+      body.smooth-cursor-active button,
+      body.smooth-cursor-active [role="button"],
+      body.smooth-cursor-active input,
+      body.smooth-cursor-active textarea,
+      body.smooth-cursor-active select,
+      body.smooth-cursor-active [data-pointer-active="true"],
+      body.smooth-cursor-active .cursor-pointer,
+      body.smooth-cursor-active [class*="cursor-"],
+      body.smooth-cursor-active [class*="hover:cursor-"],
+      body.smooth-cursor-active [class*="focus:cursor-"],
+      body.smooth-cursor-active [class*="active:cursor-"] {
+        cursor: none !important;
+      }
+      
+      /* State-based overrides with maximum specificity */
+      html.smooth-cursor-active:hover,
+      html.smooth-cursor-active:focus,
+      html.smooth-cursor-active:active,
+      html.smooth-cursor-active *:hover,
+      html.smooth-cursor-active *:focus,
+      html.smooth-cursor-active *:active,
+      body.smooth-cursor-active:hover,
+      body.smooth-cursor-active:focus,
+      body.smooth-cursor-active:active,
+      body.smooth-cursor-active *:hover,
+      body.smooth-cursor-active *:focus,
+      body.smooth-cursor-active *:active {
+        cursor: none !important;
+      }
+      
+      /* Tailwind CSS cursor utilities override with maximum specificity */
+      html.smooth-cursor-active .cursor-auto,
+      html.smooth-cursor-active .cursor-default,
+      html.smooth-cursor-active .cursor-pointer,
+      html.smooth-cursor-active .cursor-wait,
+      html.smooth-cursor-active .cursor-text,
+      html.smooth-cursor-active .cursor-move,
+      html.smooth-cursor-active .cursor-help,
+      html.smooth-cursor-active .cursor-not-allowed,
+      body.smooth-cursor-active .cursor-auto,
+      body.smooth-cursor-active .cursor-default,
+      body.smooth-cursor-active .cursor-pointer,
+      body.smooth-cursor-active .cursor-wait,
+      body.smooth-cursor-active .cursor-text,
+      body.smooth-cursor-active .cursor-move,
+      body.smooth-cursor-active .cursor-help,
+      body.smooth-cursor-active .cursor-not-allowed {
+        cursor: none !important;
+      }
+      
+      /* Sidebar specific overrides */
+      html.smooth-cursor-active [data-sidebar],
+      html.smooth-cursor-active [data-sidebar] *,
+      body.smooth-cursor-active [data-sidebar],
+      body.smooth-cursor-active [data-sidebar] * {
+        cursor: none !important;
+      }
+    `
+    document.head.appendChild(style)
+    
+    // Also add the class to html element for maximum specificity
+    document.documentElement.classList.add('smooth-cursor-active')
+    
+    // Watch for new elements being added to DOM and immediately hide their cursor
+    const cursorObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node instanceof HTMLElement) {
+            node.style.cursor = 'none'
+            // Also apply to all children
+            const children = node.querySelectorAll('*')
+            children.forEach(child => {
+              if (child instanceof HTMLElement) {
+                child.style.cursor = 'none'
+              }
+            })
+          }
+        })
+      })
+    })
+    
+    cursorObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    })
     
     const updateVelocity = (currentPos: Position) => {
       const currentTime = Date.now()
@@ -218,16 +364,43 @@ export function SmoothCursor({
       })
     }
 
+    // Set cursor none on body and all elements
     document.body.style.cursor = "none"
+    
     window.addEventListener("mousemove", throttledMouseMove)
 
     return () => {
       window.removeEventListener("mousemove", throttledMouseMove)
       document.body.classList.remove('smooth-cursor-active')
+      document.documentElement.classList.remove('smooth-cursor-active')
       document.body.style.cursor = "auto"
+      
+      // Disconnect the cursor observer
+      cursorObserver.disconnect()
+      
+      // Restore cursor styles on all elements
+      const restoreElements = document.querySelectorAll('*')
+      restoreElements.forEach(el => {
+        if (el instanceof HTMLElement) {
+          el.style.cursor = ''
+        }
+      })
+      
+      // Remove the custom cursor hiding styles
+      const existingStyle = document.getElementById('smooth-cursor-hide')
+      if (existingStyle) {
+        existingStyle.remove()
+      }
+      
+      // Remove the immediate cursor hiding styles
+      const immediateStyle = document.getElementById('smooth-cursor-immediate')
+      if (immediateStyle) {
+        immediateStyle.remove()
+      }
+      
       if (rafId) cancelAnimationFrame(rafId)
     }
-  }, [cursorX, cursorY, rotation, scale, isDesktop, isPointerActive])
+  }, [isDesktop, isPointerActive]) // Only depend on values that affect rendering
 
   // Don't render cursor on mobile/tablet or when pointers are active
   if (!isDesktop || isPointerActive) return null

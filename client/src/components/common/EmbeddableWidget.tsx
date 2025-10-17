@@ -765,7 +765,8 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
               {/* 📜 Scroll target for auto-scroll */}
               <div ref={messagesEndRef} />
             </div>
-            <div className="flex-shrink-0  ">
+            
+            <div className="testingvll flex-shrink-0  ">
               <SearchBar
                 placeholder="Type your message..."
                 onSearch={handleChat}

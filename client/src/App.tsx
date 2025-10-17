@@ -14,11 +14,19 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { PageErrorBoundary } from "@/components/error";
 import { BrandingProvider } from "@/contexts/BrandingContext";
+import { TypographyProvider } from "@/contexts/TypographyContext";
+import { LayoutProvider } from "@/contexts/LayoutContext";
+import { AdvancedProvider } from "@/contexts/AdvancedContext";
 import { I18nProvider } from "@/contexts/I18nContext";
 import { CitationFormattingProvider } from "@/contexts/CitationFormattingContext";
+import { CursorProvider, useCursor } from "@/contexts/CursorContext";
 import { useTranslation } from "@/contexts/I18nContext";
 import { SmoothCursor } from "@/components/ui/SmoothCursor";
-import { PointerTypes } from "@/components/ui/AnimatedPointer";
+import { ConditionalPointerTypes } from "@/components/ui/ConditionalPointer";
+import { GlassNavbar } from "@/components/ui/GlassNavbar";
+import { useTheme } from "@/contexts/ThemeContext";
+
+// Typography is now handled by TypographyProvider
 
 // 🚀 Lazy load all pages for optimal performance
 const Overview = lazy(() => import("@/pages/Overview"));
@@ -110,8 +118,10 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const { customCursorEnabled } = useCursor();
   const { isTourActive, completeTour, skipTour } = useOnboarding();
   const { t } = useTranslation();
+  const { theme } = useTheme();
   
   useEffect(() => {
     setWidgetOpen(false);
@@ -127,7 +137,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen w-full">
         <AppSidebar data-testid="sidebar" />
         <div className="flex flex-col flex-1">
-          <header className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 min-w-0">
+          <GlassNavbar variant={theme === 'dark' ? 'dark' : 'light'}>
             <div className="flex items-center gap-2">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
               <Button
@@ -155,7 +165,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <Bell className="h-4 w-4" />
                 <Badge
                   variant="destructive"
-                  className="absolute -top-0.5 -right-0.5 h-4 w-4 p-0 text-[10px] font-semibold flex items-center justify-center rounded-lg border border-background/20"
+                  className="absolute -top-0.5 -right-0.5 h-4 w-4 min-w-4 text-[10px] px-0 py-0 font-semibold flex items-center justify-center rounded-md border border-background/20"
                 >
                   3
                 </Badge>
@@ -175,8 +185,8 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
               <ThemeToggle />
               <UserDropdown />
             </div>
-          </header>
-          <main className={`flex-1 overflow-auto md:p-6 p-3 bg-background min-w-0 ${widgetOpen ? 'main-content-blur' : ''}`}>
+          </GlassNavbar>
+          <main className={`flex-1 overflow-auto md:p-6 p-3 bg-transparent min-w-0 ${widgetOpen ? 'main-content-blur' : ''}`}>
             {children}
           </main>
         </div>
@@ -208,8 +218,8 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
         onClose={skipTour}
       />
       
-      {/* Smooth Cursor */}
-      <SmoothCursor />
+      {/* Smooth Cursor - conditionally rendered */}
+      {customCursorEnabled && <SmoothCursor />}
     </SidebarProvider>
   );
 }
@@ -314,18 +324,26 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrandingProvider>
-          <RAGSettingsProvider>
-            <CitationFormattingProvider>
-              <ThemeProvider>
-                <TooltipProvider>
-                  <I18nProvider>
-                    <Router />
-                    <Toaster />
-                  </I18nProvider>
-                </TooltipProvider>
-              </ThemeProvider>
-            </CitationFormattingProvider>
-          </RAGSettingsProvider>
+          <TypographyProvider>
+            <LayoutProvider>
+              <AdvancedProvider>
+                <RAGSettingsProvider>
+                  <CitationFormattingProvider>
+                    <ThemeProvider>
+                      <CursorProvider>
+                        <TooltipProvider>
+                          <I18nProvider>
+                            <Router />
+                            <Toaster />
+                          </I18nProvider>
+                        </TooltipProvider>
+                      </CursorProvider>
+                    </ThemeProvider>
+                  </CitationFormattingProvider>
+                </RAGSettingsProvider>
+              </AdvancedProvider>
+            </LayoutProvider>
+          </TypographyProvider>
         </BrandingProvider>
       </AuthProvider>
     </QueryClientProvider>

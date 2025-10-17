@@ -204,11 +204,25 @@ export function useIntegrationForm({ integrationId, mode, onSave }: UseIntegrati
     };
     setFormData(prev => ({ ...prev, layout: newLayout }));
     
-    // Apply to theme context
-    if (newLayout) {
-      // setLayout(newLayout); // Removed - type mismatch with theme context
-      localStorage.setItem("theme-layout", JSON.stringify(newLayout));
-    }
+    // Apply to theme context - convert to theme layout format
+    const themeLayout = {
+      borderRadius: {
+        sm: "0.125rem",
+        md: "0.375rem", 
+        lg: "0.5rem"
+      },
+      widgetAppearance: {
+        chatBubbleStyle: "rounded" as const,
+        avatarStyle: "circle" as const,
+        animationsEnabled: true
+      },
+      customCSS: {
+        enabled: false,
+        css: ""
+      }
+    };
+    setLayout(themeLayout);
+    localStorage.setItem("theme-layout", JSON.stringify(newLayout));
   }, [formData.layout, setLayout]);
 
   // Save integration

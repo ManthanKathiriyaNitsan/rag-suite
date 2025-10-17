@@ -23,7 +23,7 @@ const mockUsers = [
   { id: "user-004", name: "Alice Johnson", email: "alice@company.com" },
 ];
 
-export default function IntegrationCreateEditRefactored({ 
+function IntegrationCreateEditRefactored({ 
   integrationId, 
   mode, 
   onBack, 
@@ -65,3 +65,5 @@ export default function IntegrationCreateEditRefactored({
     </IntegrationLayout>
   );
 }
+
+export default IntegrationCreateEditRefactored;

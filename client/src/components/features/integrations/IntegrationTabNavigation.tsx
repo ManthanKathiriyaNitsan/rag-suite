@@ -60,9 +60,7 @@ export function IntegrationTabNavigation({
         </TabsList>
       </div>
 
-      <div className="p-6">
-        {children}
-      </div>
+      {children}
     </Tabs>
   );
 }
@@ -133,6 +131,12 @@ export const DEFAULT_TABS: TabConfig[] = [
     id: "permissions",
     label: "Permissions",
     icon: Users,
+    component: () => null,
+  },
+  {
+    id: "audit-logs",
+    label: "Audit",
+    icon: FileText,
     component: () => null,
   },
   {
