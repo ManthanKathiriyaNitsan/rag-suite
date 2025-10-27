@@ -231,14 +231,10 @@ const Settings = React.memo(function Settings() {
   return (
     <div className="relative min-h-screen">
       {/* Theme-aware Background */}
-      <div className="fixed inset-0 -z-10">
-        <ResponsiveDarkVeil 
-          className="w-full h-full"
-        />
-      </div>
+      <ResponsiveDarkVeil />
       
       {/* Content */}
-      <div className="relative z-10 space-y-6 sm:px-6 lg:px-8 p-6">
+      <div className="relative z-10 space-y-6 sm:px-6 lg:px-8 p-0 sm:p-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('settings.title')}</h1>
         <p className="text-muted-foreground text-sm sm:text-base">

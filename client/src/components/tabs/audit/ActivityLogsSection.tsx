@@ -185,8 +185,8 @@ const ActivityLogsSection: React.FC<ActivityLogsSectionProps> = ({
   }, [logs]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 w-full max-w-full overflow-hidden min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Activity className="h-5 w-5" />
@@ -401,9 +401,9 @@ const ActivityLogsSection: React.FC<ActivityLogsSectionProps> = ({
         </CardContent>
       </Card>
 
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertDescription>
+      <Alert className="bg-blue-100 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700">
+        <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+        <AlertDescription className="text-blue-900 dark:text-blue-100">
           Activity logs provide detailed information about user actions and system events.
           Use filters to narrow down results and monitor specific activities or time periods.
         </AlertDescription>

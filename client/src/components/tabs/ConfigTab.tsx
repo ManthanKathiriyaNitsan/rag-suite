@@ -152,9 +152,9 @@ export default function ConfigTab({ data, onChange }: ConfigTabProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full overflow-hidden min-w-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold">Configuration</h3>
           <p className="text-sm text-muted-foreground">
@@ -173,11 +173,11 @@ export default function ConfigTab({ data, onChange }: ConfigTabProps) {
       </div>
 
       <Tabs defaultValue="rag" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="rag">RAG Settings</TabsTrigger>
-          <TabsTrigger value="features">Features</TabsTrigger>
-          <TabsTrigger value="response">Response</TabsTrigger>
-          <TabsTrigger value="advanced">Advanced</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto gap-1">
+          <TabsTrigger value="rag" className="text-xs sm:text-sm">RAG Settings</TabsTrigger>
+          <TabsTrigger value="features" className="text-xs sm:text-sm">Features</TabsTrigger>
+          <TabsTrigger value="response" className="text-xs sm:text-sm">Response</TabsTrigger>
+          <TabsTrigger value="advanced" className="text-xs sm:text-sm">Advanced</TabsTrigger>
         </TabsList>
 
         <TabsContent value="rag" className="space-y-4">

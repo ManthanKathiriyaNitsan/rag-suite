@@ -95,7 +95,7 @@ export default function OverviewTab({ data, users = [], onChange }: OverviewTabP
   const selectedOwner = users.find((user: User) => user.id === ownerId);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full overflow-hidden min-w-0">
       <Card>
         <CardHeader>
           <CardTitle>Basic Information</CardTitle>
@@ -237,13 +237,13 @@ export default function OverviewTab({ data, users = [], onChange }: OverviewTabP
                   </Badge>
                 ))}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <Input
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Add a tag..."
-                  className="max-w-xs"
+                  className="max-w-xs flex-1 sm:flex-none"
                   data-testid="input-new-tag"
                 />
                 <Button 

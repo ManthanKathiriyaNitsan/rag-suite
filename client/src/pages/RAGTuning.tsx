@@ -281,15 +281,11 @@ export default function RAGTuning() {
   return (
     <div className="relative min-h-screen">
       {/* Theme-aware Background */}
-      <div className="fixed inset-0 -z-10">
-        <ResponsiveDarkVeil 
-          className="w-full h-full"
-        />
-      </div>
+      <ResponsiveDarkVeil />
       
       {/* Content */}
-      <div className="relative z-10 space-y-6 p-6">
-      <div className="flex justify-between items-start">
+      <div className="relative z-10 space-y-6 p-0 sm:p-6">
+      <div className="flex flex-col md:flex-row gap-5 md:gap-0 justify-between items-start">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{t('rag-tuning.title')}</h1>
         <p className="text-muted-foreground">

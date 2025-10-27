@@ -7,13 +7,9 @@ import { GlassCard } from "@/components/ui/GlassCard";
 
 export function NotFound() {
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4">
+    <div className="relative min-h-screen flex items-center justify-center p-0 sm:p-4">
       {/* Theme-aware Background */}
-      <div className="fixed inset-0 -z-10">
-        <ResponsiveDarkVeil 
-          className="w-full h-full"
-        />
-      </div>
+      <ResponsiveDarkVeil />
       
       {/* Content */}
       <div className="relative z-10 w-full max-w-md text-center">
@@ -53,13 +49,9 @@ export function NotFound() {
 
 export function PermissionDenied() {
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4">
+    <div className="relative min-h-screen flex items-center justify-center p-0 sm:p-4">
       {/* Theme-aware Background */}
-      <div className="fixed inset-0 -z-10">
-        <ResponsiveDarkVeil 
-          className="w-full h-full"
-        />
-      </div>
+      <ResponsiveDarkVeil />
       
       {/* Content */}
       <div className="relative z-10 w-full max-w-md text-center">
@@ -99,13 +91,9 @@ export function PermissionDenied() {
 
 export function ServerError() {
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4">
+    <div className="relative min-h-screen flex items-center justify-center p-0 sm:p-4">
       {/* Theme-aware Background */}
-      <div className="fixed inset-0 -z-10">
-        <ResponsiveDarkVeil 
-          className="w-full h-full"
-        />
-      </div>
+      <ResponsiveDarkVeil />
       
       {/* Content */}
       <div className="relative z-10 w-full max-w-md text-center">

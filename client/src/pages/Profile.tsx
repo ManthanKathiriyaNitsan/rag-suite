@@ -80,14 +80,10 @@ const Profile = React.memo(function Profile() {
   return (
     <div className="relative min-h-screen">
       {/* Theme-aware Background */}
-      <div className="fixed inset-0 -z-10">
-        <ResponsiveDarkVeil 
-          className="w-full h-full"
-        />
-      </div>
+      <ResponsiveDarkVeil />
       
       {/* Content */}
-      <div className="relative z-10 max-w-6xl mx-auto space-y-8 p-6">
+      <div className="relative z-10 max-w-6xl mx-auto space-y-8 p-0 sm:p-6">
       {/* Header */}
       <div className="flex flex-col gap-6">
         <div>

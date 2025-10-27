@@ -201,9 +201,9 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
   const stats = getStats();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full overflow-hidden min-w-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold">Audit Logs & Compliance</h3>
           <p className="text-sm text-muted-foreground">
@@ -286,7 +286,7 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
                     />
                   </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
                   <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="w-32">
                   <SelectValue />
@@ -344,34 +344,34 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
                 ) : (
             <div className="space-y-4">
               {filteredLogs.map((log) => (
-                <div key={log.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
+                <div key={log.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-4">
+                  <div className="flex items-center gap-4 min-w-0 flex-1">
+                            <div className="flex items-center gap-2 min-w-0">
                       {getCategoryIcon(log.category)}
-                      <div className="text-sm">
+                      <div className="text-sm min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{log.action}</span>
                           {getSeverityBadge(log.severity)}
                         </div>
-                        <p className="text-muted-foreground">{log.details}</p>
+                        <p className="text-muted-foreground break-words">{log.details}</p>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-shrink-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
+                      <Avatar className="h-8 w-8 flex-shrink-0">
                         <AvatarImage src={log.user.avatar} />
                         <AvatarFallback>{getInitials(log.user.name)}</AvatarFallback>
                       </Avatar>
-                      <div className="text-sm">
-                        <div className="font-medium">{log.user.name}</div>
-                        <div className="text-muted-foreground">{log.user.email}</div>
+                      <div className="text-sm min-w-0">
+                        <div className="font-medium truncate">{log.user.name}</div>
+                        <div className="text-muted-foreground truncate">{log.user.email}</div>
                 </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-muted-foreground flex-shrink-0">
                       {formatTimestamp(log.timestamp)}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       {getOutcomeIcon(log.outcome)}
                       <Button variant="ghost" size="sm">
                         <Eye className="h-4 w-4" />

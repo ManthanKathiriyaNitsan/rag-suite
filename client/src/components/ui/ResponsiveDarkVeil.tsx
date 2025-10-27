@@ -76,17 +76,19 @@ export default function ResponsiveDarkVeil({
   const responsiveSettings = getResponsiveSettings();
 
   return (
-    <ThemeAwareDarkVeil
-      {...responsiveSettings}
-      {...props}
-      hueShift={hueShift !== undefined ? hueShift : responsiveSettings.hueShift}
-      speed={speed !== undefined ? speed : responsiveSettings.speed}
-      warpAmount={warpAmount !== undefined ? warpAmount : responsiveSettings.warpAmount}
-      noiseIntensity={noiseIntensity !== undefined ? noiseIntensity : responsiveSettings.noiseIntensity}
-      scanlineIntensity={scanlineIntensity !== undefined ? scanlineIntensity : responsiveSettings.scanlineIntensity}
-      scanlineFrequency={scanlineFrequency !== undefined ? scanlineFrequency : responsiveSettings.scanlineFrequency}
-      resolutionScale={resolutionScale !== undefined ? resolutionScale : responsiveSettings.resolutionScale}
-      className={className}
-    />
+    <div className="mobile-bg-fix">
+      <ThemeAwareDarkVeil
+        {...responsiveSettings}
+        {...props}
+        hueShift={hueShift !== undefined ? hueShift : responsiveSettings.hueShift}
+        speed={speed !== undefined ? speed : responsiveSettings.speed}
+        warpAmount={warpAmount !== undefined ? warpAmount : responsiveSettings.warpAmount}
+        noiseIntensity={noiseIntensity !== undefined ? noiseIntensity : responsiveSettings.noiseIntensity}
+        scanlineIntensity={scanlineIntensity !== undefined ? scanlineIntensity : responsiveSettings.scanlineIntensity}
+        scanlineFrequency={scanlineFrequency !== undefined ? scanlineFrequency : responsiveSettings.scanlineFrequency}
+        resolutionScale={resolutionScale !== undefined ? resolutionScale : responsiveSettings.resolutionScale}
+        className={className}
+      />
+    </div>
   );
 }

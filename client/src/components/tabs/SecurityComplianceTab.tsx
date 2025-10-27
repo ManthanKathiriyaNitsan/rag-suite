@@ -188,9 +188,9 @@ export default function SecurityComplianceTab({ data, onChange }: SecurityCompli
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full overflow-hidden min-w-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold">Security & Compliance</h3>
           <p className="text-sm text-muted-foreground">
@@ -270,17 +270,17 @@ export default function SecurityComplianceTab({ data, onChange }: SecurityCompli
 
       {/* Detailed Security Dashboard */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="policies">Policies</TabsTrigger>
-          <TabsTrigger value="compliance">Compliance</TabsTrigger>
-          <TabsTrigger value="encryption">Encryption</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto gap-1">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+          <TabsTrigger value="policies" className="text-xs sm:text-sm">Policies</TabsTrigger>
+          <TabsTrigger value="compliance" className="text-xs sm:text-sm">Compliance</TabsTrigger>
+          <TabsTrigger value="encryption" className="text-xs sm:text-sm">Encryption</TabsTrigger>
+          <TabsTrigger value="settings" className="text-xs sm:text-sm">Settings</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-4">
+        <TabsContent value="overview" className="space-y-4 w-full max-w-full overflow-hidden min-w-0">
             {/* Recent Security Alerts */}
-          <Card>
+          <Card className="w-full overflow-hidden">
               <CardHeader>
               <CardTitle className="text-base">Recent Security Alerts</CardTitle>
               <p className="text-sm text-muted-foreground">
@@ -296,21 +296,21 @@ export default function SecurityComplianceTab({ data, onChange }: SecurityCompli
               ) : (
                 <div className="space-y-4">
                   {security.alerts?.map((alert) => (
-                    <div key={alert.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <AlertTriangle className={`h-5 w-5 ${getSeverityColor(alert.severity)}`} />
-                          <div>
+                    <div key={alert.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-4">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <AlertTriangle className={`h-5 w-5 ${getSeverityColor(alert.severity)} flex-shrink-0`} />
+                          <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">{alert.title}</span>
+                            <span className="font-medium truncate">{alert.title}</span>
                             {getSeverityBadge(alert.severity)}
                           </div>
-                          <p className="text-sm text-muted-foreground">{alert.description}</p>
+                          <p className="text-sm text-muted-foreground break-words">{alert.description}</p>
                           <p className="text-xs text-muted-foreground">
                             {new Date(alert.timestamp).toLocaleString()} • Security Scanner
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         {getStatusBadge(alert.status)}
                         <Button variant="ghost" size="sm">
                           <Eye className="h-4 w-4" />
@@ -323,18 +323,18 @@ export default function SecurityComplianceTab({ data, onChange }: SecurityCompli
               </CardContent>
             </Card>
 
-            {/* Vulnerability Breakdown */}
-          <Card>
-              <CardHeader>
-              <CardTitle className="text-base">Vulnerability Breakdown</CardTitle>
+              {/* Vulnerability Breakdown */}
+          <Card className="w-full overflow-hidden">
+                <CardHeader>
+                <CardTitle className="text-base">Vulnerability Breakdown</CardTitle>
               <p className="text-sm text-muted-foreground">
                   Current security vulnerabilities by severity
               </p>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                <div className="flex  items-center justify-between">
+                    <div className="flex  items-center gap-2">
                       <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                       <span className="text-sm">Critical</span>
                     </div>
@@ -365,60 +365,62 @@ export default function SecurityComplianceTab({ data, onChange }: SecurityCompli
               </CardContent>
             </Card>
 
-          {/* Security Scans */}
-          <Card>
+            {/* Security Scans */}
+          {/* <Card className="w-full overflow-hidden">
             <CardHeader>
               <CardTitle className="text-base">Security Scans</CardTitle>
               <p className="text-sm text-muted-foreground">
                 Recent and scheduled security assessments
               </p>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {security.scans?.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <BarChart3 className="h-12 w-12 mx-auto mb-4" />
                   <p>No security scans available</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Findings</TableHead>
-                      <TableHead>Duration</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {security.scans?.map((scan) => (
-                      <TableRow key={scan.id}>
-                        <TableCell className="font-medium">{scan.type}</TableCell>
-                      <TableCell>
-                          <Badge variant={scan.status === "completed" ? "default" : "outline"}>
-                            {scan.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                          <div className="text-sm">
-                            <div>Critical: {scan.findings.critical}</div>
-                            <div>High: {scan.findings.high}</div>
-                            <div>Medium: {scan.findings.medium}</div>
-                          </div>
-                      </TableCell>
-                        <TableCell>{scan.duration}</TableCell>
-                      <TableCell>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  </TableBody>
-                </Table>
+                <div className="overflow-x-auto max-w-full min-w-0 mx-2 sm:mx-0" style={{ maxWidth: 'calc(100% - 1rem)' }}>
+                  <Table className="min-w-[600px] sm:min-w-[700px] w-full table-fixed">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[20%]">Type</TableHead>
+                        <TableHead className="w-[15%]">Status</TableHead>
+                        <TableHead className="w-[30%]">Findings</TableHead>
+                        <TableHead className="w-[15%]">Duration</TableHead>
+                        <TableHead className="w-[20%]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {security.scans?.map((scan) => (
+                        <TableRow key={scan.id}>
+                          <TableCell className="font-medium truncate">{scan.type}</TableCell>
+                          <TableCell>
+                            <Badge variant={scan.status === "completed" ? "default" : "outline"} className="text-xs flex-shrink-0">
+                              {scan.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <div className="truncate">Critical: {scan.findings.critical}</div>
+                              <div className="truncate">High: {scan.findings.high}</div>
+                              <div className="truncate">Medium: {scan.findings.medium}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm truncate">{scan.duration}</TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
-          </Card>
+          </Card> */}
         </TabsContent>
 
         <TabsContent value="policies" className="space-y-4">

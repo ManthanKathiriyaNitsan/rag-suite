@@ -75,11 +75,7 @@ export default function Signup() {
   return (
     <div className="relative min-h-screen flex">
       {/* Theme-aware Background */}
-      <div className="fixed inset-0 -z-10">
-        <ResponsiveDarkVeil 
-          className="w-full h-full"
-        />
-      </div>
+      <ResponsiveDarkVeil />
       
       {/* Content */}
       <div className="relative z-10 w-full flex">

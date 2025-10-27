@@ -189,8 +189,8 @@ const SecurityAlertsSection: React.FC<SecurityAlertsSectionProps> = ({
   }, [alerts]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 w-full max-w-full overflow-hidden min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Shield className="h-5 w-5" />

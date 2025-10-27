@@ -167,9 +167,9 @@ export default function AnalyticsTab({ data, onChange }: AnalyticsTabProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full overflow-hidden min-w-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold">Analytics</h3>
           <p className="text-sm text-muted-foreground">
@@ -272,11 +272,11 @@ export default function AnalyticsTab({ data, onChange }: AnalyticsTabProps) {
 
       {/* Detailed Analytics */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="queries">Queries</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto gap-1">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+          <TabsTrigger value="queries" className="text-xs sm:text-sm">Queries</TabsTrigger>
+          <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
+          <TabsTrigger value="performance" className="text-xs sm:text-sm">Performance</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -359,28 +359,30 @@ export default function AnalyticsTab({ data, onChange }: AnalyticsTabProps) {
                   <p>No query data available</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Query</TableHead>
-                      <TableHead>Count</TableHead>
-                      <TableHead>Success Rate</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {analytics.topQueries?.map((query, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">{query.query}</TableCell>
-                        <TableCell>{formatNumber(query.count)}</TableCell>
-                        <TableCell>
-                          <Badge variant={query.successRate > 90 ? "default" : "destructive"}>
-                            {formatPercentage(query.successRate)}
-                          </Badge>
-                        </TableCell>
+                <div className="overflow-x-auto max-w-full">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Query</TableHead>
+                        <TableHead>Count</TableHead>
+                        <TableHead>Success Rate</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {analytics.topQueries?.map((query, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium break-all">{query.query}</TableCell>
+                          <TableCell>{formatNumber(query.count)}</TableCell>
+                          <TableCell>
+                            <Badge variant={query.successRate > 90 ? "default" : "destructive"}>
+                              {formatPercentage(query.successRate)}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>

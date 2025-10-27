@@ -2,6 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile Background Coverage Fix */
+@layer utilities {
+  .mobile-bg-fix {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    min-width: 100vw;
+    min-height: 100vh;
+    z-index: -10;
+  }
+  
+  /* Ensure full viewport coverage on mobile */
+  @media (max-width: 768px) {
+    .mobile-bg-fix {
+      width: 100vw;
+      height: 100vh;
+      min-width: 100vw;
+      min-height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+    }
+  }
+}
+
 /* Glass Theme Utilities */
 @layer utilities {
   .glass-dark {

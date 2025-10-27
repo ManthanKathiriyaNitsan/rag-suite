@@ -185,14 +185,10 @@ const Documents = React.memo(function Documents() {
   return (
     <div className="relative min-h-screen">
       {/* Theme-aware Background */}
-      <div className="fixed inset-0 -z-10">
-        <ResponsiveDarkVeil 
-          className="w-full h-full"
-        />
-      </div>
+      <ResponsiveDarkVeil />
       
       {/* Content */}
-      <div className="relative z-10 space-y-6 p-6">
+      <div className="relative z-10 space-y-6 p-0 sm:p-6">
       <div className="flex flex-col md:flex-row items-start gap-4 md:gap-0 md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('documents.title')}</h1>

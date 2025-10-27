@@ -337,7 +337,7 @@ export default function ThemeTab({ data, onChange }: ThemeTabProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0 justify-between">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Palette className="h-6 w-6" />
@@ -373,16 +373,16 @@ export default function ThemeTab({ data, onChange }: ThemeTabProps) {
         </div>
       </div>
 
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertDescription>
+      <Alert className="bg-blue-100 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700">
+        <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+        <AlertDescription className="text-blue-900 dark:text-blue-100">
           Customize your theme with colors, typography, layout, and advanced settings.
           Changes are applied in real-time and can be exported for reuse.
         </AlertDescription>
       </Alert>
 
       <Tabs defaultValue="colors" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto gap-1">
           <TabsTrigger value="colors" data-testid="tab-colors" className="text-sm">
             Colors
           </TabsTrigger>

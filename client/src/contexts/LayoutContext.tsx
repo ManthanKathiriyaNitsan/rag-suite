@@ -14,7 +14,7 @@ const DEFAULT_LAYOUT: LayoutState = {
     buttonRadius: "0.375rem",
     inputRadius: "0.375rem",
     cardRadius: "0.5rem",
-    modalRadius: "0.75rem",
+    modalRadius: "0rem", // 0 by default for mobile
   },
 };
 
@@ -94,7 +94,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
         }
         
         /* Global Card Styles */
-        [class*="card"], .card, [data-card], .Card, [class*="Card"] {
+        [class*="card"], .card, [data-card], .Card, [class*="Card"], .shadcn-card {
           border-radius: ${layout.components.cardRadius} !important;
         }
         
@@ -103,9 +103,11 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
           border-radius: ${layout.components.modalRadius} !important;
         }
         
-        /* Additional common component selectors */
-        .rounded, .rounded-md, .rounded-lg, .rounded-xl {
-          border-radius: ${layout.components.cardRadius} !important;
+        /* Desktop Modal Styles - Apply proper radius on larger screens */
+        @media (min-width: 640px) {
+          [class*="modal"], .modal, [data-modal], [role="dialog"], .Modal, [class*="Modal"] {
+            border-radius: 0.75rem !important;
+          }
         }
       `;
       
@@ -274,9 +276,11 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
           border-radius: ${DEFAULT_LAYOUT.components.modalRadius} !important;
         }
         
-        /* Additional common component selectors */
-        .rounded, .rounded-md, .rounded-lg, .rounded-xl {
-          border-radius: ${DEFAULT_LAYOUT.components.cardRadius} !important;
+        /* Desktop Modal Styles - Apply proper radius on larger screens */
+        @media (min-width: 640px) {
+          [class*="modal"], .modal, [data-modal], [role="dialog"], .Modal, [class*="Modal"] {
+            border-radius: 0.75rem !important;
+          }
         }
       `;
       

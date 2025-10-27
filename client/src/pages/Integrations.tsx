@@ -252,14 +252,10 @@ export default function Integrations() {
   return (
     <div className="relative min-h-screen">
       {/* Theme-aware Background */}
-      <div className="fixed inset-0 -z-10">
-        <ResponsiveDarkVeil 
-          className="w-full h-full"
-        />
-      </div>
+      <ResponsiveDarkVeil />
       
       {/* Content */}
-      <div className="relative z-10 space-y-6 w-full max-w-full overflow-hidden min-w-0 p-6" style={{ maxWidth: '92vw' }}>
+      <div className="relative z-10 space-y-6 w-full max-w-full overflow-hidden min-w-0 p-0 sm:p-6" style={{ maxWidth: '92vw' }}>
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('nav.integrations')}</h1>

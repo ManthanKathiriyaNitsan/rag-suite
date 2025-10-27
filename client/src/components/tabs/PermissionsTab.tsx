@@ -254,9 +254,9 @@ export default function PermissionsTab({ data, users, onChange }: PermissionsTab
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full overflow-hidden min-w-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold">Access Control & Permissions</h3>
           <p className="text-sm text-muted-foreground">
@@ -389,27 +389,29 @@ export default function PermissionsTab({ data, users, onChange }: PermissionsTab
                 ) : (
             <div className="space-y-4">
               {teamUsers.map((user) => (
-                <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
+                <div key={user.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-4">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <Avatar className="h-10 w-10 flex-shrink-0">
                       <AvatarImage src={user.avatar} />
                       <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                         </Avatar>
-                    <div>
-                          <div className="flex items-center gap-2">
-                        <span className="font-medium">{user.name}</span>
+                    <div className="min-w-0 flex-1">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <span className="font-medium truncate">{user.name}</span>
                         {getRoleBadge(user.role)}
                         {getStatusBadge(user.status)}
                           </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Mail className="h-3 w-3" />
-                        <span>{user.email}</span>
-                        <span>•</span>
-                        <span>Last active {new Date(user.lastActive).toLocaleDateString()}</span>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{user.email}</span>
+                        </div>
+                        <span className="hidden sm:inline">•</span>
+                        <span className="text-xs sm:text-sm">Last active {new Date(user.lastActive).toLocaleDateString()}</span>
                           </div>
                         </div>
                       </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <Button
                       variant="ghost"
                       size="sm"

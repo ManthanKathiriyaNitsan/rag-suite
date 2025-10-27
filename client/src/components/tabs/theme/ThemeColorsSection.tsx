@@ -114,7 +114,7 @@ const ThemeColorsSection: React.FC<ThemeColorsSectionProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0 justify-between">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Palette className="h-5 w-5" />
@@ -134,9 +134,9 @@ const ThemeColorsSection: React.FC<ThemeColorsSectionProps> = ({
         </div>
       </div>
 
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertDescription>
+      <Alert className="bg-blue-100 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700">
+        <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+        <AlertDescription className="text-blue-900 dark:text-blue-100">
           Colors automatically adapt between light and dark modes. Primary color syncs with global settings. Click on color values to copy them to clipboard.
         </AlertDescription>
       </Alert>
@@ -203,9 +203,9 @@ const ThemeColorsSection: React.FC<ThemeColorsSectionProps> = ({
         })}
       </div>
 
-      <Alert>
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>
+      <Alert className="bg-purple-100 border-purple-300 dark:bg-purple-900/30 dark:border-purple-700">
+        <AlertTriangle className="h-4 w-4 text-purple-700 dark:text-purple-300" />
+        <AlertDescription className="text-purple-900 dark:text-purple-100">
           <strong>Pro Tip:</strong> Use color picker tools or design systems like Tailwind CSS for consistent color palettes.
           Ensure sufficient contrast ratios for accessibility compliance.
         </AlertDescription>

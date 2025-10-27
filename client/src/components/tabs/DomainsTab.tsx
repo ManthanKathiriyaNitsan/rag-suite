@@ -146,11 +146,11 @@ export default function DomainsTab({ data, onChange }: DomainsTabProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full overflow-hidden min-w-0">
       {/* Domain Allowlist Section */}
-      <Card>
+      <Card className="w-full overflow-hidden">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <CardTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5" />
               Domain Allowlist
@@ -197,7 +197,7 @@ export default function DomainsTab({ data, onChange }: DomainsTabProps) {
                           size="sm"
                           onClick={() => handleExampleClick(example)}
                           data-testid={`button-example-${index}`}
-                          className="text-xs"
+                          className="text-xs flex-shrink-0"
                         >
                           {example}
                         </Button>
@@ -205,9 +205,9 @@ export default function DomainsTab({ data, onChange }: DomainsTabProps) {
                     </div>
                   </div>
 
-                  <Alert>
-                    <Shield className="h-4 w-4" />
-                    <AlertDescription>
+                  <Alert className="bg-blue-100 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700">
+                    <Shield className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+                    <AlertDescription className="text-blue-900 dark:text-blue-100">
                       Only domains in this allowlist will be able to load your widget. 
                       Use wildcards (*.example.com) for subdomains.
                     </AlertDescription>
@@ -238,35 +238,36 @@ export default function DomainsTab({ data, onChange }: DomainsTabProps) {
         </CardHeader>
         <CardContent>
           {domains.length === 0 ? (
-            <Alert className="border-yellow-200 bg-yellow-50">
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-yellow-800">
+            <Alert className="bg-yellow-100 border-yellow-300 dark:bg-yellow-900/30 dark:border-yellow-700">
+              <AlertTriangle className="h-4 w-4 text-yellow-700 dark:text-yellow-300" />
+              <AlertDescription className="text-yellow-900 dark:text-yellow-100">
                 <strong>Warning:</strong> No domains configured. Your widget will not load on any website. 
                 Add at least one domain to enable your integration.
               </AlertDescription>
             </Alert>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Origin</TableHead>
-                  <TableHead>CSP Helper</TableHead>
-                  <TableHead>Added On</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <div className="overflow-x-auto max-w-full">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Origin</TableHead>
+                    <TableHead>CSP Helper</TableHead>
+                    <TableHead>Added On</TableHead>
+                    <TableHead className="w-[100px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                 {domains.map((domain) => (
                   <TableRow key={domain.id} data-testid={`row-domain-${domain.id}`}>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <code className="text-sm bg-muted px-2 py-1 rounded">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
+                        <code className="text-sm bg-muted px-2 py-1 rounded break-all">
                           {domain.origin}
                         </code>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6"
+                          className="h-6 w-6 flex-shrink-0"
                           onClick={() => window.open(domain.origin, '_blank')}
                           data-testid={`button-visit-${domain.id}`}
                         >
@@ -275,14 +276,14 @@ export default function DomainsTab({ data, onChange }: DomainsTabProps) {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <code className="text-xs text-muted-foreground">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
+                        <code className="text-xs text-muted-foreground break-all">
                           {domain.cspHelper}
                         </code>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6"
+                          className="h-6 w-6 flex-shrink-0"
                           onClick={() => handleCopyCSP(domain.cspHelper)}
                           data-testid={`button-copy-csp-${domain.id}`}
                         >
@@ -310,7 +311,8 @@ export default function DomainsTab({ data, onChange }: DomainsTabProps) {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

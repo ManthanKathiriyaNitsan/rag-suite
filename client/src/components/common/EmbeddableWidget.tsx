@@ -87,12 +87,23 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
   // 🎯 Helper function to get position classes
   const getPositionClasses = (position: string) => {
     switch(position) {
-      case 'bottom-right': return 'bottom-0 right-0 sm:bottom-6 sm:right-6';
-      case 'bottom-left': return 'bottom-0 left-0 sm:bottom-6 sm:left-6';
-      case 'top-right': return 'top-0 right-0 sm:top-6 sm:right-6';
-      case 'top-left': return 'top-0 left-0 sm:top-6 sm:left-6';
+      case 'bottom-right': return 'bottom-4 right-4 sm:bottom-6 sm:right-6';
+      case 'bottom-left': return 'bottom-4 left-4 sm:bottom-6 sm:left-6';
+      case 'top-right': return 'top-4 right-4 sm:top-6 sm:right-6';
+      case 'top-left': return 'top-4 left-4 sm:top-6 sm:left-6';
       case 'center': return 'top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2';
-      default: return 'bottom-0 right-0 sm:bottom-6 sm:right-6';
+      default: return 'bottom-4 right-4 sm:bottom-6 sm:right-6';
+    }
+  };
+
+  const getModalPositionClasses = (position: string) => {
+    switch(position) {
+      case 'bottom-right': return 'top-0 left-0 sm:bottom-6 sm:right-6 sm:top-auto sm:left-auto';
+      case 'bottom-left': return 'top-0 left-0 sm:bottom-6 sm:left-6 sm:top-auto sm:right-auto';
+      case 'top-right': return 'top-0 left-0 sm:top-6 sm:right-6 sm:bottom-auto sm:left-auto';
+      case 'top-left': return 'top-0 left-0 sm:top-6 sm:left-6 sm:bottom-auto sm:right-auto';
+      case 'center': return 'top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2';
+      default: return 'top-0 left-0 sm:bottom-6 sm:right-6 sm:top-auto sm:left-auto';
     }
   };
   
@@ -534,14 +545,14 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
         <div className="relative">
           <Button
             onClick={onToggle}
-            className="h-14 w-14 rounded-full shadow-lg widget-launcher-transition hover:scale-110 animate-widget-launcher-bounce animate-widget-launcher-pulse"
+            className="h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg widget-launcher-transition hover:scale-110 animate-widget-launcher-bounce animate-widget-launcher-pulse"
             data-testid="button-widget-launcher"
             aria-label="Open AI Assistant"
             aria-expanded="false"
             aria-haspopup="dialog"
             tabIndex={0}
           >
-            <MessageCircle className="h-6 w-6" aria-hidden="true" />
+            <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
             <span className="sr-only">Open AI Assistant</span>
           </Button>
           <PointerTypes.Chat className="absolute inset-0" />
@@ -552,7 +563,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
 
   return (
     <Card 
-        className={`widget-container widget-container-elevated fixed ${getPositionClasses(widgetPosition)} w-full h-screen sm:w-96 sm:h-[600px] md:w-96 md:h-[600px] shadow-xl flex flex-col ${
+        className={`widget-container widget-container-elevated fixed ${getModalPositionClasses(widgetPosition)} w-full h-screen sm:w-96 sm:h-[600px] md:w-96 md:h-[600px] shadow-xl flex flex-col ${
           widgetAppearance.chatBubbleStyle === "sharp" ? "rounded-none" :
           widgetAppearance.chatBubbleStyle === "minimal" ? "rounded-sm" :
           "rounded-lg"

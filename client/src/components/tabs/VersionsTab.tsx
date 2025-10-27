@@ -219,7 +219,7 @@ export default function VersionsTab({ data, onChange }: VersionsTabProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:gap-0 sm:flex-row sm:items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Versions</h3>
           <p className="text-sm text-muted-foreground">

@@ -63,9 +63,9 @@ export default function ThemeAdvancedSection() {
         </p>
       </div>
 
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertDescription>
+      <Alert className="bg-blue-100 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700">
+        <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+        <AlertDescription className="text-blue-900 dark:text-blue-100">
           Advanced settings control custom styling, accessibility features, and responsive behavior.
           Changes are applied globally and automatically saved to localStorage.
         </AlertDescription>
@@ -204,9 +204,9 @@ export default function ThemeAdvancedSection() {
         </CardContent>
       </Card>
 
-      <Alert>
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>
+      <Alert className="bg-orange-100 border-orange-300 dark:bg-orange-900/30 dark:border-orange-700">
+        <AlertTriangle className="h-4 w-4 text-orange-700 dark:text-orange-300" />
+        <AlertDescription className="text-orange-900 dark:text-orange-100">
           <strong>Advanced Settings Tip:</strong> Use custom CSS for specific styling needs and accessibility settings for better user experience.
           Responsive breakpoints help define when your layout adapts to different screen sizes.
         </AlertDescription>

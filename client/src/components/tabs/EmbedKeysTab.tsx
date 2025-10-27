@@ -210,7 +210,7 @@ class ViewController: UIViewController {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden min-w-0 px-2 sm:px-0" style={{ maxWidth: '93vw' }}>
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden min-w-0 px-0 sm:px-0" style={{ maxWidth: '85vw' }}>
       {/* Public ID Section */}
       <Card className="w-full overflow-hidden">
         <CardHeader>

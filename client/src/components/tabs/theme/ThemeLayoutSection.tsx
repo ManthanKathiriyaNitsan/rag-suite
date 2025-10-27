@@ -42,9 +42,9 @@ export default function ThemeLayoutSection() {
         </p>
       </div>
 
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertDescription>
+      <Alert className="bg-blue-100 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700">
+        <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+        <AlertDescription className="text-blue-900 dark:text-blue-100">
           Component styling settings control the border radius of UI elements.
           Changes are applied globally and automatically saved to localStorage.
         </AlertDescription>
@@ -110,9 +110,9 @@ export default function ThemeLayoutSection() {
       </Card>
 
 
-      <Alert>
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>
+      <Alert className="bg-green-100 border-green-300 dark:bg-green-900/30 dark:border-green-700">
+        <AlertTriangle className="h-4 w-4 text-green-700 dark:text-green-300" />
+        <AlertDescription className="text-green-900 dark:text-green-100">
           <strong>Design System Tip:</strong> Use consistent border radius values throughout your application.
           Consider using CSS custom properties for better maintainability and theming support.
         </AlertDescription>

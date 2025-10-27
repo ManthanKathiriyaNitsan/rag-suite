@@ -33,10 +33,10 @@ export default defineConfig({
   },
   server: {
     port: 5000,
-    host: true,
+    host: '0.0.0.0', // Bind to all network interfaces
     hmr: {
       port: 5000,
-      host: 'localhost'
+      host: '192.168.0.128' // Use your IP for HMR
     },
     fs: {
       strict: true,

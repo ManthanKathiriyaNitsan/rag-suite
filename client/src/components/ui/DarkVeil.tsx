@@ -148,10 +148,16 @@ export default function DarkVeil({
     const mesh = new Mesh(gl, { geometry, program });
 
     const resize = () => {
-      const w = parent.clientWidth;
-      const h = parent.clientHeight;
-      renderer.setSize(w * resolutionScale, h * resolutionScale);
-      program.uniforms.uResolution.value.set(w, h);
+      // Use viewport dimensions to ensure full coverage on mobile
+      const w = Math.max(parent.clientWidth, window.innerWidth);
+      const h = Math.max(parent.clientHeight, window.innerHeight);
+      
+      // Ensure minimum dimensions for mobile devices
+      const minWidth = Math.max(w, 320); // Minimum mobile width
+      const minHeight = Math.max(h, 568); // Minimum mobile height
+      
+      renderer.setSize(minWidth * resolutionScale, minHeight * resolutionScale);
+      program.uniforms.uResolution.value.set(minWidth, minHeight);
     };
 
     window.addEventListener('resize', resize);
@@ -180,5 +186,13 @@ export default function DarkVeil({
     };
   }, [hueShift, noiseIntensity, scanlineIntensity, speed, scanlineFrequency, warpAmount, resolutionScale, invertColors]);
   
-  return <canvas ref={ref} className={`w-full h-full block ${className}`} />;
+  return <canvas ref={ref} className={`w-full h-full block ${className}`} style={{ 
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    minWidth: '100vw',
+    minHeight: '100vh'
+  }} />;
 }

@@ -220,14 +220,10 @@ export default function Crawl() {
   return (
     <div className="relative min-h-screen">
       {/* Theme-aware Background */}
-      <div className="fixed inset-0 -z-10">
-        <ResponsiveDarkVeil 
-          className="w-full h-full"
-        />
-      </div>
+      <ResponsiveDarkVeil />
       
       {/* Content */}
-      <div className="relative z-10 space-y-6 w-full max-w-full overflow-hidden min-w-0 p-6" style={{ maxWidth: '92vw' }}>
+      <div className="relative z-10 space-y-6 w-full max-w-full overflow-hidden min-w-0 p-0 sm:p-6" style={{ maxWidth: '92vw' }}>
       <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 lg:gap-0 lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('crawl.title')}</h1>

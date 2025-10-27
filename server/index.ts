@@ -7,7 +7,7 @@ const app = express();
 
 // Enable CORS for all routes
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5000', 'http://192.168.0.117:8000', 'http://192.168.0.136:8000'],
+  origin: ['http://localhost:3000', 'http://localhost:5000', 'http://192.168.0.117:8000', 'http://192.168.0.136:8000', 'http://192.168.0.128:5000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
@@ -58,7 +58,8 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
-  app.listen(port, () => {
+  app.listen(port, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${port}`);
+    console.log(`Network access available at http://192.168.0.128:${port}`);
   });
 })();

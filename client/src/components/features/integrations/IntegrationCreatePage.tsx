@@ -439,8 +439,8 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
       </div>
       
       {/* Content */}
-      <div className="relative z-10 flex h-screen">
-        {/* Sidebar Navigation */}
+      <div className="relative z-10 flex h-screen lg:h-screen min-h-screen">
+        {/* Desktop Sidebar Navigation */}
         <div className="w-64 bg-background/80 backdrop-blur-sm border-r border-border/50 hidden lg:block">
           <div className="p-4">
             <div className="flex items-center gap-2 mb-6">
@@ -473,11 +473,11 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col lg:h-screen">
           {/* Header */}
           <div className="border-b bg-background/80 backdrop-blur-sm">
             <div className="px-4 lg:px-6 py-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0 justify-between">
                 <div>
                   <h1 className="text-xl lg:text-2xl font-bold">
                     {mode === "create" ? "Create Integration" : "Edit Integration"}
@@ -508,8 +508,42 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
             </div>
           </div>
 
+          {/* Mobile Tab Navigation */}
+          <div className="lg:hidden border-b bg-background/80 backdrop-blur-sm">
+            <div className="px-4 py-3">
+              <div className="flex items-center gap-2 mb-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onBack}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back
+                </Button>
+                <div className="text-sm font-medium text-muted-foreground">Integration Settings</div>
+              </div>
+              
+              {/* Compact Tab Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {sidebarItems.map((item) => (
+                  <Button
+                    key={item.id}
+                    variant={activeTab === item.id ? "secondary" : "outline"}
+                    size="sm"
+                    className="flex items-center gap-2 justify-start h-9 text-xs"
+                    onClick={() => handleTabChange(item.id)}
+                  >
+                    <item.icon className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Content Area */}
-          <div className="flex-1 p-4 lg:p-6 overflow-auto">
+          <div className="flex-1 p-0 pt-3 lg:p-6 lg:overflow-auto">
             {error && (
               <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
                 <p className="text-destructive text-sm">{error}</p>
@@ -517,7 +551,9 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
             )}
             <GlassCard className="w-full">
               <CardHeader>
-                <CardTitle className="text-lg lg:text-xl">Basic Information</CardTitle>
+                <CardTitle className="text-lg lg:text-xl">
+                  {sidebarItems.find(item => item.id === activeTab)?.label || "Basic Information"}
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-4 lg:p-6">
                 {renderTabContent()}
