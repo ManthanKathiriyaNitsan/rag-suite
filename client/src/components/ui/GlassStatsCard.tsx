@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Badge } from './Badge';
+import { Badge } from './badge';
 
 interface GlassStatsCardProps {
   title: string;
