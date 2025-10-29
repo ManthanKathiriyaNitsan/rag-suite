@@ -3,7 +3,7 @@ import { AlertTriangle, RefreshCw, Trash2, Download, Eye } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/Alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/ScrollArea';
 import { errorReportingService, ErrorReport } from '@/services/errorReporting';
 
