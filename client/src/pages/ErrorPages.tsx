@@ -1,6 +1,6 @@
 import { AlertTriangle, Home, ArrowLeft, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
 import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
 import { GlassCard } from "@/components/ui/GlassCard";

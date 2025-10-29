@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { MessageCircle, X, Minimize2, Search, MessageSquare, Zap, Loader2, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SearchBar } from "./SearchBar";
 import ChatMessage from "./ChatMessage";
-import { Badge } from "@/components/ui/Badge";
+import { Badge } from "@/components/ui/badge";
 import TypingIndicator from "./TypingIndicator";
 import { useRAGSettings } from "@/contexts/RAGSettingsContext";
 import { testChatAPIConnection } from "@/services/api/api";

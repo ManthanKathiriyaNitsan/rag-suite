@@ -1,6 +1,6 @@
 import React from "react"
 import { motion } from "framer-motion"
-import { Pointer } from "@/components/ui/Pointer"
+import { Pointer } from "@/components/ui/pointer"
 import { cn } from "@/utils"
 import { useState, useEffect, useRef } from "react"
 import { useTheme } from "@/contexts/ThemeContext"

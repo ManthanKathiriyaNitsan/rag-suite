@@ -2,8 +2,8 @@ import * as React from "react";
 import { useMemo, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { User, Settings, LogOut, Shield, Bell, HelpCircle, CreditCard } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
-import { Badge } from "@/components/ui/Badge";
+import { Badge } from "@/components/ui/badge";
 // 🔐 Import authentication context
 import { useAuthContext } from "@/contexts/AuthContext";
 import { PointerTypes } from "@/components/ui/AnimatedPointer";

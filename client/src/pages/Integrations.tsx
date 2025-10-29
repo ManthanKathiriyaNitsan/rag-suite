@@ -4,12 +4,12 @@ import { Plus, Search, Filter, Globe, Copy, Pause, Play, Archive, Settings, BarC
 // 🚀 Lazy load heavy integration components
 const IntegrationCreateEdit = lazy(() => import("@/components/features/integrations/IntegrationCreatePage"));
 import { IntegrationCreateErrorBoundary } from "@/components/features/integrations/IntegrationCreateErrorBoundary";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/contexts/I18nContext";
 import { PointerTypes } from "@/components/ui/AnimatedPointer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassCard } from "@/components/ui/GlassCard";
 import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
 import {
@@ -18,7 +18,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/Select";
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -26,8 +26,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/Table";
-import { Checkbox } from "@/components/ui/Checkbox";
+} from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,

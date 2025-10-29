@@ -4,7 +4,7 @@
  */
 
 import { ReactNode } from "react";
-import { TabsContent } from "@/components/ui/Tabs";
+import { TabsContent } from "@/components/ui/tabs";
 import OverviewTab from "@/components/tabs/OverviewTab";
 import EmbedKeysTab from "@/components/tabs/EmbedKeysTab";
 import DomainsTab from "@/components/tabs/DomainsTab";

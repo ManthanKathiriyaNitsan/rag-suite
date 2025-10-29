@@ -1,9 +1,9 @@
 import React, { useMemo, useCallback } from "react";
 import { Activity, Search, Users, AlertTriangle, TrendingUp } from "lucide-react";
 import { StatsCard } from "@/components/features/analytics/StatsCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useTranslation } from "@/contexts/I18nContext";
 import { ConditionalPointerTypes } from "@/components/ui/ConditionalPointer";

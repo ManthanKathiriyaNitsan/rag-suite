@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { Loader2 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useCrawlOperations } from "@/hooks/useCrawl";
 import { CrawlSite } from "@/services/api/api";
 

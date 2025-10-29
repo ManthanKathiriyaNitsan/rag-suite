@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback, Suspense, lazy } from "react";
 import { Send, Copy, Settings, Zap, Loader2, Trash2, History } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Slider } from "@/components/ui/Slider";
-import { Switch } from "@/components/ui/Switch";
-import { Label } from "@/components/ui/Label";
-import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/contexts/I18nContext";
 
 // 🚀 Lazy load heavy chat components

@@ -1,8 +1,8 @@
 import * as React from "react";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Search, Mic, Send, History } from "lucide-react";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/useToast";
 import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import { ComponentErrorBoundary } from "@/components/error";
