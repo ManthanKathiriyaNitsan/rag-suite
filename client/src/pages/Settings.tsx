@@ -443,10 +443,15 @@ const Settings = React.memo(function Settings() {
                   <Select 
                     value={backgroundTheme} 
                     onValueChange={(value) => {
-                      setBackgroundTheme(value as 'veil' | 'geometric');
+                      setBackgroundTheme(value as 'veil' | 'geometric' | 'simple');
+                      const themeNames: Record<string, string> = {
+                        'veil': 'Veil',
+                        'geometric': 'Geometric',
+                        'simple': 'Simple'
+                      };
                       toast({
                         title: "Background Theme Updated",
-                        description: `Background theme changed to ${value === 'veil' ? 'Veil' : 'Geometric'}.`,
+                        description: `Background theme changed to ${themeNames[value] || value}.`,
                       });
                     }}
                   >
@@ -456,31 +461,69 @@ const Settings = React.memo(function Settings() {
                     <SelectContent>
                       <SelectItem value="veil">Veil</SelectItem>
                       <SelectItem value="geometric">Geometric</SelectItem>
+                      <SelectItem value="simple">Simple</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Choose between the animated veil background or the geometric shapes background. Both themes adapt to dark and light modes.
+                    Choose a background theme. All themes adapt to dark and light modes. You can also click on the cards below to select a theme.
                   </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                  <div className={`p-4 rounded-lg border-2 transition-all ${
-                    backgroundTheme === 'veil' 
-                      ? 'border-primary bg-primary/5' 
-                      : 'border-border bg-secondary/50'
-                  }`}>
+                  <div 
+                    onClick={() => {
+                      setBackgroundTheme('veil');
+                      toast({
+                        title: "Background Theme Updated",
+                        description: "Background theme changed to Veil.",
+                      });
+                    }}
+                    className={`p-4 rounded-lg border-2 transition-all cursor-pointer hover:border-primary/50 ${
+                      backgroundTheme === 'veil' 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-border bg-secondary/50'
+                    }`}
+                  >
                     <div className="font-semibold mb-2">Veil</div>
                     <p className="text-sm text-muted-foreground">
                       Animated glassmorphic veil with depth and motion effects.
                     </p>
                   </div>
-                  <div className={`p-4 rounded-lg border-2 transition-all ${
-                    backgroundTheme === 'geometric' 
-                      ? 'border-primary bg-primary/5' 
-                      : 'border-border bg-secondary/50'
-                  }`}>
+                  <div 
+                    onClick={() => {
+                      setBackgroundTheme('geometric');
+                      toast({
+                        title: "Background Theme Updated",
+                        description: "Background theme changed to Geometric.",
+                      });
+                    }}
+                    className={`p-4 rounded-lg border-2 transition-all cursor-pointer hover:border-primary/50 ${
+                      backgroundTheme === 'geometric' 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-border bg-secondary/50'
+                    }`}
+                  >
                     <div className="font-semibold mb-2">Geometric</div>
                     <p className="text-sm text-muted-foreground">
                       Elegant floating geometric shapes with gradient effects.
+                    </p>
+                  </div>
+                  <div 
+                    onClick={() => {
+                      setBackgroundTheme('simple');
+                      toast({
+                        title: "Background Theme Updated",
+                        description: "Background theme changed to Simple.",
+                      });
+                    }}
+                    className={`p-4 rounded-lg border-2 transition-all cursor-pointer hover:border-primary/50 ${
+                      backgroundTheme === 'simple' 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-border bg-secondary/50'
+                    }`}
+                  >
+                    <div className="font-semibold mb-2">Simple</div>
+                    <p className="text-sm text-muted-foreground">
+                      Clean and minimal background with subtle gradients.
                     </p>
                   </div>
                 </div>
