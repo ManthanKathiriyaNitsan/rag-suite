@@ -947,9 +947,82 @@
   [data-pointer-active] {
     cursor: none !important;
   }
+
+  /* Custom Scrollbar Styles - Modern, Thin, and Subtle */
   
-  [data-pointer-active] * {
-    cursor: none !important;
+  /* Option 1: Thin, Subtle Scrollbar (Recommended) */
+  :root {
+    /* Webkit browsers (Chrome, Safari, Edge) */
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent; /* Firefox */
+  }
+
+  /* Webkit Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    transition: background 0.3s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  /* Dark theme specific scrollbar */
+  .dark ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  /* Light theme specific scrollbar */
+  .light ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  .light ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  /* Option 2: Auto-hide Scrollbar (Only visible on hover) */
+  .scrollbar-hide-on-idle::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+
+  .scrollbar-hide-on-idle:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Option 3: Completely Hidden Scrollbar (Still scrollable) */
+  .scrollbar-hidden {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+
+  /* Option 4: Ultra-thin scrollbar (2px) */
+  .scrollbar-ultra-thin::-webkit-scrollbar {
+    width: 2px;
+    height: 2px;
+  }
+
+  .scrollbar-ultra-thin::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
   }
 
   /* Animated pointer icon styles - controlled by React state */
