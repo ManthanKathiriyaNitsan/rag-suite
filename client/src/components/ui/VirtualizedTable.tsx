@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback } from 'react';
-import * as ReactWindow from 'react-window';
+import { List } from 'react-window';
 import {
   Table,
   TableBody,
@@ -95,7 +95,7 @@ export function VirtualizedTable<T>({
         </TableHeader>
       </Table>
       <div style={{ height }}>
-        <ReactWindow.FixedSizeList
+        <List
           height={height}
           itemCount={data.length}
           itemSize={itemHeight}
@@ -103,7 +103,7 @@ export function VirtualizedTable<T>({
           overscanCount={5}
         >
           {VirtualizedRow}
-        </ReactWindow.FixedSizeList>
+          </List>
       </div>
     </div>
   );
