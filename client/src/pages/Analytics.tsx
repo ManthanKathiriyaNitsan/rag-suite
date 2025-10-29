@@ -2,7 +2,6 @@ import React, { useState, useMemo, useCallback } from "react";
 import { TrendingUp, Download, Clock, Users, ThumbsUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassCard } from "@/components/ui/GlassCard";
-import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/contexts/I18nContext";
@@ -90,9 +89,6 @@ const Analytics = React.memo(function Analytics() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Theme-aware Background */}
-      <ResponsiveDarkVeil />
-      
       {/* Content */}
       <div className="relative z-10 space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden min-w-0 p-0 sm:p-6" style={{ maxWidth: '93vw' }}>
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">

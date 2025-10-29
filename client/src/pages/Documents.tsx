@@ -27,7 +27,6 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { documentAPI, Document, DocumentMetadata } from "@/services/api/api";
-import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
 import { GlassCard } from "@/components/ui/GlassCard";
 
 
@@ -184,9 +183,6 @@ const Documents = React.memo(function Documents() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Theme-aware Background */}
-      <ResponsiveDarkVeil />
-      
       {/* Content */}
       <div className="relative z-10 space-y-6 p-0 sm:p-6">
       <div className="flex flex-col md:flex-row items-start gap-4 md:gap-0 md:items-center md:justify-between">

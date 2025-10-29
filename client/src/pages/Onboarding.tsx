@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { SearchBar } from "@/components/common/SearchBar";
 import ChatMessage from "@/components/common/ChatMessage";
-import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
+import { BackgroundWrapper } from "@/components/common/BackgroundWrapper";
 import { GlassCard } from "@/components/ui/GlassCard";
 
 const steps = [
@@ -82,7 +82,7 @@ Your RAG system is ready to help users find information from your documentation!
   return (
     <div className="relative min-h-screen">
       {/* Theme-aware Background */}
-      <ResponsiveDarkVeil />
+      <BackgroundWrapper />
       
       {/* Content */}
       <div className="relative z-10 container mx-auto px-0 sm:px-3 md:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">

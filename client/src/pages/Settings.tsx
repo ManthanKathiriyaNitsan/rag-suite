@@ -40,8 +40,9 @@ import { ConditionalPointerTypes } from "@/components/ui/ConditionalPointer";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useCitationFormatting } from "@/contexts/CitationFormattingContext";
 import { useCursor } from "@/contexts/CursorContext";
-import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
+import { useBackground } from "@/contexts/BackgroundContext";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { Layers } from "lucide-react";
 
 const Settings = React.memo(function Settings() {
   // 📝 Memoized API keys data
@@ -97,6 +98,9 @@ const Settings = React.memo(function Settings() {
   
   // Custom cursor context
   const { customCursorEnabled, setCustomCursorEnabled, pointerIconsEnabled, setPointerIconsEnabled } = useCursor();
+  
+  // Background theme context
+  const { backgroundTheme, setBackgroundTheme } = useBackground();
   // const [locale, setLocale] = useState("en");
   const { locale, setLocale, t } = useI18n();
   const { formatting, updateFormatting, resetFormatting } = useCitationFormatting();
@@ -230,9 +234,6 @@ const Settings = React.memo(function Settings() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Theme-aware Background */}
-      <ResponsiveDarkVeil />
-      
       {/* Content */}
       <div className="relative z-10 space-y-6 sm:px-6 lg:px-8 p-0 sm:p-6">
       <div>
@@ -422,6 +423,66 @@ const Settings = React.memo(function Settings() {
                 <div className="relative">
                   <Button onClick={handleSaveBranding} data-testid="button-save-branding" className="w-full sm:w-auto group">Save Changes</Button>
                   <ConditionalPointerTypes.Save className="absolute inset-0" />
+                </div>
+              </div>
+            </CardContent>
+          </GlassCard>
+
+          {/* Background Theme Selector */}
+          <GlassCard>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Layers className="h-5 w-5" />
+                Background Theme
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="background-theme">Select Background Theme</Label>
+                  <Select 
+                    value={backgroundTheme} 
+                    onValueChange={(value) => {
+                      setBackgroundTheme(value as 'veil' | 'geometric');
+                      toast({
+                        title: "Background Theme Updated",
+                        description: `Background theme changed to ${value === 'veil' ? 'Veil' : 'Geometric'}.`,
+                      });
+                    }}
+                  >
+                    <SelectTrigger id="background-theme" className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="veil">Veil</SelectItem>
+                      <SelectItem value="geometric">Geometric</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Choose between the animated veil background or the geometric shapes background. Both themes adapt to dark and light modes.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                  <div className={`p-4 rounded-lg border-2 transition-all ${
+                    backgroundTheme === 'veil' 
+                      ? 'border-primary bg-primary/5' 
+                      : 'border-border bg-secondary/50'
+                  }`}>
+                    <div className="font-semibold mb-2">Veil</div>
+                    <p className="text-sm text-muted-foreground">
+                      Animated glassmorphic veil with depth and motion effects.
+                    </p>
+                  </div>
+                  <div className={`p-4 rounded-lg border-2 transition-all ${
+                    backgroundTheme === 'geometric' 
+                      ? 'border-primary bg-primary/5' 
+                      : 'border-border bg-secondary/50'
+                  }`}>
+                    <div className="font-semibold mb-2">Geometric</div>
+                    <p className="text-sm text-muted-foreground">
+                      Elegant floating geometric shapes with gradient effects.
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>

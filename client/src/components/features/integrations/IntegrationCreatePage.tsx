@@ -11,7 +11,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassCard } from "@/components/ui/GlassCard";
-import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
 import {
   Select,
   SelectContent,
@@ -431,13 +430,6 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
 
   return (
     <div className="relative min-h-screen">
-      {/* Theme-aware Background */}
-      <div className="fixed inset-0 -z-10">
-        <ResponsiveDarkVeil 
-          className="w-full h-full"
-        />
-      </div>
-      
       {/* Content */}
       <div className="relative z-10 flex h-screen lg:h-screen min-h-screen">
         {/* Desktop Sidebar Navigation */}

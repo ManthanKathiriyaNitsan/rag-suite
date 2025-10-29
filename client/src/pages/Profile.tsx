@@ -13,7 +13,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { PointerTypes } from "@/components/ui/AnimatedPointer";
-import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
 import { GlassCard } from "@/components/ui/GlassCard";
 
 const Profile = React.memo(function Profile() {
@@ -79,9 +78,6 @@ const Profile = React.memo(function Profile() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Theme-aware Background */}
-      <ResponsiveDarkVeil />
-      
       {/* Content */}
       <div className="relative z-10 max-w-6xl mx-auto space-y-8 p-0 sm:p-6">
       {/* Header */}

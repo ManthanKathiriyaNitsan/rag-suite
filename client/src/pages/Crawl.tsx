@@ -11,7 +11,6 @@ import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassCard } from "@/components/ui/GlassCard";
-import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -219,9 +218,6 @@ export default function Crawl() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Theme-aware Background */}
-      <ResponsiveDarkVeil />
-      
       {/* Content */}
       <div className="relative z-10 space-y-6 w-full max-w-full overflow-hidden min-w-0 p-0 sm:p-6" style={{ maxWidth: '92vw' }}>
       <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 lg:gap-0 lg:justify-between">

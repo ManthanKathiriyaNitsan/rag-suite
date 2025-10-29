@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PointerTypes } from "@/components/ui/AnimatedPointer";
-import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
+import { BackgroundWrapper } from "@/components/common/BackgroundWrapper";
 import { GlassCard } from "@/components/ui/GlassCard";
 
 export default function Signup() {
@@ -75,7 +75,7 @@ export default function Signup() {
   return (
     <div className="relative min-h-screen flex">
       {/* Theme-aware Background */}
-      <ResponsiveDarkVeil />
+      <BackgroundWrapper />
       
       {/* Content */}
       <div className="relative z-10 w-full flex">

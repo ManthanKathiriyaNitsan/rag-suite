@@ -2,14 +2,14 @@ import { AlertTriangle, Home, ArrowLeft, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
-import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
+import { BackgroundWrapper } from "@/components/common/BackgroundWrapper";
 import { GlassCard } from "@/components/ui/GlassCard";
 
 export function NotFound() {
   return (
     <div className="relative min-h-screen flex items-center justify-center p-0 sm:p-4">
       {/* Theme-aware Background */}
-      <ResponsiveDarkVeil />
+      <BackgroundWrapper />
       
       {/* Content */}
       <div className="relative z-10 w-full max-w-md text-center">
@@ -51,7 +51,7 @@ export function PermissionDenied() {
   return (
     <div className="relative min-h-screen flex items-center justify-center p-0 sm:p-4">
       {/* Theme-aware Background */}
-      <ResponsiveDarkVeil />
+      <BackgroundWrapper />
       
       {/* Content */}
       <div className="relative z-10 w-full max-w-md text-center">
@@ -93,7 +93,7 @@ export function ServerError() {
   return (
     <div className="relative min-h-screen flex items-center justify-center p-0 sm:p-4">
       {/* Theme-aware Background */}
-      <ResponsiveDarkVeil />
+      <BackgroundWrapper />
       
       {/* Content */}
       <div className="relative z-10 w-full max-w-md text-center">

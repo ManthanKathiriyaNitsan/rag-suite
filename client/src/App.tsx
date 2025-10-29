@@ -1,5 +1,6 @@
 import React, { useEffect, useState, Suspense, lazy } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
+import { AnimatePresence, motion } from "framer-motion";
 import { queryClient } from "./services/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -20,6 +21,8 @@ import { AdvancedProvider } from "@/contexts/AdvancedContext";
 import { I18nProvider } from "@/contexts/I18nContext";
 import { CitationFormattingProvider } from "@/contexts/CitationFormattingContext";
 import { CursorProvider, useCursor } from "@/contexts/CursorContext";
+import { BackgroundProvider } from "@/contexts/BackgroundContext";
+import { BackgroundWrapper } from "@/components/common/BackgroundWrapper";
 import { useTranslation } from "@/contexts/I18nContext";
 import { SmoothCursor } from "@/components/ui/SmoothCursor";
 import { ConditionalPointerTypes } from "@/components/ui/ConditionalPointer";
@@ -134,7 +137,9 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex h-screen w-full">
+      {/* Global Background */}
+      <BackgroundWrapper />
+      <div className="flex h-screen w-full relative z-10">
         <AppSidebar data-testid="sidebar" />
         <div className="flex flex-col flex-1">
           <GlassNavbar variant={theme === 'dark' ? 'dark' : 'light'}>
@@ -224,98 +229,149 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Router() {
+// Page transition wrapper component
+function PageTransitionWrapper({ children, pageName }: { children: React.ReactNode; pageName: string }) {
   return (
-    <Switch>
-      <Route path="/login">
-        <PageErrorBoundary pageName="Login">
-          <Login />
-        </PageErrorBoundary>
-      </Route>
-      <Route path="/signup">
-        <PageErrorBoundary pageName="Signup">
-          <Signup />
-        </PageErrorBoundary>
-      </Route>
-      <Route path="/onboarding">
-        <PageErrorBoundary pageName="Onboarding">
-          <Onboarding />
-        </PageErrorBoundary>
-      </Route>
-      <Route path="/" nest>
-        <ProtectedRoute>
-          <DashboardLayout>
-            <Switch>
-              <Route path="/">
-                <PageErrorBoundary pageName="Overview">
-                  <Overview />
-                </PageErrorBoundary>
-              </Route>
-              <Route path="/crawl">
-                <PageErrorBoundary pageName="Crawl">
-                  <Crawl />
-                </PageErrorBoundary>
-              </Route>
-              <Route path="/rag-tuning">
-                <PageErrorBoundary pageName="RAG Tuning">
-                  <RAGTuning />
-                </PageErrorBoundary>
-              </Route>
-              <Route path="/documents">
-                <PageErrorBoundary pageName="Documents">
-                  <Documents />
-                </PageErrorBoundary>
-              </Route>
-              <Route path="/analytics">
-                <PageErrorBoundary pageName="Analytics">
-                  <Analytics />
-                </PageErrorBoundary>
-              </Route>
-              <Route path="/feedback">
-                <PageErrorBoundary pageName="Feedback">
-                  <Feedback />
-                </PageErrorBoundary>
-              </Route>
-              <Route path="/integrations">
-                <PageErrorBoundary pageName="Integrations">
-                  <Integrations />
-                </PageErrorBoundary>
-              </Route>
-              <Route path="/profile">
-                <PageErrorBoundary pageName="Profile">
-                  <Profile />
-                </PageErrorBoundary>
-              </Route>
-              <Route path="/settings">
-                <PageErrorBoundary pageName="Settings">
-                  <Settings />
-                </PageErrorBoundary>
-              </Route>
-              <Route path="/api-keys">
-                <PageErrorBoundary pageName="API Keys">
-                  <Settings />
-                </PageErrorBoundary>
-              </Route>
-              <Route path="/system-health">
-                <PageErrorBoundary pageName="System Health">
-                  <Settings />
-                </PageErrorBoundary>
-              </Route>
-              <Route>
-                <PageErrorBoundary pageName="Not Found">
-                  <NotFound />
-                </PageErrorBoundary>
-              </Route>
-            </Switch>
-          </DashboardLayout>
-        </ProtectedRoute>
-      </Route>
-      <Route>
-        <PageErrorBoundary pageName="Login">
-          <Login />
-        </PageErrorBoundary>
-      </Route>
-    </Switch>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.2, ease: "easeInOut" }}
+      key={pageName}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function Router() {
+  const [location] = useLocation();
+
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <Switch key={location}>
+        <Route path="/login">
+          <PageErrorBoundary pageName="Login">
+            <PageTransitionWrapper pageName="Login">
+              <Login />
+            </PageTransitionWrapper>
+          </PageErrorBoundary>
+        </Route>
+        <Route path="/signup">
+          <PageErrorBoundary pageName="Signup">
+            <PageTransitionWrapper pageName="Signup">
+              <Signup />
+            </PageTransitionWrapper>
+          </PageErrorBoundary>
+        </Route>
+        <Route path="/onboarding">
+          <PageErrorBoundary pageName="Onboarding">
+            <PageTransitionWrapper pageName="Onboarding">
+              <Onboarding />
+            </PageTransitionWrapper>
+          </PageErrorBoundary>
+        </Route>
+        <Route path="/" nest>
+          <ProtectedRoute>
+            <DashboardLayout>
+              <Switch key={location}>
+                <Route path="/">
+                  <PageErrorBoundary pageName="Overview">
+                    <PageTransitionWrapper pageName="Overview">
+                      <Overview />
+                    </PageTransitionWrapper>
+                  </PageErrorBoundary>
+                </Route>
+                <Route path="/crawl">
+                  <PageErrorBoundary pageName="Crawl">
+                    <PageTransitionWrapper pageName="Crawl">
+                      <Crawl />
+                    </PageTransitionWrapper>
+                  </PageErrorBoundary>
+                </Route>
+                <Route path="/rag-tuning">
+                  <PageErrorBoundary pageName="RAG Tuning">
+                    <PageTransitionWrapper pageName="RAG Tuning">
+                      <RAGTuning />
+                    </PageTransitionWrapper>
+                  </PageErrorBoundary>
+                </Route>
+                <Route path="/documents">
+                  <PageErrorBoundary pageName="Documents">
+                    <PageTransitionWrapper pageName="Documents">
+                      <Documents />
+                    </PageTransitionWrapper>
+                  </PageErrorBoundary>
+                </Route>
+                <Route path="/analytics">
+                  <PageErrorBoundary pageName="Analytics">
+                    <PageTransitionWrapper pageName="Analytics">
+                      <Analytics />
+                    </PageTransitionWrapper>
+                  </PageErrorBoundary>
+                </Route>
+                <Route path="/feedback">
+                  <PageErrorBoundary pageName="Feedback">
+                    <PageTransitionWrapper pageName="Feedback">
+                      <Feedback />
+                    </PageTransitionWrapper>
+                  </PageErrorBoundary>
+                </Route>
+                <Route path="/integrations">
+                  <PageErrorBoundary pageName="Integrations">
+                    <PageTransitionWrapper pageName="Integrations">
+                      <Integrations />
+                    </PageTransitionWrapper>
+                  </PageErrorBoundary>
+                </Route>
+                <Route path="/profile">
+                  <PageErrorBoundary pageName="Profile">
+                    <PageTransitionWrapper pageName="Profile">
+                      <Profile />
+                    </PageTransitionWrapper>
+                  </PageErrorBoundary>
+                </Route>
+                <Route path="/settings">
+                  <PageErrorBoundary pageName="Settings">
+                    <PageTransitionWrapper pageName="Settings">
+                      <Settings />
+                    </PageTransitionWrapper>
+                  </PageErrorBoundary>
+                </Route>
+                <Route path="/api-keys">
+                  <PageErrorBoundary pageName="API Keys">
+                    <PageTransitionWrapper pageName="API Keys">
+                      <Settings />
+                    </PageTransitionWrapper>
+                  </PageErrorBoundary>
+                </Route>
+                <Route path="/system-health">
+                  <PageErrorBoundary pageName="System Health">
+                    <PageTransitionWrapper pageName="System Health">
+                      <Settings />
+                    </PageTransitionWrapper>
+                  </PageErrorBoundary>
+                </Route>
+                <Route>
+                  <PageErrorBoundary pageName="Not Found">
+                    <PageTransitionWrapper pageName="Not Found">
+                      <NotFound />
+                    </PageTransitionWrapper>
+                  </PageErrorBoundary>
+                </Route>
+              </Switch>
+            </DashboardLayout>
+          </ProtectedRoute>
+        </Route>
+        <Route>
+          <PageErrorBoundary pageName="Login">
+            <PageTransitionWrapper pageName="Login">
+              <Login />
+            </PageTransitionWrapper>
+          </PageErrorBoundary>
+        </Route>
+      </Switch>
+    </AnimatePresence>
   );
 }
 
@@ -330,14 +386,16 @@ function App() {
                 <RAGSettingsProvider>
                   <CitationFormattingProvider>
                     <ThemeProvider>
-                      <CursorProvider>
-                        <TooltipProvider>
-                          <I18nProvider>
-                            <Router />
-                            <Toaster />
-                          </I18nProvider>
-                        </TooltipProvider>
-                      </CursorProvider>
+                      <BackgroundProvider>
+                        <CursorProvider>
+                          <TooltipProvider>
+                            <I18nProvider>
+                              <Router />
+                              <Toaster />
+                            </I18nProvider>
+                          </TooltipProvider>
+                        </CursorProvider>
+                      </BackgroundProvider>
                     </ThemeProvider>
                   </CitationFormattingProvider>
                 </RAGSettingsProvider>

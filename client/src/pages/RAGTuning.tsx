@@ -18,7 +18,6 @@ import { useRAGSettings, usePerformanceMetrics } from "@/contexts/RAGSettingsCon
 import { useSearch } from "@/hooks/useSearch";
 import { useChat, useChatSessions } from "@/hooks/useChat";
 import { PointerTypes } from "@/components/ui/AnimatedPointer";
-import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
 import { GlassCard } from "@/components/ui/GlassCard";
 
 import { Message } from "@/types/components";
@@ -280,9 +279,6 @@ export default function RAGTuning() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Theme-aware Background */}
-      <ResponsiveDarkVeil />
-      
       {/* Content */}
       <div className="relative z-10 space-y-6 p-0 sm:p-6">
       <div className="flex flex-col md:flex-row gap-5 md:gap-0 justify-between items-start">

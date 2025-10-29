@@ -8,7 +8,6 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useTranslation } from "@/contexts/I18nContext";
 import { ConditionalPointerTypes } from "@/components/ui/ConditionalPointer";
 import { HeroSection } from "@/components/ui/HeroSection";
-import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { GlassStatsCard } from "@/components/ui/GlassStatsCard";
 
@@ -42,9 +41,6 @@ const Overview = React.memo(function Overview() {
   
   return (
     <div className="relative min-h-screen">
-      {/* Theme-aware Background */}
-      <ResponsiveDarkVeil />
-      
       {/* Content */}
       <div className="relative z-10 space-y-6 p-0 sm:p-6">
         <div>

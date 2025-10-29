@@ -11,7 +11,6 @@ import { useTranslation } from "@/contexts/I18nContext";
 import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassCard } from "@/components/ui/GlassCard";
-import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
 import {
   Select,
   SelectContent,
@@ -251,9 +250,6 @@ export default function Integrations() {
   // Show list view
   return (
     <div className="relative min-h-screen">
-      {/* Theme-aware Background */}
-      <ResponsiveDarkVeil />
-      
       {/* Content */}
       <div className="relative z-10 space-y-6 w-full max-w-full overflow-hidden min-w-0 p-0 sm:p-6" style={{ maxWidth: '92vw' }}>
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">

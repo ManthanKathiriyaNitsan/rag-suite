@@ -29,7 +29,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
 import GlassGlassCard from "@/components/ui/GlassGlassCard";
 
 const feedbackData = [
@@ -125,9 +124,6 @@ export default function Feedback() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Theme-aware Background */}
-      <ResponsiveDarkVeil />
-      
       {/* Content */}
       <div className="relative z-10 space-y-6 w-full max-w-full overflow-hidden min-w-0 p-0 sm:p-6" style={{ maxWidth: '92vw' }}>
       <div className="flex items-center justify-between">

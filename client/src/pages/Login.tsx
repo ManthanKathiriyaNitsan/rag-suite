@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import { mockLogin } from "@/utils/mockAuth";
-import ResponsiveDarkVeil from "@/components/ui/ResponsiveDarkVeil";
+import { BackgroundWrapper } from "@/components/common/BackgroundWrapper";
 import { GlassCard } from "@/components/ui/GlassCard";
 const Login = React.memo(function Login() {
   const [username, setUsername] = useState("");
@@ -84,7 +84,7 @@ const Login = React.memo(function Login() {
   return (
     <div className="relative min-h-screen flex">
       {/* Theme-aware Background */}
-      <ResponsiveDarkVeil />
+      <BackgroundWrapper />
       
       {/* Content */}
       <div className="relative z-10 w-full flex">
