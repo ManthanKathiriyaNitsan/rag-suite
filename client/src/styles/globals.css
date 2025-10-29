@@ -374,6 +374,56 @@
     text-align: var(--text-align, left);
     transition: font-size 0.1s ease-out, line-height 0.1s ease-out, font-weight 0.1s ease-out, letter-spacing 0.1s ease-out, text-align 0.1s ease-out;
   }
+
+  /* Custom styled scrollbar matching glass theme - applies to all pages and tabs */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.35) transparent;
+  }
+
+  /* Dark mode Firefox scrollbar */
+  .dark * {
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+    transition: background 0.2s ease;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Dark mode scrollbar */
+  .dark *::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .dark *::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Light mode scrollbar - darker for better visibility */
+  :root:not(.dark) *::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.35);
+  }
+
+  :root:not(.dark) *::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
+  }
 }
 
 /* View Transition API Styles for Theme Toggle */
@@ -947,82 +997,9 @@
   [data-pointer-active] {
     cursor: none !important;
   }
-
-  /* Custom Scrollbar Styles - Modern, Thin, and Subtle */
   
-  /* Option 1: Thin, Subtle Scrollbar (Recommended) */
-  :root {
-    /* Webkit browsers (Chrome, Safari, Edge) */
-    scrollbar-width: thin; /* Firefox */
-    scrollbar-color: rgba(255, 255, 255, 0.1) transparent; /* Firefox */
-  }
-
-  /* Webkit Scrollbar Styling */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-    border-radius: 10px;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    transition: background 0.3s ease;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
-
-  /* Dark theme specific scrollbar */
-  .dark ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
-  }
-
-  .dark ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25);
-  }
-
-  /* Light theme specific scrollbar */
-  .light ::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.2);
-  }
-
-  .light ::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.3);
-  }
-
-  /* Option 2: Auto-hide Scrollbar (Only visible on hover) */
-  .scrollbar-hide-on-idle::-webkit-scrollbar-thumb {
-    background: transparent;
-  }
-
-  .scrollbar-hide-on-idle:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  /* Option 3: Completely Hidden Scrollbar (Still scrollable) */
-  .scrollbar-hidden {
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE and Edge */
-  }
-
-  .scrollbar-hidden::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
-  }
-
-  /* Option 4: Ultra-thin scrollbar (2px) */
-  .scrollbar-ultra-thin::-webkit-scrollbar {
-    width: 2px;
-    height: 2px;
-  }
-
-  .scrollbar-ultra-thin::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
+  [data-pointer-active] * {
+    cursor: none !important;
   }
 
   /* Animated pointer icon styles - controlled by React state */
