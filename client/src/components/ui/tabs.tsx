@@ -12,7 +12,7 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
+      "inline-flex h-10 items-center justify-center gap-3 p-0 text-foreground",
       className
     )}
     {...props}
@@ -27,7 +27,18 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex items-bottom justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+      // Segmented-button style tabs matching app palette
+      "inline-flex items-center justify-center whitespace-nowrap rounded-md border px-4 py-2 text-sm font-medium transition-all duration-150",
+      // Default (inactive)
+      "bg-[hsl(var(--popover))] border-[hsl(var(--popover-border))] text-foreground",
+      // Hover/active use global hover variables
+      "hover:bg-[hsl(var(--button-hover-bg))] hover:border-[hsl(var(--button-hover-border))]",
+      // Active state
+      "data-[state=active]:bg-[hsl(var(--button-hover-bg))] data-[state=active]:border-[hsl(var(--button-hover-border))] data-[state=active]:shadow-none",
+      // Focus styles
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background",
+      // Disabled
+      "disabled:pointer-events-none disabled:opacity-50",
       className
     )}
     {...props}

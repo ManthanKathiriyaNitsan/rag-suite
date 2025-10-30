@@ -77,7 +77,7 @@ export default function ThemeLayoutSection() {
                   value={value}
                   onChange={(e) => handleComponentChange(key as keyof typeof layoutContext.components, e.target.value)}
                   className="h-8 text-xs"
-                  placeholder="0.375rem"
+                  placeholder="2px"
                 />
               </div>
             ))}

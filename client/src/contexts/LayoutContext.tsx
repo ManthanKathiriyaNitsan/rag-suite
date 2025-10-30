@@ -7,15 +7,19 @@ export type LayoutState = {
     cardRadius: string;
     modalRadius: string;
   };
+  version: number;
 };
+
+const LAYOUT_SCHEMA_VERSION = 2;
 
 const DEFAULT_LAYOUT: LayoutState = {
   components: {
-    buttonRadius: "0.375rem",
-    inputRadius: "0.375rem",
-    cardRadius: "0.5rem",
-    modalRadius: "0rem", // 0 by default for mobile
+    buttonRadius: "2px",
+    inputRadius: "2px",
+    cardRadius: "2px",
+    modalRadius: "2px",
   },
+  version: LAYOUT_SCHEMA_VERSION,
 };
 
 const LOCAL_STORAGE_KEY = "layout";
@@ -33,13 +37,19 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as Partial<LayoutState>;
-        const result = {
+        // If schema version mismatches or missing, reset to new defaults
+        if (parsed.version !== LAYOUT_SCHEMA_VERSION) {
+          return DEFAULT_LAYOUT;
+        }
+
+        const result: LayoutState = {
           components: {
             buttonRadius: parsed.components?.buttonRadius ?? DEFAULT_LAYOUT.components.buttonRadius,
             inputRadius: parsed.components?.inputRadius ?? DEFAULT_LAYOUT.components.inputRadius,
             cardRadius: parsed.components?.cardRadius ?? DEFAULT_LAYOUT.components.cardRadius,
             modalRadius: parsed.components?.modalRadius ?? DEFAULT_LAYOUT.components.modalRadius,
           },
+          version: LAYOUT_SCHEMA_VERSION,
         };
         return result;
       }
@@ -52,7 +62,10 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
   // Persist changes
   useEffect(() => {
     try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(layout));
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
+        ...layout,
+        version: LAYOUT_SCHEMA_VERSION,
+      }));
       // Layout saved to localStorage
     } catch (error) {
       console.error('LayoutContext: Error saving to localStorage:', error);
@@ -106,7 +119,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
         /* Desktop Modal Styles - Apply proper radius on larger screens */
         @media (min-width: 640px) {
           [class*="modal"], .modal, [data-modal], [role="dialog"], .Modal, [class*="Modal"] {
-            border-radius: 0.75rem !important;
+            border-radius: ${layout.components.modalRadius} !important;
           }
         }
       `;
@@ -279,7 +292,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
         /* Desktop Modal Styles - Apply proper radius on larger screens */
         @media (min-width: 640px) {
           [class*="modal"], .modal, [data-modal], [role="dialog"], .Modal, [class*="Modal"] {
-            border-radius: 0.75rem !important;
+            border-radius: ${DEFAULT_LAYOUT.components.modalRadius} !important;
           }
         }
       `;

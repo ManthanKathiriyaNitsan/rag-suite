@@ -134,19 +134,23 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  --background: 0 0% 100%;
+  /* Main app background (light) */
+  --background: 0 0% 96%; /* #F5F5F5 */
 
   --foreground: 222 84% 5%;
 
-  --border: 220 13% 91%;
+  /* Global border on light */
+  --border: 0 0% 89%; /* #E2E2E2 */
 
-  --card: 220 14% 96%;
+  /* Card surface (light) */
+  --card: 0 0% 97%; /* #F7F7F7 */
 
   --card-foreground: 222 84% 5%;
 
-  --card-border: 220 13% 88%;
+  --card-border: 0 0% 89%; /* #E2E2E2 */
 
-  --sidebar: 220 14% 93%;
+  /* Sidebar surface (light) */
+  --sidebar: 0 0% 90%; /* #E6E6E6 */
 
   --sidebar-foreground: 222 84% 5%;
 
@@ -156,17 +160,19 @@
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 220 14% 88%;
+  /* Sidebar hover/active */
+  --sidebar-accent: 0 0% 85%; /* #D9D9D9 */
 
   --sidebar-accent-foreground: 222 84% 5%;
 
   --sidebar-ring: 217 91% 60%;
 
-  --popover: 220 14% 90%;
+  /* Navbar/Popover surface (light) */
+  --popover: 0 0% 96%; /* #F5F5F5 */
 
   --popover-foreground: 222 84% 5%;
 
-  --popover-border: 220 13% 82%;
+  --popover-border: 0 0% 89%; /* #E2E2E2 */
 
   --primary: 217 91% 60%;
 
@@ -188,7 +194,11 @@
 
   --destructive-foreground: 0 0% 100%;
 
-  --input: 220 13% 82%;
+  --input: 0 0% 89%;
+
+  /* Button hover/active (light) */
+  --button-hover-bg: 0 0% 85%; /* #D9D9D9 */
+  --button-hover-border: 0 0% 60%; /* #999999 */
   --ring: 217 91% 60%;
   --chart-1: 217 91% 55%;
   --chart-2: 142 76% 42%;
@@ -279,19 +289,23 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: 222 84% 5%;
+  /* Main app background (dark) */
+  --background: 0 0% 9%; /* #171717 */
 
   --foreground: 220 13% 91%;
 
-  --border: 222 84% 11%;
+  /* Global border on dark */
+  --border: 0 0% 21%; /* #363636 */
 
-  --card: 222 84% 11%;
+  /* Card surface (dark) */
+  --card: 0 0% 8%; /* #141414 */
 
   --card-foreground: 220 13% 91%;
 
-  --card-border: 222 84% 16%;
+  --card-border: 0 0% 21%; /* #363636 */
 
-  --sidebar: 222 84% 8%;
+  /* Sidebar surface (dark) */
+  --sidebar: 0 0% 20%; /* #333333 */
 
   --sidebar-foreground: 220 13% 91%;
 
@@ -301,17 +315,19 @@
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 222 84% 14%;
+  /* Sidebar hover/active */
+  --sidebar-accent: 0 0% 25%; /* #404040 */
 
   --sidebar-accent-foreground: 220 13% 91%;
 
   --sidebar-ring: 217 91% 60%;
 
-  --popover: 222 84% 14%;
+  /* Navbar/Popover surface (dark) */
+  --popover: 0 0% 20%; /* #333333 */
 
   --popover-foreground: 220 13% 91%;
 
-  --popover-border: 222 84% 18%;
+  --popover-border: 0 0% 21%; /* #363636 */
 
   --primary: 217 91% 60%;
 
@@ -335,7 +351,11 @@
   --destructive-foreground: 0 0% 100%;
 
   /* Used as the border around inputs. Dark mode: Should be a border that is light enough to have high contrast when rendered on a --card background. More contrast than standard --border */
-  --input: 222 84% 18%;
+  --input: 0 0% 21%;
+
+  /* Button hover/active (dark) */
+  --button-hover-bg: 0 0% 25%; /* #404040 */
+  --button-hover-border: 0 0% 35%; /* #595959 */
   --ring: 217 91% 60%;
   --chart-1: 217 91% 65%;
   --chart-2: 142 76% 57%;
@@ -357,6 +377,33 @@
 @layer base {
   * {
     @apply border-border;
+  }
+
+  /* Global button hover/active styles using custom variables */
+  button:hover, [type="button"]:hover, [type="submit"]:hover, [type="reset"]:hover {
+    background-color: hsl(var(--button-hover-bg));
+    border-color: hsl(var(--button-hover-border));
+  }
+
+  button:active, [type="button"]:active, [type="submit"]:active, [type="reset"]:active {
+    background-color: hsl(var(--button-hover-bg));
+    border-color: hsl(var(--button-hover-border));
+  }
+
+  /* Global list and navigation hover styles */
+  li:hover,
+  [role="listitem"]:hover,
+  .nav-item:hover,
+  .dropdown-item:hover,
+  a[role="menuitem"]:hover {
+    background-color: hsl(var(--button-hover-bg));
+    border-color: hsl(var(--button-hover-border));
+  }
+
+  /* Tabs hover styles */
+  [role="tab"]:hover {
+    background-color: hsl(var(--button-hover-bg));
+    border-color: hsl(var(--button-hover-border));
   }
 
   /* Ensure minimum font size for body text elements */
