@@ -275,7 +275,7 @@ const Settings = React.memo(function Settings() {
                     />
                   </div>
 
-                  <div>
+                  <div className="">
                     <Label htmlFor="logo-upload">Logo Upload</Label>
                     <input
                       id="logo-upload"
