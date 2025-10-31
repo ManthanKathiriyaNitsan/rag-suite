@@ -265,17 +265,7 @@ const Settings = React.memo(function Settings() {
             <CardContent className="space-y-6">
               <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
                 <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="org-name">Organization Name</Label>
-                    <Input
-                      id="org-name"
-                      value={orgName}
-                      onChange={(e) => setOrgName(e.target.value)}
-                      data-testid="input-org-name"
-                    />
-                  </div>
-
-                  <div className="">
+                <div className="">
                     <Label htmlFor="logo-upload">Logo Upload</Label>
                     <input
                       id="logo-upload"
@@ -287,28 +277,27 @@ const Settings = React.memo(function Settings() {
                       data-testid="input-logo-file"
                     />
                     <div className="mt-2 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                      <div className="h-20 w-20 sm:h-16 sm:w-16 bg-secondary rounded-lg flex items-center justify-center overflow-hidden">
-                        {logoDataUrl ? (
-                          <img src={logoDataUrl} alt="Logo preview" className="h-full w-full object-contain" />
-                        ) : (
-                          <Upload className="h-8 w-8 sm:h-6 sm:w-6 text-muted-foreground" />
-                        )}
-                      </div>
+                   
                       <div className="flex flex-col sm:flex-row gap-2">
                       <div className="relative">
                         <Button
                           variant="outline"
                           onClick={() => fileInputRef.current?.click()}
                           data-testid="button-upload-logo"
-                          className="w-full sm:w-auto"
+                          className="w-full border-none hover:bg-none p-0 sm:w-auto"
                         >
-                          <Upload className="h-4 w-4 mr-2" />
-                          Upload Logo
+                          <div className="h-20 w-20 sm:h-16 sm:w-16 bg-secondary flex items-center justify-center overflow-hidden">
+                        {logoDataUrl ? (
+                          <img src={logoDataUrl} alt="Logo preview" className="h-full w-full object-contain" />
+                        ) : (
+                          <Upload className="h-8 w-8 sm:h-6 sm:w-6 text-muted-foreground" />
+                        )}
+                      </div>
                         </Button>
                         <ConditionalPointerTypes.Upload className="absolute inset-0" />
                       </div>
                       {logoDataUrl && (
-                          <Button variant="ghost" onClick={handleRemoveLogo} data-testid="button-remove-logo" className="w-full sm:w-auto">
+                          <Button variant="ghost" onClick={handleRemoveLogo} data-testid="button-remove-logo" className="w-full border sm:w-auto">
                           Remove
                         </Button>
                       )}
@@ -316,17 +305,29 @@ const Settings = React.memo(function Settings() {
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">Recommended: 64x64px PNG or SVG</p>
                   </div>
+                  <div>
+                    <Label htmlFor="org-name">Organization Name</Label>
+                    <Input
+                      id="org-name"
+                      value={orgName}
+                      onChange={(e) => setOrgName(e.target.value)}
+                      data-testid="input-org-name"
+                      className="mt-2"
+                    />
+                  </div>
+
+                  
 
                   <div>
                     <Label htmlFor="primary-color">Primary Color</Label>
                     <div className="mt-2 flex items-center gap-4">
-                      <div className="h-10 w-20 rounded border" style={{ backgroundColor: primaryColor }} />
+                   
                       <Input
                         id="primary-color"
                         type="color"
                         value={primaryColor}
                         onChange={(e) => { const v = e.target.value; setPrimaryColor(v); setBranding({ primaryColor: v }); }}
-                        className="w-20"
+                        className="w-20 p-0 border-none "
                         data-testid="input-primary-color"
                       />
                       <Input
@@ -364,35 +365,38 @@ const Settings = React.memo(function Settings() {
                         size="sm"
                         onClick={() => { const v = "#1F6FEB"; setPrimaryColor(v); setBranding({ primaryColor: v }); }}
                         data-testid="button-preset-blue"
+                        className="p-0  "
                       >
-                        <div className="w-4 h-4 bg-blue-500 rounded mr-2" />
-                        Blue
+                        <div className="w-[100%] bg-blue-500  h-[100%] p-0 m-0 " />
+                        
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => { const v = "#22C55E"; setPrimaryColor(v); setBranding({ primaryColor: v }); }}
                         data-testid="button-preset-green"
+                            className="p-0"
                       >
-                        <div className="w-4 h-4 bg-green-500 rounded mr-2" />
-                        Green
+                        <div className="w-[100%] bg-green-500  h-[100%] p-0 m-0" />
+                        
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => { const v = "#8B5CF6"; setPrimaryColor(v); setBranding({ primaryColor: v }); }}
+                        onClick={() => { const v = "#eb1e1e"; setPrimaryColor(v); setBranding({ primaryColor: v }); }}
                         data-testid="button-preset-purple"
+                            className="p-0"
                       >
-                        <div className="w-4 h-4 bg-purple-500 rounded mr-2" />
-                        Purple
+                        <div className="w-[100%] bg-[#eb1e1e] h-[100%] p-0 m-0" />
+                        
                       </Button>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-4  ">
                   <Label>Live Preview</Label>
-                  <Card className="p-4">
+                  <Card className="p-4 h-full flex items-center justify-start bg-sidebar">
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
                         <div className="h-8 w-8 bg-secondary rounded flex items-center justify-center overflow-hidden">
@@ -415,7 +419,7 @@ const Settings = React.memo(function Settings() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row justify-end gap-2">
+              <div className="flex flex-col sm:flex-row justify-end gap-2  pt-10">
                 <div className="relative">
                   <Button variant="outline" onClick={handleResetBranding} className="w-full sm:w-auto">Reset</Button>
                   <ConditionalPointerTypes.Refresh className="absolute inset-0" />
@@ -428,12 +432,12 @@ const Settings = React.memo(function Settings() {
             </CardContent>
           </GlassCard>
 
-          {/* Background Theme Selector */}
+          {/* Theme Option */}
           <GlassCard>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Layers className="h-5 w-5" />
-                Background Theme
+                Theme Option
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -468,65 +472,7 @@ const Settings = React.memo(function Settings() {
                     Choose a background theme. All themes adapt to dark and light modes. You can also click on the cards below to select a theme.
                   </p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                  <div 
-                    onClick={() => {
-                      setBackgroundTheme('veil');
-                      toast({
-                        title: "Background Theme Updated",
-                        description: "Background theme changed to Veil.",
-                      });
-                    }}
-                    className={`p-4 rounded-lg border-2 transition-all cursor-pointer hover:border-primary/50 ${
-                      backgroundTheme === 'veil' 
-                        ? 'border-primary bg-primary/5' 
-                        : 'border-border bg-secondary/50'
-                    }`}
-                  >
-                    <div className="font-semibold mb-2">Veil</div>
-                    <p className="text-sm text-muted-foreground">
-                      Animated glassmorphic veil with depth and motion effects.
-                    </p>
-                  </div>
-                  <div 
-                    onClick={() => {
-                      setBackgroundTheme('geometric');
-                      toast({
-                        title: "Background Theme Updated",
-                        description: "Background theme changed to Geometric.",
-                      });
-                    }}
-                    className={`p-4 rounded-lg border-2 transition-all cursor-pointer hover:border-primary/50 ${
-                      backgroundTheme === 'geometric' 
-                        ? 'border-primary bg-primary/5' 
-                        : 'border-border bg-secondary/50'
-                    }`}
-                  >
-                    <div className="font-semibold mb-2">Geometric</div>
-                    <p className="text-sm text-muted-foreground">
-                      Elegant floating geometric shapes with gradient effects.
-                    </p>
-                  </div>
-                  <div 
-                    onClick={() => {
-                      setBackgroundTheme('simple');
-                      toast({
-                        title: "Background Theme Updated",
-                        description: "Background theme changed to Simple.",
-                      });
-                    }}
-                    className={`p-4 rounded-lg border-2 transition-all cursor-pointer hover:border-primary/50 ${
-                      backgroundTheme === 'simple' 
-                        ? 'border-primary bg-primary/5' 
-                        : 'border-border bg-secondary/50'
-                    }`}
-                  >
-                    <div className="font-semibold mb-2">Simple</div>
-                    <p className="text-sm text-muted-foreground">
-                      Clean and minimal background with subtle gradients.
-                    </p>
-                  </div>
-                </div>
+             
               </div>
             </CardContent>
           </GlassCard>
@@ -540,7 +486,7 @@ const Settings = React.memo(function Settings() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+              <div className="grid gap-6 grid-cols-1 ">
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="widget-position">Widget Position</Label>
@@ -632,7 +578,7 @@ const Settings = React.memo(function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MousePointer className="h-5 w-5" />
-                Custom Cursor Settings
+                 Cursor Settings
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -654,63 +600,9 @@ const Settings = React.memo(function Settings() {
                   </div>
                 </div>
 
-                <div className="p-4 bg-secondary rounded-lg">
-                  <h4 className="font-medium mb-2">Cursor Preview</h4>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 bg-primary rounded flex items-center justify-center">
-                        <MousePointer className="h-3 w-3 text-primary-foreground" />
-                      </div>
-                      <span className="text-sm">
-                        {customCursorEnabled ? "Custom animated cursor" : "Default system cursor"}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {customCursorEnabled 
-                        ? "Smooth animated cursor with theme-aware colors" 
-                        : "Standard browser cursor"
-                      }
-                    </div>
-                  </div>
-                </div>
+               
               </div>
 
-              <div className="flex flex-col sm:flex-row justify-end gap-2">
-                <div className="relative">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handleCursorToggle(true)}
-                    className="w-full sm:w-auto"
-                    data-testid="button-enable-cursor"
-                  >
-                    Enable Custom Cursor
-                  </Button>
-                  <ConditionalPointerTypes.Settings className="absolute inset-0" />
-                </div>
-                <div className="relative">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handleCursorToggle(false)}
-                    className="w-full sm:w-auto"
-                    data-testid="button-disable-cursor"
-                  >
-                    Use Default Cursor
-                  </Button>
-                  <ConditionalPointerTypes.Refresh className="absolute inset-0" />
-                </div>
-              </div>
-            </CardContent>
-          </GlassCard>
-
-          {/* Pointer Icons Toggle */}
-          <GlassCard>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MousePointer className="h-5 w-5" />
-                Animated Pointer Icons Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
@@ -729,53 +621,10 @@ const Settings = React.memo(function Settings() {
                   </div>
                 </div>
 
-                <div className="p-4 bg-secondary rounded-lg">
-                  <h4 className="font-medium mb-2">Pointer Icons Preview</h4>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 bg-primary rounded flex items-center justify-center">
-                        <MousePointer className="h-3 w-3 text-primary-foreground" />
-                      </div>
-                      <span className="text-sm">
-                        {pointerIconsEnabled ? "Animated pointer icons enabled" : "Animated pointer icons disabled"}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {pointerIconsEnabled 
-                        ? "Interactive elements show animated pointer icons on hover" 
-                        : "Interactive elements show no animated pointer icons"
-                      }
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row justify-end gap-2">
-                <div className="relative">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handlePointerIconsToggle(true)}
-                    className="w-full sm:w-auto"
-                    data-testid="button-enable-pointer-icons"
-                  >
-                    Enable Pointer Icons
-                  </Button>
-                  <ConditionalPointerTypes.Settings className="absolute inset-0" />
-                </div>
-                <div className="relative">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handlePointerIconsToggle(false)}
-                    className="w-full sm:w-auto"
-                    data-testid="button-disable-pointer-icons"
-                  >
-                    Disable Pointer Icons
-                  </Button>
-                  <ConditionalPointerTypes.Refresh className="absolute inset-0" />
-                </div>
               </div>
             </CardContent>
           </GlassCard>
+        
         </TabsContent>
 
         {/* Data Retention */}
@@ -800,9 +649,9 @@ const Settings = React.memo(function Settings() {
                 </p>
               </div>
 
-              <div className="p-4 bg-secondary rounded-lg">
-                <h4 className="font-medium mb-2">Data Retention Policy</h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
+              <div className="p-4 bg-yellow-100 border-yellow-300 dark:bg-yellow-900/30 dark:border-yellow-700 border ">
+                <h4 className="font-medium mb-2 text-yellow-900 dark:text-yellow-100">Data Retention Policy</h4>
+                <ul className="text-sm text-yellow-900 dark:text-yellow-100 space-y-1">
                   <li>• Query logs and responses will be automatically deleted after {retentionDays} days</li>
                   <li>• User feedback and analytics data will be retained for the same period</li>
                   <li>• Crawled documents and embeddings are not affected by this policy</li>
@@ -860,27 +709,7 @@ const Settings = React.memo(function Settings() {
                 </p>
               </div>
 
-              <div className="p-4 bg-secondary rounded-lg">
-                <h4 className="font-medium mb-2">Translation Status</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Admin Interface</span>
-                    <Badge variant="default">100% Complete</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Widget Interface</span>
-                    <Badge variant="default">100% Complete</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Error Messages</span>
-                    <Badge className=" bg-red-600 text-white ">85% Complete</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Documentation</span>
-                    <Badge variant="outline">Available in English only</Badge>
-                  </div>
-                </div>
-              </div>
+        
 
               <div className="flex flex-col sm:flex-row justify-end gap-2">
                 <div className="relative">
@@ -916,8 +745,9 @@ const Settings = React.memo(function Settings() {
                 <Select 
                   value={formatting.style} 
                   onValueChange={(value: any) => updateFormatting({ style: value })}
+                 
                 >
-                  <SelectTrigger className="w-full sm:w-64 mt-2">
+                  <SelectTrigger className="w-full mt-2">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -939,7 +769,7 @@ const Settings = React.memo(function Settings() {
                   value={formatting.layout} 
                   onValueChange={(value: any) => updateFormatting({ layout: value })}
                 >
-                  <SelectTrigger className="w-full sm:w-64 mt-2">
+                  <SelectTrigger className="w-full mt-2">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -959,7 +789,7 @@ const Settings = React.memo(function Settings() {
                   value={formatting.numbering} 
                   onValueChange={(value: any) => updateFormatting({ numbering: value })}
                 >
-                  <SelectTrigger className="w-full sm:w-64 mt-2">
+                  <SelectTrigger className="w-full mt-2">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -981,7 +811,7 @@ const Settings = React.memo(function Settings() {
                   value={formatting.colorScheme} 
                   onValueChange={(value: any) => updateFormatting({ colorScheme: value })}
                 >
-                  <SelectTrigger className="w-full sm:w-64 mt-2">
+                  <SelectTrigger className="w-full mt-2">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1297,7 +1127,11 @@ const Settings = React.memo(function Settings() {
             <CardContent>
               <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {systemServices.map((service, index) => (
-                  <GlassCard key={index} data-testid={`service-card-${index}`}>
+                  <GlassCard 
+                    key={index} 
+                    data-testid={`service-card-${index}`}
+                    className="cursor-pointer hover-elevate transition-all duration-200"
+                  >
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-base">{service.name}</CardTitle>

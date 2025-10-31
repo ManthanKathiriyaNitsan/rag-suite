@@ -40,6 +40,8 @@ const Analytics = lazy(() => import("@/pages/Analytics"));
 const Feedback = lazy(() => import("@/pages/Feedback"));
 const RAGTuning = lazy(() => import("@/pages/RAGTuning"));
 const Settings = lazy(() => import("@/pages/Settings"));
+const ApiKeys = lazy(() => import("@/pages/ApiKeys"));
+const SystemHealth = lazy(() => import("@/pages/SystemHealth"));
 const Integrations = lazy(() => import("@/pages/Integrations"));
 const Login = lazy(() => import("@/pages/Login"));
 const Onboarding = lazy(() => import("@/pages/Onboarding"));
@@ -496,14 +498,14 @@ function Router() {
                 <Route path="/api-keys">
                   <PageErrorBoundary pageName="API Keys">
                     <PageTransitionWrapper pageName="API Keys">
-                      <Settings />
+                      <ApiKeys />
                     </PageTransitionWrapper>
                   </PageErrorBoundary>
                 </Route>
                 <Route path="/system-health">
                   <PageErrorBoundary pageName="System Health">
                     <PageTransitionWrapper pageName="System Health">
-                      <Settings />
+                      <SystemHealth />
                     </PageTransitionWrapper>
                   </PageErrorBoundary>
                 </Route>

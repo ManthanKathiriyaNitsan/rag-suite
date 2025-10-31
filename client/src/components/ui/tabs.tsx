@@ -30,11 +30,11 @@ const TabsTrigger = React.forwardRef<
       // Segmented-button style tabs matching app palette
       "inline-flex items-center justify-center whitespace-nowrap rounded-md border px-4 py-2 text-sm font-medium transition-all duration-150",
       // Default (inactive)
-      "bg-[hsl(var(--popover))] border-[hsl(var(--popover-border))] text-foreground",
+      "bg-[var(--tab-bg-default)] border-[hsl(var(--popover-border))] text-foreground",
       // Hover/active use global hover variables
-      "hover:bg-[hsl(var(--button-hover-bg))] hover:border-[hsl(var(--button-hover-border))]",
+      "hover:bg-[var(--tab-bg-active)] hover:border-[hsl(var(--button-hover-border))]",
       // Active state
-      "data-[state=active]:bg-[hsl(var(--button-hover-bg))] data-[state=active]:border-[hsl(var(--button-hover-border))] data-[state=active]:shadow-none",
+      "data-[state=active]:bg-[var(--tab-bg-active)] data-[state=active]:border-[hsl(var(--button-hover-border))] data-[state=active]:shadow-none",
       // Focus styles
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background",
       // Disabled

@@ -35,14 +35,14 @@
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(20px);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+
   }
   
   .glass-light {
     background: rgba(255, 255, 255, 0.25);
     border: 1px solid rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(20px);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+ 
     color: rgba(0, 0, 0, 0.9);
   }
   
@@ -50,14 +50,14 @@
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(20px);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+
   }
   
   .glass-card-light {
     background: rgba(255, 255, 255, 0.25);
     border: 1px solid rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(20px);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+ 
     color: rgba(0, 0, 0, 0.9);
   }
   
@@ -66,14 +66,14 @@
     background: rgba(0, 0, 0, 0.25);
     border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(20px);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+ 
   }
   
   .glass-sidebar-light {
     background: rgba(255, 255, 255, 0.25);
     border: 1px solid rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(20px);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+
     color: rgba(0, 0, 0, 0.9);
   }
   
@@ -81,14 +81,14 @@
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(20px);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    box-shadow: none;
   }
   
   .glass-navbar-light {
     background: rgba(255, 255, 255, 0.25);
     border: 1px solid rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(20px);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+    box-shadow: none;
     color: rgba(0, 0, 0, 0.9);
   }
   
@@ -112,15 +112,15 @@
   }
   
   /* Better shadow for light theme to prevent color spreading */
-  .glass-light,
+  /* .glass-light,
   .glass-sidebar-light,
   .glass-navbar-light,
   .glass-card-light {
     box-shadow: 
       0 8px 32px 0 rgba(0, 0, 0, 0.1),
       inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  }
-}
+  } */
+} 
 
 /* LIGHT MODE */
 :root {
@@ -133,6 +133,10 @@
   /* Backgrounds applied on top of other backgrounds when hovered/active */
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
+
+  /* Tabs backgrounds (light) */
+  --tab-bg-default: #ffffff; /* inactive */
+  --tab-bg-active: #E6E6E6; /* active */
 
   /* Main app background (light) */
   --background: 0 0% 96%; /* #F5F5F5 */
@@ -289,6 +293,10 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
+  /* Tabs backgrounds (dark) */
+  --tab-bg-default: #242424; /* inactive */
+  --tab-bg-active: #6c6c6c; /* active */
+
   /* Main app background (dark) */
   --background: 0 0% 9%; /* #171717 */
 
@@ -402,6 +410,79 @@
 
   /* Tabs hover styles */
   [role="tab"]:hover {
+    background-color: hsl(var(--button-hover-bg));
+    border-color: hsl(var(--button-hover-border));
+  }
+
+  /* Global input and textarea styles - white background with hover */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="week"],
+  textarea,
+  select {
+    background-color: white;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  input[type="text"]:hover:not(:disabled),
+  input[type="email"]:hover:not(:disabled),
+  input[type="password"]:hover:not(:disabled),
+  input[type="number"]:hover:not(:disabled),
+  input[type="tel"]:hover:not(:disabled),
+  input[type="url"]:hover:not(:disabled),
+  input[type="search"]:hover:not(:disabled),
+  input[type="date"]:hover:not(:disabled),
+  input[type="time"]:hover:not(:disabled),
+  input[type="datetime-local"]:hover:not(:disabled),
+  input[type="month"]:hover:not(:disabled),
+  input[type="week"]:hover:not(:disabled),
+  textarea:hover:not(:disabled),
+  select:hover:not(:disabled) {
+    background-color: rgb(249, 250, 251); /* gray-50 */
+    border-color: rgb(209, 213, 219); /* gray-300 */
+  }
+
+  /* Dark mode input styles - using theme variables */
+  .dark input[type="text"],
+  .dark input[type="email"],
+  .dark input[type="password"],
+  .dark input[type="number"],
+  .dark input[type="tel"],
+  .dark input[type="url"],
+  .dark input[type="search"],
+  .dark input[type="date"],
+  .dark input[type="time"],
+  .dark input[type="datetime-local"],
+  .dark input[type="month"],
+  .dark input[type="week"],
+  .dark textarea,
+  .dark select {
+    background-color: hsl(var(--card));
+  }
+
+  .dark input[type="text"]:hover:not(:disabled),
+  .dark input[type="email"]:hover:not(:disabled),
+  .dark input[type="password"]:hover:not(:disabled),
+  .dark input[type="number"]:hover:not(:disabled),
+  .dark input[type="tel"]:hover:not(:disabled),
+  .dark input[type="url"]:hover:not(:disabled),
+  .dark input[type="search"]:hover:not(:disabled),
+  .dark input[type="date"]:hover:not(:disabled),
+  .dark input[type="time"]:hover:not(:disabled),
+  .dark input[type="datetime-local"]:hover:not(:disabled),
+  .dark input[type="month"]:hover:not(:disabled),
+  .dark input[type="week"]:hover:not(:disabled),
+  .dark textarea:hover:not(:disabled),
+  .dark select:hover:not(:disabled) {
     background-color: hsl(var(--button-hover-bg));
     border-color: hsl(var(--button-hover-border));
   }
