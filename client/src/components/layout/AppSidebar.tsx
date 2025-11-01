@@ -162,7 +162,7 @@ const AppSidebar = React.memo(function AppSidebar() {
         WebkitBackdropFilter: 'blur(20px)',
       }}
     >
-      <SidebarHeader className="p-4 border-t" >
+      <SidebarHeader className="p-4 border-t" style={{ borderColor: theme === 'dark' ? '#2b2b2b' : '#d8d8d8' }}>
         <div className="flex px-2 py-[7px] items-center gap-2">
           {logoDataUrl ? (
             <img src={logoDataUrl} alt={`${orgName} logo`} className="h-6 w-6 rounded-sm" />
@@ -174,7 +174,7 @@ const AppSidebar = React.memo(function AppSidebar() {
       </SidebarHeader>
 
       {/* Projects Dropdown */}
-      <div className="px-4 py-2 border-t border-b" style={{ borderColor: '#d8d8d8' }}>
+      <div className="px-4 py-2 border-t border-b" style={{ borderColor: theme === 'dark' ? '#2b2b2b' : '#d8d8d8' }}>
         <DropdownMenu  >
           <DropdownMenuTrigger asChild>
             <div className="relative">
@@ -341,7 +341,7 @@ const AppSidebar = React.memo(function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="px-4 py-4 border-t border-b" style={{ borderColor: '#d8d8d8' }}>
+      <SidebarFooter className="px-4 py-4 border-t border-b" style={{ borderColor: theme === 'dark' ? '#2b2b2b' : '#d8d8d8' }}>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Badge variant="outline" className="text-xs bg-transparent">v1.0.0</Badge>
         </div>
