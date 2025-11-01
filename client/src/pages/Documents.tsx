@@ -6,7 +6,6 @@ const UploadDocumentForm = lazy(() => import("@/components/forms/UploadDocumentF
 const EditDocumentForm = lazy(() => import("@/components/forms/EditDocumentForm"));
 import { useToast } from "@/hooks/useToast";
 import { useTranslation } from "@/contexts/I18nContext";
-import { ConditionalPointerTypes } from "@/components/ui/ConditionalPointer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -185,40 +184,36 @@ const Documents = React.memo(function Documents() {
     <div className="relative min-h-screen">
       {/* Content */}
       <div className="relative z-10 space-y-6 p-0 sm:p-6">
-      <div className="flex flex-col md:flex-row items-start gap-4 md:gap-0 md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('documents.title')}</h1>
-          <p className="text-muted-foreground">
-            {t('documents.description')}
-          </p>
+        <div className="flex flex-col md:flex-row items-start gap-4 md:gap-0 md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{t('documents.title')}</h1>
+            <p className="text-muted-foreground">
+              {t('documents.description')}
+            </p>
+          </div>
+          <div className="relative">
+            <Button
+              onClick={() => setShowUploadForm(true)}
+              data-testid="button-upload-document"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {t('documents.upload')}
+            </Button>
+          </div>
         </div>
-        <div className="relative">
-          <Button
-            onClick={() => setShowUploadForm(true)}
-            data-testid="button-upload-document"
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            {t('documents.upload')}
-          </Button>
-          <ConditionalPointerTypes.Upload className="absolute inset-0" />
-        </div>
-      </div>
 
       {/* Filters and Search */}
       <div className="flex flex-col md:flex-row items-start gap-4 md:gap-0 md:items-center md:justify-between">
         <div className="flex items-center flex-wrap gap-4">
-          <div className="relative ">
+          <div className="relative">
             <Search className="absolute -translate-y-[50%] top-[50%] left-3 h-4 w-4 text-muted-foreground" />
-            <div className="relative">
-              <Input
-                placeholder="Search documents..."
+            <Input
+              placeholder="Search documents..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 w-64"
               data-testid="input-search-documents"
             />
-              <ConditionalPointerTypes.Search className="absolute inset-0" />
-            </div>
           </div>
 
           <div className="relative">
@@ -233,7 +228,6 @@ const Documents = React.memo(function Documents() {
                 <SelectItem value="help">help.company.com</SelectItem>
               </SelectContent>
             </Select>
-            <ConditionalPointerTypes.Filter className="absolute inset-0" />
           </div>
 
           <div className="relative">
@@ -249,7 +243,6 @@ const Documents = React.memo(function Documents() {
                 <SelectItem value="txt">TXT</SelectItem>
               </SelectContent>
             </Select>
-            <ConditionalPointerTypes.Filter className="absolute inset-0" />
           </div>
 
           <Select defaultValue="all-status">
@@ -272,30 +265,24 @@ const Documents = React.memo(function Documents() {
 
         <div className="flex items-center gap-2">
           <div className="flex border rounded-md">
-            <div className="relative">
-              <Button
-                variant={viewMode === "grid" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("grid")}
-                data-testid="button-grid-view"
-                className="rounded-r-none"
-              >
-                <Grid className="h-4 w-4" />
-              </Button>
-              <ConditionalPointerTypes.Grid className="absolute inset-0" />
-            </div>
-            <div className="relative">
-              <Button
-                variant={viewMode === "list" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-                data-testid="button-list-view"
-                className="rounded-l-none"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-              <ConditionalPointerTypes.List className="absolute inset-0" />
-            </div>
+            <Button
+              variant={viewMode === "grid" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("grid")}
+              data-testid="button-grid-view"
+              className="rounded-r-none"
+            >
+              <Grid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+              data-testid="button-list-view"
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
@@ -377,7 +364,6 @@ const Documents = React.memo(function Documents() {
                   <Upload className="h-4 w-4 mr-2" />
                   Upload Document
                 </Button>
-                <ConditionalPointerTypes.Upload className="absolute inset-0" />
               </div>
             )}
           </div>

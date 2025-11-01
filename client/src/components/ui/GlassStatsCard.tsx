@@ -29,8 +29,7 @@ export function GlassStatsCard({
   return (
     <div 
       className={cn(
-        "border backdrop-blur-md transition-all duration-300",
-        "hover:shadow-lg hover:shadow-black/5 p-6",
+        "border backdrop-blur-md transition-all duration-300 p-6",
         isDark 
           ? "glass-card-dark text-white" 
           : "glass-card-light text-black",

@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import {
   Select,
   SelectContent,
@@ -321,48 +320,39 @@ Your RAG system is ready to help users find information from your documentation!
 
                 {/* Navigation Buttons */}
                 <div className="flex flex-col sm:flex-row justify-between gap-3 pt-4 sm:pt-6 border-t">
-                  <div className="relative w-full sm:w-auto order-2 sm:order-1">
-                    <Button
-                      variant="outline"
-                      onClick={handleBack}
-                      disabled={currentStep === 1}
-                      data-testid="button-back"
-                      className="w-full sm:w-auto"
-                    >
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Back
-                    </Button>
-                    <PointerTypes.Back className="absolute inset-0" />
-                  </div>
-                  
+                  <Button
+                    variant="outline"
+                    onClick={handleBack}
+                    disabled={currentStep === 1}
+                    data-testid="button-back"
+                    className="w-full sm:w-auto"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back
+                  </Button>
+                
                   {currentStep < 3 ? (
-                    <div className="relative w-full sm:w-auto order-1 sm:order-2">
-                      <Button
-                        onClick={handleNext}
-                        disabled={
-                          (currentStep === 1 && !orgName) ||
-                          (currentStep === 2 && !sourceUrl)
-                        }
-                        data-testid="button-next"
-                        className="w-full sm:w-auto group"
-                      >
-                        Next
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </Button>
-                      <PointerTypes.Next className="absolute inset-0" />
-                    </div>
+                    <Button
+                      onClick={handleNext}
+                      disabled={
+                        (currentStep === 1 && !orgName) ||
+                        (currentStep === 2 && !sourceUrl)
+                      }
+                      data-testid="button-next"
+                      className="w-full sm:w-auto group"
+                    >
+                      Next
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
                   ) : (
-                    <div className="relative w-full sm:w-auto order-1 sm:order-2">
-                      <Button
-                        onClick={handleFinish}
-                        data-testid="button-finish"
-                        className="w-full sm:w-auto group"
-                      >
-                        Finish Setup
-                        <CheckCircle className="h-4 w-4 ml-2" />
-                      </Button>
-                      <PointerTypes.Success className="absolute inset-0" />
-                    </div>
+                    <Button
+                      onClick={handleFinish}
+                      data-testid="button-finish"
+                      className="w-full sm:w-auto group"
+                    >
+                      Finish Setup
+                      <CheckCircle className="h-4 w-4 ml-2" />
+                    </Button>
                   )}
                 </div>
               </CardContent>

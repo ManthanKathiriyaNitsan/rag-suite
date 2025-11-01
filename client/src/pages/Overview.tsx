@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useTranslation } from "@/contexts/I18nContext";
-import { ConditionalPointerTypes } from "@/components/ui/ConditionalPointer";
 import { HeroSection } from "@/components/ui/HeroSection";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { GlassStatsCard } from "@/components/ui/GlassStatsCard";

@@ -17,7 +17,6 @@ import { SearchBarRef } from "@/components/common/SearchBar";
 import { useRAGSettings, usePerformanceMetrics } from "@/contexts/RAGSettingsContext";
 import { useSearch } from "@/hooks/useSearch";
 import { useChat, useChatSessions } from "@/hooks/useChat";
-import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import { GlassCard } from "@/components/ui/GlassCard";
 
 import { Message } from "@/types/components";
@@ -301,7 +300,6 @@ export default function RAGTuning() {
               <Trash2 className="h-4 w-4" />
               Clear Chat
             </Button>
-            <PointerTypes.Delete className="absolute inset-0" />
           </div>
           
           

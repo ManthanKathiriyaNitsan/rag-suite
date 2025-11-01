@@ -320,7 +320,7 @@ const ChatMessage = React.memo(function ChatMessage({
                       <HoverCardTrigger asChild>
                         <div 
                           className={`${getCitationStyleClasses()} ${getColorSchemeClasses()} ${
-                            formatting.enableHover ? 'hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer' : ''
+                            formatting.enableHover ? 'cursor-pointer' : ''
                           }`}
                         >
                           <div className="flex items-start gap-2">

@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import { mockLogin } from "@/utils/mockAuth";
 import { BackgroundWrapper } from "@/components/common/BackgroundWrapper";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -225,16 +224,13 @@ const Login = React.memo(function Login() {
                   </Link>
                 </div>
                 
-                <div className="relative">
-                  <Button
-                    type="submit"
-                    className="w-full h-11 group"
-                    data-testid="button-sign-in"
-                  >
-                    Sign in
-                  </Button>
-                  <PointerTypes.Click className="absolute inset-0" />
-                </div>
+                <Button
+                  type="submit"
+                  className="w-full h-11 group"
+                  data-testid="button-sign-in"
+                >
+                  Sign in
+                </Button>
               </form>
               
               <div className="pt-4 border-t">

@@ -8,7 +8,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/DropdownMenu';
 import { useTranslation } from '@/contexts/I18nContext';
-import { PointerTypes } from '@/components/ui/AnimatedPointer';
 
 const LanguageSelector = React.memo(function LanguageSelector() {
   const { locale, setLocale, availableLocales } = useTranslation();

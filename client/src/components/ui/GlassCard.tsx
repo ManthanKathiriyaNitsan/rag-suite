@@ -7,13 +7,17 @@ interface GlassCardProps {
   className?: string;
   variant?: 'light' | 'dark' | 'auto';
   noHover?: boolean;
+  onClick?: () => void;
+  [key: string]: any; // Allow other props like data-testid, etc.
 }
 
 export function GlassCard({ 
   children, 
   className = "",
   variant = 'auto',
-  noHover = false
+  noHover = false,
+  onClick,
+  ...props
 }: GlassCardProps) {
   const { theme } = useTheme();
   
@@ -30,7 +34,6 @@ export function GlassCard({
     <div 
       className={cn(
         "border backdrop-blur-md transition-all duration-300",
-        !noHover && "hover:shadow-lg hover:shadow-black/5",
         currentVariant === 'dark' 
           ? "glass-card-dark text-white" 
           : "glass-card-light text-black",
@@ -42,6 +45,8 @@ export function GlassCard({
         WebkitBackdropFilter: 'blur(20px)',
         ...(noHover && { boxShadow: '0px 1px 5px -1px rgba(0,0,0,0.2)' })
       }}
+      onClick={onClick}
+      {...props}
     >
       {children}
     </div>

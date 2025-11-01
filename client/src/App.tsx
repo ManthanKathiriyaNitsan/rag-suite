@@ -20,12 +20,9 @@ import { LayoutProvider } from "@/contexts/LayoutContext";
 import { AdvancedProvider } from "@/contexts/AdvancedContext";
 import { I18nProvider } from "@/contexts/I18nContext";
 import { CitationFormattingProvider } from "@/contexts/CitationFormattingContext";
-import { CursorProvider, useCursor } from "@/contexts/CursorContext";
 import { BackgroundProvider } from "@/contexts/BackgroundContext";
 import { BackgroundWrapper } from "@/components/common/BackgroundWrapper";
 import { useTranslation } from "@/contexts/I18nContext";
-import { SmoothCursor } from "@/components/ui/SmoothCursor";
-import { ConditionalPointerTypes } from "@/components/ui/ConditionalPointer";
 import { GlassNavbar } from "@/components/ui/GlassNavbar";
 import { useTheme } from "@/contexts/ThemeContext";
 import Lenis from "lenis";
@@ -106,7 +103,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex items-center gap-2">
           <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Loading...</span>
+          <span>Just a moment...</span>
         </div>
       </div>
     );
@@ -124,7 +121,6 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const { customCursorEnabled } = useCursor();
   const { isTourActive, completeTour, skipTour } = useOnboarding();
   const { t } = useTranslation();
   const { theme } = useTheme();
@@ -290,7 +286,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
                 </kbd>
               </Button>
             </div>
-            <div className="flex items-center gap-1 md:gap-3">
+            <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="sm"
@@ -301,7 +297,8 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <Bell className="h-4 w-4" />
                 <Badge
                   variant="destructive"
-                  className="absolute -top-1 right-[-10px] h-5 w-5 min-w-5 text-[10px] font-semibold flex items-center justify-center rounded-full"
+                  className="absolute -top-[2px] -right-[1px] h-[18px] w-[18px] min-w-auto text-[10px] font-semibold flex items-center justify-center rounded-full !p-0"
+                  style={{ borderRadius: '9999px' }}
                 >
                   3
                 </Badge>
@@ -355,9 +352,6 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
         onComplete={completeTour}
         onClose={skipTour}
       />
-      
-      {/* Smooth Cursor - conditionally rendered */}
-      {customCursorEnabled && <SmoothCursor />}
     </SidebarProvider>
   );
 }
@@ -544,14 +538,12 @@ function App() {
                   <CitationFormattingProvider>
                     <ThemeProvider>
                       <BackgroundProvider>
-                        <CursorProvider>
-                          <TooltipProvider>
-                            <I18nProvider>
-                              <Router />
-                              <Toaster />
-                            </I18nProvider>
-                          </TooltipProvider>
-                        </CursorProvider>
+                        <TooltipProvider>
+                          <I18nProvider>
+                            <Router />
+                            <Toaster />
+                          </I18nProvider>
+                        </TooltipProvider>
                       </BackgroundProvider>
                     </ThemeProvider>
                   </CitationFormattingProvider>

@@ -7,7 +7,6 @@ const CrawlSourceTable = lazy(() => import("@/components/features/documents/Craw
 const CrawlJobs = lazy(() => import("@/components/features/documents/CrawlJobs"));
 import { useToast } from "@/hooks/useToast";
 import { useTranslation } from "@/contexts/I18nContext";
-import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -236,20 +235,13 @@ export default function Crawl() {
             <Plus className="h-4 w-4 mr-2" />
             Add Source
           </Button>
-          <PointerTypes.Add className="absolute inset-0" />
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <div className="relative">
-            <TabsTrigger value="sources" data-testid="tab-sources">Sources</TabsTrigger>
-            <PointerTypes.Click className="absolute inset-0" />
-          </div>
-          <div className="relative">
-            <TabsTrigger value="jobs" data-testid="tab-jobs">Jobs</TabsTrigger>
-            <PointerTypes.Click className="absolute inset-0" />
-          </div>
+          <TabsTrigger value="sources" data-testid="tab-sources">Sources</TabsTrigger>
+          <TabsTrigger value="jobs" data-testid="tab-jobs">Jobs</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sources" className="space-y-4 w-full overflow-hidden">
@@ -257,66 +249,54 @@ export default function Crawl() {
             {/* Search Input */}
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <div className="relative">
-                <Input
-                  placeholder="Search sources..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                  data-testid="input-search-sources"
-                />
-                <PointerTypes.Search className="absolute inset-0" />
-              </div>
+              <Input
+                placeholder="Search sources..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+                data-testid="input-search-sources"
+              />
             </div>
 
             {/* Status Filter */}
-            <div className="relative">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40" data-testid="select-status-filter">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="error">Error</SelectItem>
-                </SelectContent>
-              </Select>
-              <PointerTypes.Filter className="absolute inset-0" />
-            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40" data-testid="select-status-filter">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="error">Error</SelectItem>
+              </SelectContent>
+            </Select>
 
             {/* Cadence Filter */}
-            <div className="relative">
-              <Select value={cadenceFilter} onValueChange={setCadenceFilter}>
-                <SelectTrigger className="w-40" data-testid="select-cadence-filter">
-                  <SelectValue placeholder="Cadence" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Cadence</SelectItem>
-                  <SelectItem value="once">Once</SelectItem>
-                  <SelectItem value="hourly">Hourly</SelectItem>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                </SelectContent>
-              </Select>
-              <PointerTypes.Time className="absolute inset-0" />
-            </div>
+            <Select value={cadenceFilter} onValueChange={setCadenceFilter}>
+              <SelectTrigger className="w-40" data-testid="select-cadence-filter">
+                <SelectValue placeholder="Cadence" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Cadence</SelectItem>
+                <SelectItem value="once">Once</SelectItem>
+                <SelectItem value="hourly">Hourly</SelectItem>
+                <SelectItem value="daily">Daily</SelectItem>
+                <SelectItem value="weekly">Weekly</SelectItem>
+              </SelectContent>
+            </Select>
 
             {/* Clear Filters Button */}
             {hasActiveFilters && (
-              <div className="relative">
-                <Button 
-                  variant="outline" 
-                  onClick={clearFilters}
-                  className="flex items-center gap-2"
-                  data-testid="button-clear-filters"
-                >
-                  <X className="h-4 w-4" />
-                  Clear Filters
-                </Button>
-                <PointerTypes.Refresh className="absolute inset-0" />
-              </div>
+              <Button 
+                variant="outline" 
+                onClick={clearFilters}
+                className="flex items-center gap-2"
+                data-testid="button-clear-filters"
+              >
+                <X className="h-4 w-4" />
+                Clear Filters
+              </Button>
             )}
           </div>
 
@@ -338,54 +318,45 @@ export default function Crawl() {
 
         <TabsContent value="jobs" className="space-y-4 w-full overflow-hidden">
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative">
-              <Select value={jobStatusFilter} onValueChange={setJobStatusFilter}>
-                <SelectTrigger className="w-40" data-testid="select-job-status-filter">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="running">Running</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                </SelectContent>
-              </Select>
-              <PointerTypes.Filter className="absolute inset-0" />
-            </div>
+            <Select value={jobStatusFilter} onValueChange={setJobStatusFilter}>
+              <SelectTrigger className="w-40" data-testid="select-job-status-filter">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="running">Running</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+              </SelectContent>
+            </Select>
 
-            <div className="relative">
-              <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger className="w-40" data-testid="select-date-filter">
-                  <SelectValue placeholder="Date Range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="week">This Week</SelectItem>
-                  <SelectItem value="month">This Month</SelectItem>
-                  <SelectItem value="all">All Time</SelectItem>
-                </SelectContent>
-              </Select>
-              <PointerTypes.Time className="absolute inset-0" />
-            </div>
+            <Select value={dateFilter} onValueChange={setDateFilter}>
+              <SelectTrigger className="w-40" data-testid="select-date-filter">
+                <SelectValue placeholder="Date Range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="week">This Week</SelectItem>
+                <SelectItem value="month">This Month</SelectItem>
+                <SelectItem value="all">All Time</SelectItem>
+              </SelectContent>
+            </Select>
 
             {/* Clear Filters Button for Jobs */}
             {(jobStatusFilter !== "all" || dateFilter !== "today") && (
-              <div className="relative">
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setJobStatusFilter("all");
-                    setDateFilter("today");
-                  }}
-                  className="flex items-center gap-2"
-                  data-testid="button-clear-job-filters"
-                >
-                  <X className="h-4 w-4" />
-                  Clear Filters
-                </Button>
-                <PointerTypes.Refresh className="absolute inset-0" />
-              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setJobStatusFilter("all");
+                  setDateFilter("today");
+                }}
+                className="flex items-center gap-2"
+                data-testid="button-clear-job-filters"
+              >
+                <X className="h-4 w-4" />
+                Clear Filters
+              </Button>
             )}
           </div>
           <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}>

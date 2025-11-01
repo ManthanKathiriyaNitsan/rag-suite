@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTranslation } from "@/contexts/I18nContext";
-import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import {
   Select,
   SelectContent,
@@ -29,7 +28,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import GlassGlassCard from "@/components/ui/GlassGlassCard";
 
 const feedbackData = [
   {
@@ -157,42 +155,35 @@ export default function Feedback() {
                   <SelectItem value="month">This Month</SelectItem>
                 </SelectContent>
               </Select>
-              <PointerTypes.Time className="absolute inset-0" />
             </div>
 
-            <div className="relative">
-              <Select value={voteFilter} onValueChange={setVoteFilter}>
-                <SelectTrigger className="w-32" data-testid="select-vote-filter">
-                  <SelectValue placeholder="Vote" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Votes</SelectItem>
-                  <SelectItem value="up">👍 Positive</SelectItem>
-                  <SelectItem value="down">👎 Negative</SelectItem>
-                </SelectContent>
-              </Select>
-              <PointerTypes.Favorite className="absolute inset-0" />
-            </div>
+            <Select value={voteFilter} onValueChange={setVoteFilter}>
+              <SelectTrigger className="w-32" data-testid="select-vote-filter">
+                <SelectValue placeholder="Vote" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Votes</SelectItem>
+                <SelectItem value="up">👍 Positive</SelectItem>
+                <SelectItem value="down">👎 Negative</SelectItem>
+              </SelectContent>
+            </Select>
 
-            <div className="relative">
-              <Select value={reasonFilter} onValueChange={setReasonFilter}>
-                <SelectTrigger className="w-40" data-testid="select-reason-filter">
-                  <SelectValue placeholder="Reason" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Reasons</SelectItem>
-                  <SelectItem value="helpful">Helpful</SelectItem>
-                  <SelectItem value="accurate">Accurate</SelectItem>
-                  <SelectItem value="complete">Complete</SelectItem>
-                  <SelectItem value="clear">Clear</SelectItem>
-                  <SelectItem value="not helpful">Not Helpful</SelectItem>
-                  <SelectItem value="outdated">Outdated</SelectItem>
-                  <SelectItem value="missing sources">Missing Sources</SelectItem>
-                  <SelectItem value="too technical">Too Technical</SelectItem>
-                </SelectContent>
-              </Select>
-              <PointerTypes.Filter className="absolute inset-0" />
-            </div>
+            <Select value={reasonFilter} onValueChange={setReasonFilter}>
+              <SelectTrigger className="w-40" data-testid="select-reason-filter">
+                <SelectValue placeholder="Reason" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Reasons</SelectItem>
+                <SelectItem value="helpful">Helpful</SelectItem>
+                <SelectItem value="accurate">Accurate</SelectItem>
+                <SelectItem value="complete">Complete</SelectItem>
+                <SelectItem value="clear">Clear</SelectItem>
+                <SelectItem value="not helpful">Not Helpful</SelectItem>
+                <SelectItem value="outdated">Outdated</SelectItem>
+                <SelectItem value="missing sources">Missing Sources</SelectItem>
+                <SelectItem value="too technical">Too Technical</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </GlassCard>
@@ -301,19 +292,16 @@ export default function Feedback() {
                   <div className="mt-2 p-3 bg-secondary rounded-lg">
                     <p className="text-sm">{selectedFeedback.query}</p>
                   </div>
-                  <div className="relative">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mt-2"
-                      onClick={() => handleCopyToClipboard(selectedFeedback.query)}
-                      data-testid="button-copy-query"
-                    >
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy Query
-                    </Button>
-                    <PointerTypes.Copy className="absolute inset-0" />
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => handleCopyToClipboard(selectedFeedback.query)}
+                    data-testid="button-copy-query"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Query
+                  </Button>
                 </div>
 
                 {/* Answer */}
@@ -324,19 +312,16 @@ export default function Feedback() {
                       <p className="whitespace-pre-wrap text-sm">{selectedFeedback.fullAnswer}</p>
                     </div>
                   </div>
-                  <div className="relative">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mt-2"
-                      onClick={() => handleCopyToClipboard(selectedFeedback.fullAnswer)}
-                      data-testid="button-copy-answer"
-                    >
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy Answer
-                    </Button>
-                    <PointerTypes.Copy className="absolute inset-0" />
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => handleCopyToClipboard(selectedFeedback.fullAnswer)}
+                    data-testid="button-copy-answer"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Answer
+                  </Button>
                 </div>
 
                 {/* Citations */}

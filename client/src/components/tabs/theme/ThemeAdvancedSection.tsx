@@ -107,7 +107,7 @@ export default function ThemeAdvancedSection() {
               Accessibility Settings
             </div>
             <Button variant="outline" size="sm" onClick={handleReset}>
-              Reset to Default
+              Reset
             </Button>
           </CardTitle>
         </CardHeader>

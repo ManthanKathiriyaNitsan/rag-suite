@@ -61,7 +61,7 @@ export default function ThemeLayoutSection() {
               size="sm" 
               onClick={handleReset}
             >
-              Reset to Default
+              Reset
             </Button>
           </CardTitle>
         </CardHeader>

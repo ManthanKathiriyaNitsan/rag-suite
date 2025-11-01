@@ -12,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import { GlassCard } from "@/components/ui/GlassCard";
 
 const Profile = React.memo(function Profile() {
@@ -136,7 +135,6 @@ const Profile = React.memo(function Profile() {
                   <Save className="h-4 w-4 mr-2" />
                   Save Changes
                 </Button>
-                <PointerTypes.Save className="absolute inset-0" />
               </div>
             </div>
           </CardContent>
@@ -331,7 +329,6 @@ const Profile = React.memo(function Profile() {
                   <Button className="w-full group" data-testid="button-update-password">
                     Update Password
                   </Button>
-                  <PointerTypes.Save className="absolute inset-0" />
                 </div>
               </CardContent>
             </GlassCard>

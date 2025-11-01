@@ -5,7 +5,6 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/contexts/I18nContext";
-import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import {
   Select,
   SelectContent,
@@ -110,15 +109,11 @@ const Analytics = React.memo(function Analytics() {
                 <SelectItem value="90d">Last 3 months</SelectItem>
               </SelectContent>
             </Select>
-            <PointerTypes.Time className="absolute inset-0" />
           </div>
-          <div className="relative">
-            <Button variant="outline" data-testid="button-export" className="w-full sm:w-auto">
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-            <PointerTypes.Download className="absolute inset-0" />
-          </div>
+          <Button variant="outline" data-testid="button-export" className="w-full sm:w-auto">
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
         </div>
       </div>
 

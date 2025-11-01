@@ -16,7 +16,7 @@ export function GlassNavbar({
     <nav 
       className={cn(
         "w-full",
-        "backdrop-blur-md border-b",
+        "backdrop-blur-md",
         "transition-all duration-300",
         variant === 'dark' 
           ? "glass-navbar-dark" 

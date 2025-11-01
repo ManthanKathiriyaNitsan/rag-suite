@@ -15,7 +15,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 // 🔐 Import authentication context
 import { useAuthContext } from "@/contexts/AuthContext";
-import { PointerTypes } from "@/components/ui/AnimatedPointer";
 
 interface UserDropdownProps {
   user?: {

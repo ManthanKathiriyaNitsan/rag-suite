@@ -24,11 +24,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useI18n } from "@/contexts/I18nContext";
-import { PointerTypes } from "@/components/ui/AnimatedPointer";
-import { ConditionalPointerTypes } from "@/components/ui/ConditionalPointer";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useCitationFormatting } from "@/contexts/CitationFormattingContext";
-import { useCursor } from "@/contexts/CursorContext";
 import { useBackground } from "@/contexts/BackgroundContext";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Layers } from "lucide-react";
@@ -54,9 +51,6 @@ const Settings = React.memo(function Settings() {
   const [widgetPosition, setWidgetPosition] = useState(widgetPositionGlobal || "bottom-right");
   const [widgetOffsetX, setWidgetOffsetX] = useState(widgetOffsetXGlobal || 0);
   const [widgetOffsetY, setWidgetOffsetY] = useState(widgetOffsetYGlobal || 0);
-  
-  // Custom cursor context
-  const { customCursorEnabled, setCustomCursorEnabled, pointerIconsEnabled, setPointerIconsEnabled } = useCursor();
   
   // Background theme context
   const { backgroundTheme, setBackgroundTheme } = useBackground();
@@ -90,7 +84,7 @@ const Settings = React.memo(function Settings() {
     reader.onload = () => {
       const result = reader.result as string;
       setLogoDataUrl(result);
-      toast({ title: "Logo uploaded", description: "Your logo preview has been updated." });
+      toast({ title: "Logo uploaded", description: "Your logo preview has been updated.", variant: "success" });
     };
     reader.readAsDataURL(file);
   };
@@ -105,7 +99,7 @@ const Settings = React.memo(function Settings() {
       const data = { orgName, primaryColor, logoDataUrl };
       localStorage.setItem("branding", JSON.stringify(data));
       setBranding(data); // update global context so all pages reflect immediately
-      toast({ title: "Branding saved", description: "Organization name, color, and logo were saved." });
+      toast({ title: "Branding saved", description: "Organization name, color, and logo were saved.", variant: "success" });
     } catch (e) {
       toast({ title: "Save failed", description: "Could not save branding settings.", variant: "destructive" });
     }
@@ -117,14 +111,15 @@ const Settings = React.memo(function Settings() {
     setLogoDataUrl(null);
     resetBranding();
     localStorage.removeItem("branding");
-    toast({ title: "Branding reset", description: "Branding settings were reset to defaults." });
+    toast({ title: "Branding reset", description: "Branding settings were reset to defaults.", variant: "info" });
   };
 
   const handleSaveLocale = () => {
     // I18nProvider already persists the locale; provide UX feedback only
     toast({ 
       title: t("common.success"), 
-      description: `${locale} ${t('settings.i18n.defaultLanguage').toLowerCase()} ${t('common.save').toLowerCase()}d.` 
+      description: `${locale} ${t('settings.i18n.defaultLanguage').toLowerCase()} ${t('common.save').toLowerCase()}d.`,
+      variant: "success"
     });
   };
 
@@ -132,27 +127,11 @@ const Settings = React.memo(function Settings() {
     setLocale("en");
     toast({ 
       title: t("common.success"), 
-      description: `${t('settings.i18n.defaultLanguage')} ${t('common.clear').toLowerCase()}ed to English (US).` 
+      description: `${t('settings.i18n.defaultLanguage')} ${t('common.clear').toLowerCase()}ed to English (US).`,
+      variant: "success"
     });
   };
 
-  // Custom cursor toggle handlers
-  const handleCursorToggle = (enabled: boolean) => {
-    setCustomCursorEnabled(enabled);
-    toast({
-      title: "Cursor Setting Updated",
-      description: enabled ? "Custom cursor is now enabled" : "Default cursor is now enabled",
-    });
-  };
-
-  // Pointer icons toggle handlers
-  const handlePointerIconsToggle = (enabled: boolean) => {
-    setPointerIconsEnabled(enabled);
-    toast({
-      title: "Pointer Icons Setting Updated",
-      description: enabled ? "Animated pointer icons are now enabled" : "Animated pointer icons are now disabled",
-    });
-  };
 
   return (
     <div className="relative min-h-screen">
@@ -214,7 +193,6 @@ const Settings = React.memo(function Settings() {
                         )} 
                       </div>
                         </Button>
-                        <ConditionalPointerTypes.Upload className="absolute inset-0" />
                       </div>
                       {logoDataUrl && (
                           <Button variant="ghost" onClick={handleRemoveLogo} data-testid="button-remove-logo" className="w-full border sm:w-auto">
@@ -251,6 +229,7 @@ const Settings = React.memo(function Settings() {
                       toast({
                         title: "Background Theme Updated",
                         description: `Background theme changed to ${themeNames[value] || value}.`,
+                        variant: "success"
                       });
                     }}
                   >
@@ -352,10 +331,10 @@ const Settings = React.memo(function Settings() {
 
                 <div className="space-y-4  ">
                   <Label>Live Preview</Label>
-                  <Card className="p-4 h-full flex items-center justify-start bg-sidebar">
+                  <Card className="p-4 h-full flex items-center justify-start bg-white dark:bg-card">
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 bg-card rounded flex items-center justify-center overflow-hidden">
+                        <div className="h-8 w-8 bg-sidebar rounded flex items-center justify-center overflow-hidden">
                           {logoDataUrl ? (
                             <img src={logoDataUrl} alt="Logo preview" className="h-full w-full object-contain" />
                           ) : (
@@ -376,14 +355,8 @@ const Settings = React.memo(function Settings() {
               </div>
 
               <div className="flex flex-col sm:flex-row justify-end gap-2  pt-10">
-                <div className="relative">
-                  <Button variant="outline" onClick={handleResetBranding} className="w-full sm:w-auto">Reset</Button>
-                  <ConditionalPointerTypes.Refresh className="absolute inset-0" />
-                </div>
-                <div className="relative">
-                  <Button onClick={handleSaveBranding} data-testid="button-save-branding" className="w-full sm:w-auto group">Save Changes</Button>
-                  <ConditionalPointerTypes.Save className="absolute inset-0" />
-                </div>
+                <Button variant="outline" onClick={handleResetBranding} className="w-full sm:w-auto">Reset</Button>
+                <Button onClick={handleSaveBranding} data-testid="button-save-branding" className="w-full sm:w-auto group">Save Changes</Button>
               </div>
             </CardContent>
           </GlassCard>
@@ -489,59 +462,6 @@ const Settings = React.memo(function Settings() {
             </CardContent>
           </GlassCard>
 
-          {/* Custom Cursor Toggle */}
-          <GlassCard>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MousePointer className="h-5 w-5" />
-                 Cursor Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Enable Custom Cursor</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Toggle between custom animated cursor and default system cursor
-                    </p>
-                  </div>
-                  <div className="relative">
-                    <Switch
-                      checked={customCursorEnabled}
-                      onCheckedChange={handleCursorToggle}
-                      data-testid="switch-custom-cursor"
-      
-                    />
-                    <ConditionalPointerTypes.Settings className="absolute inset-0" />
-                  </div>
-                </div>
-
-               
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Enable Animated Pointer Icons</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Toggle animated pointer icons on buttons and interactive elements
-                    </p>
-                  </div>
-                  <div className="relative">
-                    <Switch
-                      checked={pointerIconsEnabled}
-                      onCheckedChange={handlePointerIconsToggle}
-                      data-testid="switch-pointer-icons"
-                    />
-                    <ConditionalPointerTypes.Settings className="absolute inset-0" />
-                  </div>
-                </div>
-
-              </div>
-            </CardContent>
-          </GlassCard>
-        
         </TabsContent>
 
         {/* Data Retention */}
@@ -577,14 +497,8 @@ const Settings = React.memo(function Settings() {
               </div>
 
               <div className="flex flex-col sm:flex-row justify-end gap-2">
-                <div className="relative">
-                  <Button variant="outline" className="w-full sm:w-auto">Reset to Default</Button>
-                  <ConditionalPointerTypes.Refresh className="absolute inset-0" />
-                </div>
-                <div className="relative">
-                  <Button data-testid="button-save-retention" className="w-full sm:w-auto">Save Policy</Button>
-                  <ConditionalPointerTypes.Save className="absolute inset-0" />
-                </div>
+                <Button variant="outline" className="w-full sm:w-auto">Reset</Button>
+                <Button data-testid="button-save-retention" className="w-full sm:w-auto">Save Changes</Button>
               </div>
             </CardContent>
           </GlassCard>
@@ -626,18 +540,12 @@ const Settings = React.memo(function Settings() {
         
 
               <div className="flex flex-col sm:flex-row justify-end gap-2">
-                <div className="relative">
-                  <Button variant="outline" onClick={handleResetLocale} className="w-full sm:w-auto">
-                    {t('common.clear')} / Reset to Default
-                  </Button>
-                  <ConditionalPointerTypes.Refresh className="absolute inset-0" />
-                </div>
-                <div className="relative">
-                  <Button data-testid="button-save-locale" onClick={handleSaveLocale} className="w-full sm:w-auto group">
-                    {t('common.save')} / {t('settings.i18n.save')}
-                  </Button>
-                  <ConditionalPointerTypes.Save className="absolute inset-0" />
-                </div>
+                <Button variant="outline" onClick={handleResetLocale} className="w-full sm:w-auto">
+                  Reset
+                </Button>
+                <Button data-testid="button-save-locale" onClick={handleSaveLocale} className="w-full sm:w-auto group">
+                  Save Changes
+                </Button>
               </div>
             </CardContent>
           </GlassCard>
@@ -751,13 +659,10 @@ const Settings = React.memo(function Settings() {
                       Display content snippets
                     </p>
                   </div>
-                  <div className="relative">
-                    <Switch
-                      checked={formatting.showSnippets}
-                      onCheckedChange={(checked: boolean) => updateFormatting({ showSnippets: checked })}
-                    />
-                    <ConditionalPointerTypes.Settings className="absolute inset-0" />
-                  </div>
+                  <Switch
+                    checked={formatting.showSnippets}
+                    onCheckedChange={(checked: boolean) => updateFormatting({ showSnippets: checked })}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -767,13 +672,10 @@ const Settings = React.memo(function Settings() {
                       Display source links
                     </p>
                   </div>
-                  <div className="relative">
-                    <Switch
-                      checked={formatting.showUrls}
-                      onCheckedChange={(checked: boolean) => updateFormatting({ showUrls: checked })}
-                    />
-                    <ConditionalPointerTypes.Settings className="absolute inset-0" />
-                  </div>
+                  <Switch
+                    checked={formatting.showUrls}
+                    onCheckedChange={(checked: boolean) => updateFormatting({ showUrls: checked })}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -783,13 +685,10 @@ const Settings = React.memo(function Settings() {
                       Display number of sources
                     </p>
                   </div>
-                  <div className="relative">
-                    <Switch
-                      checked={formatting.showSourceCount}
-                      onCheckedChange={(checked: boolean) => updateFormatting({ showSourceCount: checked })}
-                    />
-                    <ConditionalPointerTypes.Settings className="absolute inset-0" />
-                  </div>
+                  <Switch
+                    checked={formatting.showSourceCount}
+                    onCheckedChange={(checked: boolean) => updateFormatting({ showSourceCount: checked })}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -799,13 +698,10 @@ const Settings = React.memo(function Settings() {
                       Add hover animations
                     </p>
                   </div>
-                  <div className="relative">
-                    <Switch
-                      checked={formatting.enableHover}
-                      onCheckedChange={(checked: boolean) => updateFormatting({ enableHover: checked })}
-                    />
-                    <ConditionalPointerTypes.Settings className="absolute inset-0" />
-                  </div>
+                  <Switch
+                    checked={formatting.enableHover}
+                    onCheckedChange={(checked: boolean) => updateFormatting({ enableHover: checked })}
+                  />
                 </div>
               </div>
 
@@ -841,18 +737,12 @@ const Settings = React.memo(function Settings() {
               </div>
 
               <div className="flex flex-col sm:flex-row justify-end gap-2">
-                <div className="relative">
-                  <Button variant="outline" onClick={resetFormatting} className="w-full sm:w-auto">
-                    Reset to Default
-                  </Button>
-                  <ConditionalPointerTypes.Refresh className="absolute inset-0" />
-                </div>
-                <div className="relative">
-                  <Button className="w-full sm:w-auto">
-                    Save Settings
-                  </Button>
-                  <ConditionalPointerTypes.Save className="absolute inset-0" />
-                </div>
+                <Button variant="outline" onClick={resetFormatting} className="w-full sm:w-auto">
+                  Reset
+                </Button>
+                <Button className="w-full sm:w-auto">
+                  Save Changes
+                </Button>
               </div>
             </CardContent>
           </GlassCard>

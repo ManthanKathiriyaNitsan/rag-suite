@@ -242,7 +242,7 @@ export default function ThemeTypographySection({ theme, onUpdateTheme }: ThemeTy
       {/* Actions */}
       <div className="flex gap-2">
         <Button variant="outline" onClick={handleReset} className="flex-1">
-          Reset to Defaults
+          Reset
         </Button>
       </div>
     </div>

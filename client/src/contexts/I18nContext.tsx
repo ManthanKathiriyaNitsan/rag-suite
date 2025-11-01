@@ -33,7 +33,7 @@ export const AVAILABLE_LOCALES = [
 const translations: Record<string, Record<string, string>> = {
   en: {
     // Common
-    "common.loading": "Loading...",
+    "common.loading": "Just a moment...",
     "common.error": "Error",
     "common.success": "Success",
     "common.cancel": "Cancel",

@@ -489,10 +489,10 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
                   >
                     <Save className="h-4 w-4" />
                     <span className="hidden sm:inline">
-                      {isLoading ? "Saving..." : (mode === "create" ? "Publish" : "Save Changes")}
+                      {isLoading ? "Saving..." : "Save Changes"}
                     </span>
                     <span className="sm:hidden">
-                      {isLoading ? "Saving..." : (mode === "create" ? "Create" : "Save")}
+                      {isLoading ? "Saving..." : "Success"}
                     </span>
                   </Button>
                 </div>

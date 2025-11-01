@@ -14,7 +14,6 @@ import { useSearch } from "@/hooks/useSearch";
 import { useChat } from "@/hooks/useChat";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useBranding } from "@/contexts/BrandingContext";
-import { PointerTypes } from "@/components/ui/AnimatedPointer";
 
 
 interface Message {
@@ -542,21 +541,18 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
         zIndex: Math.max(widgetZIndex, 9990),
         transform: `translate(${widgetOffsetX}px, ${widgetOffsetY}px)`
       }}>
-        <div className="relative">
-          <Button
-            onClick={onToggle}
-            className="h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg widget-launcher-transition hover:scale-110 animate-widget-launcher-bounce animate-widget-launcher-pulse"
-            data-testid="button-widget-launcher"
-            aria-label="Open AI Assistant"
-            aria-expanded="false"
-            aria-haspopup="dialog"
-            tabIndex={0}
-          >
-            <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
-            <span className="sr-only">Open AI Assistant</span>
-          </Button>
-          <PointerTypes.Chat className="absolute inset-0" />
-        </div>
+        <Button
+          onClick={onToggle}
+          className="h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg widget-launcher-transition hover:scale-110 animate-widget-launcher-bounce animate-widget-launcher-pulse"
+          data-testid="button-widget-launcher"
+          aria-label="Open AI Assistant"
+          aria-expanded="false"
+          aria-haspopup="dialog"
+          tabIndex={0}
+        >
+          <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
+          <span className="sr-only">Open AI Assistant</span>
+        </Button>
       </div>
     );
   }
@@ -590,35 +586,29 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
             <div className="w-2 h-2 bg-green-500 rounded-full mr-1" />
             Online
           </Badge>
-          <div className="relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={clearChat}
-              data-testid="button-clear-chat"
-              className="h-8 w-8"
-              title="Clear chat"
-              aria-label="Clear chat history"
-              tabIndex={0}
-            >
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-            </Button>
-            <PointerTypes.Error className="absolute inset-0" />
-          </div>
-          <div className="relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onToggle}
-              data-testid="button-widget-close"
-              className="h-8 w-8"
-              aria-label="Close AI Assistant"
-              tabIndex={0}
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </Button>
-            <PointerTypes.Error className="absolute inset-0" />
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={clearChat}
+            data-testid="button-clear-chat"
+            className="h-8 w-8"
+            title="Clear chat"
+            aria-label="Clear chat history"
+            tabIndex={0}
+          >
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggle}
+            data-testid="button-widget-close"
+            className="h-8 w-8"
+            aria-label="Close AI Assistant"
+            tabIndex={0}
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </Button>
         </div>
       </CardHeader>
 
@@ -633,11 +623,10 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                 aria-selected={activeTab === "search"}
                 aria-controls="search-panel"
                 tabIndex={0}
-                className="flex items-center justify-center gap-1 relative"
+                className="flex items-center justify-center gap-1"
               >
                 <Search className="h-4 w-4" aria-hidden="true" />
                 Search
-                <PointerTypes.Search className="absolute inset-0" />
               </TabsTrigger>
               <TabsTrigger 
                 value="chat" 
@@ -646,11 +635,10 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                 aria-selected={activeTab === "chat"}
                 aria-controls="chat-panel"
                 tabIndex={0}
-                className="flex items-center justify-center gap-1 relative"
+                className="flex items-center justify-center gap-1"
               >
                 <MessageSquare className="h-4 w-4" aria-hidden="true" />
                 Chat
-                <PointerTypes.Chat className="absolute inset-0" />
               </TabsTrigger>
               <TabsTrigger 
                 value="auto" 
@@ -659,11 +647,10 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                 aria-selected={activeTab === "auto"}
                 aria-controls="auto-panel"
                 tabIndex={0}
-                className="flex items-center justify-center gap-1 relative"
+                className="flex items-center justify-center gap-1"
               >
                 <Zap className="h-4 w-4" aria-hidden="true" />
                 Auto
-                <PointerTypes.AI className="absolute inset-0" />
               </TabsTrigger>
             </TabsList>
           </div>

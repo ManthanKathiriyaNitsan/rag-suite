@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/contexts/I18nContext";
-import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassCard } from "@/components/ui/GlassCard";
 import {
@@ -264,7 +263,6 @@ export default function Integrations() {
             <Plus className="h-4 w-4 mr-2" />
             Create Integration
           </Button>
-          <PointerTypes.Add className="absolute inset-0" />
         </div>
       </div>
 
@@ -287,7 +285,6 @@ export default function Integrations() {
                   className="pl-10 "
                   data-testid="input-search-integrations"
                 />
-                <PointerTypes.Search className="absolute inset-0" />
               </div>
             </div>
 
@@ -304,7 +301,6 @@ export default function Integrations() {
                 <SelectItem value="archived">Archived</SelectItem>
               </SelectContent>
             </Select>
-            <PointerTypes.Filter className="absolute inset-0" />
           </div>
 
           <div className="relative">
@@ -319,7 +315,6 @@ export default function Integrations() {
                 <SelectItem value="bob@company.com">Bob Wilson</SelectItem>
               </SelectContent>
             </Select>
-            <PointerTypes.User className="absolute inset-0" />
           </div>
 
           <div className="relative">
@@ -333,7 +328,6 @@ export default function Integrations() {
                 <SelectItem value="staging">Staging</SelectItem>
               </SelectContent>
             </Select>
-            <PointerTypes.Integration className="absolute inset-0" />
           </div>
         </div>
           </div>
@@ -357,32 +351,25 @@ export default function Integrations() {
               <Pause className="h-4 w-4 mr-2" />
               Pause
             </Button>
-            <PointerTypes.Pause className="absolute inset-0" />
           </div>
-          <div className="relative">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleBulkAction("resume")}
-              data-testid="button-bulk-resume"
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Resume
-            </Button>
-            <PointerTypes.Play className="absolute inset-0" />
-          </div>
-          <div className="relative">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleBulkAction("archive")}
-              data-testid="button-bulk-archive"
-            >
-              <Archive className="h-4 w-4 mr-2" />
-              Archive
-            </Button>
-            <PointerTypes.Archive className="absolute inset-0" />
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleBulkAction("resume")}
+            data-testid="button-bulk-resume"
+          >
+            <Play className="h-4 w-4 mr-2" />
+            Resume
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleBulkAction("archive")}
+            data-testid="button-bulk-archive"
+          >
+            <Archive className="h-4 w-4 mr-2" />
+            Archive
+          </Button>
         </div>
       )}
 

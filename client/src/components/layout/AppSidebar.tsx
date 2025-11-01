@@ -40,7 +40,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useTranslation } from "@/contexts/I18nContext";
-import { ConditionalPointerTypes } from "@/components/ui/ConditionalPointer";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
 
@@ -152,7 +151,7 @@ const AppSidebar = React.memo(function AppSidebar() {
   return (
     <Sidebar 
       className={cn(
-        "backdrop-blur-xl border-r transition-all duration-300",
+        "backdrop-blur-xl transition-all duration-300",
         theme === 'dark' 
           ? "glass-sidebar-dark" 
           : "glass-sidebar-light"
@@ -162,7 +161,18 @@ const AppSidebar = React.memo(function AppSidebar() {
         WebkitBackdropFilter: 'blur(20px)',
       }}
     >
-      <SidebarHeader className="p-4 border-t" style={{ borderColor: theme === 'dark' ? '#2b2b2b' : '#d8d8d8' }}>
+      <SidebarHeader 
+        className={cn(
+          "p-4 transition-all duration-300",
+          theme === 'dark' 
+            ? "glass-navbar-dark" 
+            : "glass-navbar-light"
+        )}
+        style={{
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        }}
+      >
         <div className="flex px-2 py-[7px] items-center gap-2">
           {logoDataUrl ? (
             <img src={logoDataUrl} alt={`${orgName} logo`} className="h-6 w-6 rounded-sm" />
@@ -177,25 +187,22 @@ const AppSidebar = React.memo(function AppSidebar() {
       <div className="px-4 py-2 border-t border-b" style={{ borderColor: theme === 'dark' ? '#2b2b2b' : '#d8d8d8' }}>
         <DropdownMenu  >
           <DropdownMenuTrigger asChild>
-            <div className="relative">
-              <Button
-                variant="ghost"
-                className="w-full justify-between h-auto p-3 hover-elevate"
-                data-testid="dropdown-projects"
-              >
-                <div className="flex items-center gap-3">
-                  <Folder className="h-4 w-4 text-primary" />
-                  <div className="text-left">
-                    <div className="font-medium text-sm">{selectedProject.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {selectedProject.description}
-                    </div>
+            <Button
+              variant="ghost"
+              className="w-full justify-between h-auto p-3 border border-transparent transition-colors hover:bg-sidebar-accent hover:border-[hsl(var(--button-hover-border))]"
+              data-testid="dropdown-projects"
+            >
+              <div className="flex items-center gap-3">
+                <Folder className="h-4 w-4 text-primary" />
+                <div className="text-left">
+                  <div className="font-medium text-sm">{selectedProject.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {selectedProject.description}
                   </div>
                 </div>
-                <ChevronDown className="h-4 w-4 opacity-50" />
-              </Button>
-              <ConditionalPointerTypes.Filter className="absolute inset-0" />
-            </div>
+              </div>
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent 
             className={isMobile ? "w-[calc(100vw-2rem)]" : "w-64"} 
@@ -230,13 +237,10 @@ const AppSidebar = React.memo(function AppSidebar() {
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <div className="relative">
-              <DropdownMenuItem className="flex items-center gap-3 p-3 cursor-pointer text-muted-foreground">
-                <Plus className="h-4 w-4" />
-                <span className="text-sm">Create New Project</span>
-              </DropdownMenuItem>
-              <ConditionalPointerTypes.Add className="absolute inset-0" />
-            </div>
+            <DropdownMenuItem className="flex items-center gap-3 p-3 cursor-pointer text-muted-foreground">
+              <Plus className="h-4 w-4" />
+              <span className="text-sm">Create New Project</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -245,7 +249,7 @@ const AppSidebar = React.memo(function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Application</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-0">
+            <SidebarMenu>
               {memoizedMenuItems.map((item) => {
                 // Map menu titles to translation keys
                 const translationMap: Record<string, string> = {
@@ -260,39 +264,19 @@ const AppSidebar = React.memo(function AppSidebar() {
                 };
                 const translationKey = translationMap[item.title] || `nav.${item.title.toLowerCase().replace(' ', '-')}`;
                 
-                // Map menu items to pointer types
-                const getPointerType = (title: string) => {
-                  switch (title) {
-                    case 'Overview': return ConditionalPointerTypes.Star;
-                    case 'Crawl': return ConditionalPointerTypes.Crawl;
-                    case 'Documents': return ConditionalPointerTypes.Documents;
-                    case 'RAG Tuning': return ConditionalPointerTypes.AI;
-                    case 'Analytics': return ConditionalPointerTypes.Analytics;
-                    case 'Feedback': return ConditionalPointerTypes.Favorite;
-                    case 'Integrations': return ConditionalPointerTypes.Integration;
-                    case 'Settings': return ConditionalPointerTypes.Settings;
-                    default: return ConditionalPointerTypes.Click;
-                  }
-                };
-                
-                const PointerComponent = getPointerType(item.title);
-                
                 return (
-                  <SidebarMenuItem   key={item.title}>
-                    <div className="relative">
-                       <SidebarMenuButton
-                         asChild
-                         className="p-5"
-                         isActive={location === item.url}
-                         data-testid={`link-${item.title.toLowerCase().replace(' ', '-')}`}
-                       >
-                        <Link href={item.url}>
-                          <item.icon className="h-4 w-4" />
-                          <span>{t(translationKey)}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                      <PointerComponent className="absolute inset-0" />
-                    </div>
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      className="p-5"
+                      isActive={location === item.url}
+                      data-testid={`link-${item.title.toLowerCase().replace(' ', '-')}`}
+                    >
+                      <Link href={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{t(translationKey)}</span>
+                      </Link>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
               })}
@@ -303,39 +287,22 @@ const AppSidebar = React.memo(function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Management</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-0">
-              {settingsItems.map((item) => {
-                // Map management items to pointer types
-                const getManagementPointerType = (title: string) => {
-                  switch (title) {
-                    case 'Settings': return ConditionalPointerTypes.Settings;
-                    case 'API Keys': return ConditionalPointerTypes.Save;
-                    case 'System Health': return ConditionalPointerTypes.Star;
-                    default: return ConditionalPointerTypes.Click;
-                  }
-                };
-                
-                const PointerComponent = getManagementPointerType(item.title);
-                
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <div className="relative">
-                       <SidebarMenuButton
-                         asChild
-                         className="p-4"
-                         isActive={location === item.url}
-                         data-testid={`link-${item.title.toLowerCase().replace(' ', '-')}`}
-                       >
-                        <Link href={item.url}>
-                          <item.icon className="h-4  w-4" />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                      <PointerComponent className="absolute inset-0" />
-                    </div>
-                  </SidebarMenuItem>
-                );
-              })}
+            <SidebarMenu>
+              {settingsItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    className="p-4"
+                    isActive={location === item.url}
+                    data-testid={`link-${item.title.toLowerCase().replace(' ', '-')}`}
+                  >
+                    <Link href={item.url}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -343,7 +310,7 @@ const AppSidebar = React.memo(function AppSidebar() {
 
       <SidebarFooter className="px-4 py-4 border-t border-b" style={{ borderColor: theme === 'dark' ? '#2b2b2b' : '#d8d8d8' }}>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Badge variant="outline" className="text-xs bg-transparent">v1.0.0</Badge>
+          <Badge variant="outline" className="text-xs bg-white dark:bg-card border-none">v1.0.0</Badge>
         </div>
       </SidebarFooter>
     </Sidebar>
