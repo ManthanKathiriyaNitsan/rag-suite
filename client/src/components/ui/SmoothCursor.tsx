@@ -1,6 +1,7 @@
 import { FC, useEffect, useRef, useState } from "react"
 import { motion, useMotionValue, useSpring } from "framer-motion"
 import { useTheme } from "@/contexts/ThemeContext"
+import { useCursor } from "@/contexts/CursorContext"
 
 interface Position {
   x: number
@@ -94,13 +95,8 @@ export function SmoothCursor({
   const [isMoving, setIsMoving] = useState(false)
   const [isDesktop, setIsDesktop] = useState(true)
   const [isPointerActive, setIsPointerActive] = useState(false)
+  const { pointerIconsEnabled } = useCursor()
   
-  // Apply immediate cursor hiding on component mount (before useEffect)
-  if (typeof window !== 'undefined' && isDesktop) {
-    document.body.style.cursor = "none"
-    document.body.classList.add('smooth-cursor-active')
-    document.documentElement.classList.add('smooth-cursor-active')
-  }
   const lastMousePos = useRef<Position>({ x: 0, y: 0 })
   const velocity = useRef<Position>({ x: 0, y: 0 })
   const lastUpdateTime = useRef(Date.now())

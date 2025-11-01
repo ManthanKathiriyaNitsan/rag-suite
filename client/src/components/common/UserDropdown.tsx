@@ -77,15 +77,18 @@ const UserDropdown = React.memo(function UserDropdown({ user }: UserDropdownProp
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="relative h-9 w-9 rounded-full"
+            className="relative h-auto rounded-full px-2 py-1.5 flex items-center gap-2"
             data-testid="user-menu-trigger"
           >
-            <Avatar className="h-9 w-9">
+            <Avatar className="h-7 w-7">
               <AvatarImage src={safeUser.avatar} alt={safeUser.name} />
               <AvatarFallback className="bg-primary/10 text-primary font-medium">
                 {userInitials}
               </AvatarFallback>
             </Avatar>
+            <span className="text-xs text-sidebar-foreground whitespace-nowrap">
+              {safeUser.role}
+            </span>
           </Button>
         </DropdownMenuTrigger>
       

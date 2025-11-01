@@ -61,7 +61,7 @@ const SheetContent = React.forwardRef<
     <SheetOverlay />
     <SheetPrimitive.Content
       ref={ref}
-      className={cn(sheetVariants({ side }), "sm:rounded-lg", className)}
+      className={cn(sheetVariants({ side }), className)}
       style={{ borderRadius: 'var(--component-modalRadius, 0rem)' }}
       {...props}
     >

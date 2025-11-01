@@ -61,7 +61,7 @@ const SystemHealth = React.memo(function SystemHealth() {
                 <GlassCard 
                   key={index} 
                   data-testid={`service-card-${index}`}
-                  className="cursor-pointer hover-elevate transition-all duration-200"
+                  noHover={true}
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
@@ -90,7 +90,7 @@ const SystemHealth = React.memo(function SystemHealth() {
               ))}
             </div>
 
-            <div className="mt-6 p-4 bg-secondary rounded-lg">
+            <div className="mt-6 p-4 bg-muted rounded-[2px">
               <h4 className="font-medium mb-2">Health Legend</h4>
               <div className="flex flex-col sm:flex-row flex-wrap gap-4 text-sm">
                 <div className="flex items-center gap-2">

@@ -6,12 +6,14 @@ interface GlassCardProps {
   children: ReactNode;
   className?: string;
   variant?: 'light' | 'dark' | 'auto';
+  noHover?: boolean;
 }
 
 export function GlassCard({ 
   children, 
   className = "",
-  variant = 'auto'
+  variant = 'auto',
+  noHover = false
 }: GlassCardProps) {
   const { theme } = useTheme();
   
@@ -27,16 +29,18 @@ export function GlassCard({
   return (
     <div 
       className={cn(
-        "rounded-lg border backdrop-blur-md transition-all duration-300",
-        "hover:shadow-lg hover:shadow-black/5",
+        "border backdrop-blur-md transition-all duration-300",
+        !noHover && "hover:shadow-lg hover:shadow-black/5",
         currentVariant === 'dark' 
           ? "glass-card-dark text-white" 
           : "glass-card-light text-black",
         className
       )}
       style={{
+        borderRadius: 'var(--component-cardRadius, 2px)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
+        ...(noHover && { boxShadow: '0px 1px 5px -1px rgba(0,0,0,0.2)' })
       }}
     >
       {children}

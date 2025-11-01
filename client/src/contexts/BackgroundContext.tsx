@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type BackgroundTheme = 'veil' | 'geometric' | 'simple';
+export type BackgroundTheme = 'geometric' | 'simple';
 
 interface BackgroundContextType {
   backgroundTheme: BackgroundTheme;
@@ -12,10 +12,10 @@ const BackgroundContext = createContext<BackgroundContextType | undefined>(undef
 export function BackgroundProvider({ children }: { children: ReactNode }) {
   const [backgroundTheme, setBackgroundThemeState] = useState<BackgroundTheme>(() => {
     const saved = localStorage.getItem('backgroundTheme');
-    if (saved === 'veil' || saved === 'geometric' || saved === 'simple') {
+    if (saved === 'geometric' || saved === 'simple') {
       return saved as BackgroundTheme;
     }
-    return 'veil'; // Default to veil
+    return 'simple'; // Default to simple
   });
 
   const setBackgroundTheme = (theme: BackgroundTheme) => {

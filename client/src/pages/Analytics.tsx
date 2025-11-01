@@ -267,7 +267,8 @@ const Analytics = React.memo(function Analytics() {
               {popularQueries.map((item, index) => (
                 <div
                   key={index}
-                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 rounded-lg border hover-elevate bg-background/30 backdrop-blur-sm shadow-sm"
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 border hover-elevate bg-background/30 backdrop-blur-sm shadow-sm"
+                  style={{ borderRadius: 'var(--component-cardRadius, 2px)' }}
                   data-testid={`popular-query-${index}`}
                 >
                   <div className="space-y-1 flex-1 min-w-0">
@@ -296,7 +297,8 @@ const Analytics = React.memo(function Analytics() {
               {hardQueries.map((item, index) => (
                 <div
                   key={index}
-                  className="p-3 rounded-lg border hover-elevate cursor-pointer bg-background/30 backdrop-blur-sm shadow-sm"
+                  className="p-3 border hover-elevate cursor-pointer bg-background/30 backdrop-blur-sm shadow-sm"
+                  style={{ borderRadius: 'var(--component-cardRadius, 2px)' }}
                   data-testid={`hard-query-${index}`}
                 >
                   <div className="space-y-2">

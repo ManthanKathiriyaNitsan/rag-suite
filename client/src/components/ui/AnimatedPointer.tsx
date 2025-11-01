@@ -4,6 +4,7 @@ import { Pointer } from "@/components/ui/pointer"
 import { cn } from "@/utils"
 import { useState, useEffect, useRef } from "react"
 import { useTheme } from "@/contexts/ThemeContext"
+import { useCursor } from "@/contexts/CursorContext"
 import { 
   MousePointer, 
   Send, 
@@ -140,6 +141,7 @@ export function AnimatedPointer({
   const [hoveredElement, setHoveredElement] = useState<HTMLElement | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const { theme } = useTheme()
+  const { pointerIconsEnabled } = useCursor()
 
   // Function to check if an element has primary color styling
   const hasPrimaryColor = (element: HTMLElement): boolean => {
@@ -233,6 +235,11 @@ export function AnimatedPointer({
       document.removeEventListener('mouseleave', handleMouseLeave)
     }
   }, [hoveredElement])
+
+  // Don't render if pointer icons are disabled
+  if (!pointerIconsEnabled) {
+    return null
+  }
 
   return (
     <Pointer className={className}>

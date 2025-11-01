@@ -27,8 +27,7 @@ const LanguageSelector = React.memo(function LanguageSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="flex items-center gap-2">
-          <Globe className="h-4 w-4" />
+        <Button variant="ghost" size="sm" className="h-auto px-3 py-2">
           <span className="hidden sm:inline">
             {currentLocale?.flag} {currentLocale?.name}
           </span>

@@ -274,7 +274,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
         <AppSidebar data-testid="sidebar" />
         <div className="flex flex-col flex-1">
           <GlassNavbar variant={theme === 'dark' ? 'dark' : 'light'}>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 ">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
               <Button
                 variant="ghost"
@@ -290,18 +290,18 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
                 </kbd>
               </Button>
             </div>
-            <div className="flex items-center gap-1 md:gap-2">
+            <div className="flex items-center gap-1 md:gap-3">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setNotificationsOpen(true)}
                 data-testid="button-notifications"
-                className="relative h-8 w-8 md:h-9 md:w-9 p-0"
+                className="relative h-auto px-3 py-2"
               >
                 <Bell className="h-4 w-4" />
                 <Badge
                   variant="destructive"
-                  className="absolute -top-0.5 -right-0.5 h-4 w-4 min-w-4 text-[10px] px-0 py-0 font-semibold flex items-center justify-center rounded-md border border-background/20"
+                  className="absolute -top-1 right-[-10px] h-5 w-5 min-w-5 text-[10px] font-semibold flex items-center justify-center rounded-full"
                 >
                   3
                 </Badge>
@@ -311,7 +311,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
                 size="sm"
                 onClick={() => setHelpOpen(true)}
                 data-testid="button-help"
-                className="h-8 w-8 md:h-9 md:w-9 p-0"
+                className="h-auto px-3 py-2"
               >
                 <HelpCircle className="h-4 w-4" />
               </Button>

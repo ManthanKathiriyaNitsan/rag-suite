@@ -129,8 +129,9 @@ export default function ThemeTypographySection({ theme, onUpdateTheme }: ThemeTy
             </Select>
             {/* Font Preview */}
             <div 
-              className="p-4 border rounded-lg bg-muted/50"
+              className="p-4 border bg-muted/50"
               style={{ 
+                borderRadius: 'var(--component-cardRadius, 2px)',
                 fontFamily: `${typography.fontFamily}, system-ui, sans-serif`,
                 color: 'inherit',
                 minHeight: '80px',
@@ -219,8 +220,9 @@ export default function ThemeTypographySection({ theme, onUpdateTheme }: ThemeTy
             </div>
             {/* Alignment Preview */}
             <div 
-              className="p-4 border rounded-lg bg-muted/50"
+              className="p-4 border bg-muted/50"
               style={{
+                borderRadius: 'var(--component-cardRadius, 2px)',
                 fontFamily: `${typography.fontFamily}, system-ui, sans-serif`,
                 fontSize: 'inherit',
                 lineHeight: lineHeightTemp,

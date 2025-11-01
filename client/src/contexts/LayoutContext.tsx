@@ -122,6 +122,13 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
             border-radius: ${layout.components.modalRadius} !important;
           }
         }
+        
+        /* Force Switch components to always be circular */
+        button[data-state="checked"],
+        button[data-state="unchecked"],
+        button.peer {
+          border-radius: 9999px !important;
+        }
       `;
       
       document.head.appendChild(style);
@@ -133,7 +140,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     
     // Also apply directly to existing elements for immediate effect
     const applyToExistingElements = () => {
-      const allButtons = document.querySelectorAll('button, [type="button"], [type="submit"], [type="reset"], .btn');
+      const allButtons = document.querySelectorAll('button:not([data-state="checked"]):not([data-state="unchecked"]):not(.peer), [type="button"], [type="submit"], [type="reset"], .btn');
       allButtons.forEach(button => {
         (button as HTMLElement).style.borderRadius = layout.components.buttonRadius;
       });
@@ -163,8 +170,8 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
           if (node.nodeType === Node.ELEMENT_NODE) {
             const element = node as Element;
             
-            // Apply button styles
-            if (element.matches('button, [type="button"], [type="submit"], [type="reset"], .btn')) {
+            // Apply button styles (exclude switches)
+            if (element.matches('button:not([data-state="checked"]):not([data-state="unchecked"]):not(.peer), [type="button"], [type="submit"], [type="reset"], .btn')) {
               (element as HTMLElement).style.borderRadius = layout.components.buttonRadius;
             }
             
@@ -183,8 +190,8 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
               (element as HTMLElement).style.borderRadius = layout.components.modalRadius;
             }
             
-            // Apply to child elements
-            const buttons = element.querySelectorAll('button, [type="button"], [type="submit"], [type="reset"], .btn');
+            // Apply to child elements (exclude switches)
+            const buttons = element.querySelectorAll('button:not([data-state="checked"]):not([data-state="unchecked"]):not(.peer), [type="button"], [type="submit"], [type="reset"], .btn');
             buttons.forEach(button => {
               (button as HTMLElement).style.borderRadius = layout.components.buttonRadius;
             });
@@ -295,12 +302,19 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
             border-radius: ${DEFAULT_LAYOUT.components.modalRadius} !important;
           }
         }
+        
+        /* Force Switch components to always be circular */
+        button[data-state="checked"],
+        button[data-state="unchecked"],
+        button.peer {
+          border-radius: 9999px !important;
+        }
       `;
       
       document.head.appendChild(style);
       
       // Also apply directly to existing elements for immediate effect
-      const allButtons = document.querySelectorAll('button, [type="button"], [type="submit"], [type="reset"], .btn');
+      const allButtons = document.querySelectorAll('button:not([data-state="checked"]):not([data-state="unchecked"]):not(.peer), [type="button"], [type="submit"], [type="reset"], .btn');
       allButtons.forEach(button => {
         (button as HTMLElement).style.borderRadius = DEFAULT_LAYOUT.components.buttonRadius;
       });

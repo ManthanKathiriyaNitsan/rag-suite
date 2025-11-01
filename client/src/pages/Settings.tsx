@@ -1,8 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from "react";
-import { Upload, Palette, Globe, Key, Activity, Eye, EyeOff, Copy, Trash2, Plus, FileText, Loader2, MousePointer } from "lucide-react";
-
-// 🚀 Lazy load heavy form components
-const CreateApiKeyForm = lazy(() => import("@/components/forms/CreateApiKeyForm"));
+import React, { useState, useEffect, useRef } from "react";
+import { Upload, Palette, Globe, Activity, FileText, MousePointer, User } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,14 +23,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useI18n } from "@/contexts/I18nContext";
 import { PointerTypes } from "@/components/ui/AnimatedPointer";
 import { ConditionalPointerTypes } from "@/components/ui/ConditionalPointer";
@@ -45,36 +34,6 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Layers } from "lucide-react";
 
 const Settings = React.memo(function Settings() {
-  // 📝 Memoized API keys data
-  const apiKeys = useMemo(() => [
-    {
-      id: "key-001",
-      name: "Production API Key",
-      key: "rgs_live_1234567890abcdef",
-      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-      lastUsed: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      requests: 15420,
-      rateLimit: 1000,
-    },
-    {
-      id: "key-002",
-      name: "Development API Key",
-      key: "rgs_test_abcdef1234567890",
-      createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
-      lastUsed: new Date(Date.now() - 5 * 60 * 1000),
-      requests: 2847,
-      rateLimit: 100,
-    },
-  ], []);
-
-  // 📊 Memoized system services data
-  const systemServices = useMemo(() => [
-    { name: "API Gateway", status: "healthy", lastHeartbeat: new Date(Date.now() - 30 * 1000), uptime: "99.9%" },
-    { name: "Redis Cache", status: "healthy", lastHeartbeat: new Date(Date.now() - 45 * 1000), uptime: "99.8%" },
-    { name: "Vector Database", status: "degraded", lastHeartbeat: new Date(Date.now() - 2 * 60 * 1000), uptime: "98.5%" },
-    { name: "PostgreSQL", status: "healthy", lastHeartbeat: new Date(Date.now() - 15 * 1000), uptime: "99.9%" },
-    { name: "OpenAI API", status: "healthy", lastHeartbeat: new Date(Date.now() - 20 * 1000), uptime: "99.7%" },
-  ], []);
   const { 
     orgName: orgNameGlobal, 
     primaryColor: primaryColorGlobal, 
@@ -87,7 +46,7 @@ const Settings = React.memo(function Settings() {
     resetBranding 
   } = useBranding();
   const [orgName, setOrgName] = useState(orgNameGlobal || "Acme Corporation");
-  const [primaryColor, setPrimaryColor] = useState(primaryColorGlobal || "#1F6FEB");
+  const [primaryColor, setPrimaryColor] = useState(primaryColorGlobal || "#1F5AAD");
   const [retentionDays, setRetentionDays] = useState(90);
   
   // Widget positioning state
@@ -104,44 +63,7 @@ const Settings = React.memo(function Settings() {
   // const [locale, setLocale] = useState("en");
   const { locale, setLocale, t } = useI18n();
   const { formatting, updateFormatting, resetFormatting } = useCitationFormatting();
-  const [showApiKey, setShowApiKey] = useState<string | null>(null);
-  const [showCreateKeyForm, setShowCreateKeyForm] = useState(false);
   const { toast } = useToast();
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "healthy":
-        return "default";
-      case "degraded":
-        return "secondary";
-      case "down":
-        return "destructive";
-      default:
-        return "outline";
-    }
-  };
-
-  const handleCreateApiKey = (data: Record<string, unknown>) => {
-    console.log("Creating API key:", data);
-    toast({
-      title: "API Key Created",
-      description: `Successfully created ${data.name}`,
-    });
-  };
-
-  const handleRevokeApiKey = (keyId: string) => {
-    console.log("Revoking API key:", keyId);
-    toast({
-      title: "API Key Revoked",
-      description: "API key has been revoked and is no longer valid",
-      variant: "destructive",
-    });
-  };
-
-  const handleCopyKey = (key: string) => {
-    navigator.clipboard.writeText(key);
-    console.log("API key copied to clipboard");
-  };
 
   // Branding: logo upload + persistence
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
@@ -244,13 +166,11 @@ const Settings = React.memo(function Settings() {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full h-auto grid-cols-1 sm:grid-cols-2 lg:grid-cols-6">
+        <TabsList className="grid w-full h-auto grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <TabsTrigger value="profile" data-testid="tab-profile" className="text-xs sm:text-sm">{t('settings.profile')}</TabsTrigger>
           <TabsTrigger value="retention" data-testid="tab-retention" className="text-xs sm:text-sm">{t('settings.data-retention')}</TabsTrigger>
           <TabsTrigger value="i18n" data-testid="tab-i18n" className="text-xs sm:text-sm">{t('settings.i18n')}</TabsTrigger>
           <TabsTrigger value="citations" data-testid="tab-citations" className="text-xs sm:text-sm">{t('settings.citation-formatting')}</TabsTrigger>
-          <TabsTrigger value="api-keys" data-testid="tab-api-keys" className="text-xs sm:text-sm">{t('settings.api-keys')}</TabsTrigger>
-          <TabsTrigger value="health" data-testid="tab-health" className="text-xs sm:text-sm">{t('settings.system-health')}</TabsTrigger>
         </TabsList>
 
         {/* Profile & Branding */}
@@ -259,7 +179,7 @@ const Settings = React.memo(function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Palette className="h-5 w-5" />
-                Organization Branding
+               Theme Option
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -286,12 +206,12 @@ const Settings = React.memo(function Settings() {
                           data-testid="button-upload-logo"
                           className="w-full border-none hover:bg-none p-0 sm:w-auto"
                         >
-                          <div className="h-20 w-20 sm:h-16 sm:w-16 bg-secondary flex items-center justify-center overflow-hidden">
+                          <div className="h-20 w-20 sm:h-16 sm:w-16 bg-sidebar flex items-center justify-center overflow-hidden">
                         {logoDataUrl ? (
                           <img src={logoDataUrl} alt="Logo preview" className="h-full w-full object-contain" />
                         ) : (
-                          <Upload className="h-8 w-8 sm:h-6 sm:w-6 text-muted-foreground" />
-                        )}
+                          <User className="h-[100px] w-[100px]" />
+                        )} 
                       </div>
                         </Button>
                         <ConditionalPointerTypes.Upload className="absolute inset-0" />
@@ -316,7 +236,37 @@ const Settings = React.memo(function Settings() {
                     />
                   </div>
 
-                  
+                  <CardContent className="space-y-6  p-0 ">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="background-theme">Background Theme</Label>
+                  <Select 
+                    value={backgroundTheme} 
+                    onValueChange={(value) => {
+                      setBackgroundTheme(value as 'geometric' | 'simple');
+                      const themeNames: Record<string, string> = {
+                        'geometric': 'Geometric',
+                        'simple': 'Simple'
+                      };
+                      toast({
+                        title: "Background Theme Updated",
+                        description: `Background theme changed to ${themeNames[value] || value}.`,
+                      });
+                    }}
+                  >
+                    <SelectTrigger id="background-theme" className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="geometric">Geometric</SelectItem>
+                      <SelectItem value="simple">Default</SelectItem>
+                    </SelectContent>
+                  </Select>
+                 
+                </div>
+             
+              </div>
+            </CardContent>
 
                   <div>
                     <Label htmlFor="primary-color">Primary Color</Label>
@@ -359,36 +309,42 @@ const Settings = React.memo(function Settings() {
 
                   <div>
                     <Label>Theme Presets</Label>
-                    <div className="mt-2 grid grid-cols-3 gap-2">
+                    <div className="mt-2 flex flex-wrap gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => { const v = "#1F6FEB"; setPrimaryColor(v); setBranding({ primaryColor: v }); }}
-                        data-testid="button-preset-blue"
-                        className="p-0  "
+                        onClick={() => { const v = "#1F5AAD"; setPrimaryColor(v); setBranding({ primaryColor: v }); }}
+                        data-testid="button-preset-default"
+                        className="p-0 w-[70px]"
                       >
-                        <div className="w-[100%] bg-blue-500  h-[100%] p-0 m-0 " />
-                        
+                        <div className="w-[100%] bg-[#1F5AAD] h-[100%] p-0 m-0" />
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => { const v = "#22C55E"; setPrimaryColor(v); setBranding({ primaryColor: v }); }}
-                        data-testid="button-preset-green"
-                            className="p-0"
+                        onClick={() => { const v = "#EE8433"; setPrimaryColor(v); setBranding({ primaryColor: v }); }}
+                        data-testid="button-preset-1"
+                        className="p-0 w-[70px]"
                       >
-                        <div className="w-[100%] bg-green-500  h-[100%] p-0 m-0" />
-                        
+                        <div className="w-[100%] bg-[#EE8433] h-[100%] p-0 m-0" />
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => { const v = "#eb1e1e"; setPrimaryColor(v); setBranding({ primaryColor: v }); }}
-                        data-testid="button-preset-purple"
-                            className="p-0"
+                        onClick={() => { const v = "#4D4D4D"; setPrimaryColor(v); setBranding({ primaryColor: v }); }}
+                        data-testid="button-preset-2"
+                        className="p-0 w-[70px]"
                       >
-                        <div className="w-[100%] bg-[#eb1e1e] h-[100%] p-0 m-0" />
-                        
+                        <div className="w-[100%] bg-[#4D4D4D] h-[100%] p-0 m-0" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { const v = "#D04038"; setPrimaryColor(v); setBranding({ primaryColor: v }); }}
+                        data-testid="button-preset-3"
+                        className="p-0 w-[70px]"
+                      >
+                        <div className="w-[100%] bg-[#D04038] h-[100%] p-0 m-0" />
                       </Button>
                     </div>
                   </div>
@@ -399,11 +355,11 @@ const Settings = React.memo(function Settings() {
                   <Card className="p-4 h-full flex items-center justify-start bg-sidebar">
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 bg-secondary rounded flex items-center justify-center overflow-hidden">
+                        <div className="h-8 w-8 bg-card rounded flex items-center justify-center overflow-hidden">
                           {logoDataUrl ? (
                             <img src={logoDataUrl} alt="Logo preview" className="h-full w-full object-contain" />
                           ) : (
-                            <Upload className="h-4 w-4" />
+                            <User className="h-4 w-4" />
                           )}
                         </div>
                         <span className="font-semibold">{orgName}</span>
@@ -432,50 +388,7 @@ const Settings = React.memo(function Settings() {
             </CardContent>
           </GlassCard>
 
-          {/* Theme Option */}
-          <GlassCard>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Layers className="h-5 w-5" />
-                Theme Option
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="background-theme">Select Background Theme</Label>
-                  <Select 
-                    value={backgroundTheme} 
-                    onValueChange={(value) => {
-                      setBackgroundTheme(value as 'veil' | 'geometric' | 'simple');
-                      const themeNames: Record<string, string> = {
-                        'veil': 'Veil',
-                        'geometric': 'Geometric',
-                        'simple': 'Simple'
-                      };
-                      toast({
-                        title: "Background Theme Updated",
-                        description: `Background theme changed to ${themeNames[value] || value}.`,
-                      });
-                    }}
-                  >
-                    <SelectTrigger id="background-theme" className="mt-2">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="veil">Veil</SelectItem>
-                      <SelectItem value="geometric">Geometric</SelectItem>
-                      <SelectItem value="simple">Simple</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Choose a background theme. All themes adapt to dark and light modes. You can also click on the cards below to select a theme.
-                  </p>
-                </div>
-             
-              </div>
-            </CardContent>
-          </GlassCard>
+ 
 
           {/* Widget Positioning Controls */}
           <GlassCard>
@@ -497,7 +410,7 @@ const Settings = React.memo(function Settings() {
                         setBranding({ widgetPosition: value as any });
                       }}
                     >
-                      <SelectTrigger id="widget-position">
+                      <SelectTrigger id="widget-position" className="mt-2"  >
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -523,6 +436,7 @@ const Settings = React.memo(function Settings() {
                       }}
                       placeholder="50"
                       data-testid="input-widget-zindex"
+                      className="mt-2"
                     />
                     <p className="text-sm text-muted-foreground mt-1">
                       Higher values appear above other elements
@@ -544,6 +458,7 @@ const Settings = React.memo(function Settings() {
                       }}
                       placeholder="0"
                       data-testid="input-widget-offset-x"
+                      className="mt-2"
                     />
                     <p className="text-sm text-muted-foreground mt-1">
                       Positive = move right, Negative = move left
@@ -563,6 +478,7 @@ const Settings = React.memo(function Settings() {
                       }}
                       placeholder="0"
                       data-testid="input-widget-offset-y"
+                      className="mt-2"
                     />
                     <p className="text-sm text-muted-foreground mt-1">
                       Positive = move down, Negative = move up
@@ -595,6 +511,7 @@ const Settings = React.memo(function Settings() {
                       checked={customCursorEnabled}
                       onCheckedChange={handleCursorToggle}
                       data-testid="switch-custom-cursor"
+      
                     />
                     <ConditionalPointerTypes.Settings className="absolute inset-0" />
                   </div>
@@ -641,7 +558,7 @@ const Settings = React.memo(function Settings() {
                   type="number"
                   value={retentionDays}
                   onChange={(e) => setRetentionDays(parseInt(e.target.value))}
-                  className="w-32 mt-2"
+                  className="w-full mt-2"
                   data-testid="input-retention-days"
                 />
                 <p className="text-sm text-muted-foreground mt-1">
@@ -685,8 +602,8 @@ const Settings = React.memo(function Settings() {
             <CardContent className="space-y-6">
               <div>
                 <Label htmlFor="locale">{t('settings.i18n.defaultLanguage')}</Label>
-                <Select value={locale} onValueChange={setLocale}>
-                  <SelectTrigger className="w-full sm:w-64 mt-2" data-testid="select-locale">
+                <Select value={locale} onValueChange={setLocale}  >
+                  <SelectTrigger className="w-full mt-2" data-testid="select-locale">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -704,9 +621,6 @@ const Settings = React.memo(function Settings() {
                     <SelectItem value="hi">🇮🇳 हिन्दी</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {t('settings.i18n.description')}
-                </p>
               </div>
 
         
@@ -735,7 +649,7 @@ const Settings = React.memo(function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Citation Formatting
+                Citation Format
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -917,7 +831,7 @@ const Settings = React.memo(function Settings() {
                 </p>
                 
                 {/* Live Preview */}
-                <div className="mt-3 p-3 bg-muted/50 rounded-md border">
+                <div className="mt-3 p-3 bg-muted rounded-[2px] border">
                   <p className="text-xs text-muted-foreground mb-2">Preview:</p>
                   <p className="text-xs text-foreground leading-relaxed">
                     {`This is a sample citation snippet that demonstrates how the text will be truncated when it exceeds the maximum length you've set. `.repeat(3).substring(0, formatting.maxSnippetLength)}
@@ -943,252 +857,7 @@ const Settings = React.memo(function Settings() {
             </CardContent>
           </GlassCard>
         </TabsContent>
-
-        {/* API Keys */}
-        <TabsContent value="api-keys" className="space-y-6">
-          <GlassCard>
-            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <CardTitle className="flex items-center gap-2">
-                <Key className="h-5 w-5" />
-                {t('api-keys.title')}
-              </CardTitle>
-              <Button
-                onClick={() => setShowCreateKeyForm(true)}
-                data-testid="button-create-api-key"
-                className="w-full sm:w-auto"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                {t('api-keys.create')}
-              </Button>
-            </CardHeader>
-            <CardContent className="p-0">
-              {/* Mobile Card View */}
-              <div className="block md:hidden">
-                <div className="space-y-3 p-4">
-                  {apiKeys.map((key) => (
-                    <div key={key.id} className="border rounded-lg p-4 space-y-3" data-testid={`row-api-key-${key.id}`}>
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-sm">{key.name}</h4>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRevokeApiKey(key.id)}
-                          data-testid={`button-revoke-key-${key.id}`}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div>
-                          <label className="text-xs text-muted-foreground">API Key</label>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="font-mono text-xs bg-muted px-2 py-1 rounded flex-1 break-all">
-                              {showApiKey === key.id ? key.key : `${key.key.slice(0, 20)}...`}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setShowApiKey(showApiKey === key.id ? null : key.id)}
-                              data-testid={`button-toggle-key-${key.id}`}
-                              className="h-6 w-6 p-0"
-                            >
-                              {showApiKey === key.id ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCopyKey(key.key)}
-                              data-testid={`button-copy-key-${key.id}`}
-                              className="h-6 w-6 p-0"
-                            >
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-3 text-xs">
-                          <div>
-                            <label className="text-muted-foreground">Created</label>
-                            <p className="mt-1">{key.createdAt.toLocaleDateString(locale)}</p>
-                          </div>
-                          <div>
-                            <label className="text-muted-foreground">Last Used</label>
-                            <p className="mt-1">
-                              {new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
-                                Math.floor((key.lastUsed.getTime() - Date.now()) / (1000 * 60)),
-                                "minute"
-                              )}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="text-muted-foreground">Requests</label>
-                            <p className="mt-1">{key.requests.toLocaleString(locale)}</p>
-                          </div>
-                          <div>
-                            <label className="text-muted-foreground">Rate Limit</label>
-                            <p className="mt-1">{key.rateLimit}/hour</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Desktop Table View */}
-              <div className="hidden md:block">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t('api-keys.name')}</TableHead>
-                        <TableHead>{t('api-keys.key')}</TableHead>
-                        <TableHead>{t('api-keys.created')}</TableHead>
-                        <TableHead>{t('api-keys.lastUsed')}</TableHead>
-                        <TableHead>{t('api-keys.requests')}</TableHead>
-                        <TableHead>{t('api-keys.rateLimit')}</TableHead>
-                        <TableHead className="text-center">{t('api-keys.actions')}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {apiKeys.map((key) => (
-                        <TableRow key={key.id} data-testid={`row-api-key-${key.id}`}>
-                          <TableCell className="font-medium">{key.name}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono text-xs bg-muted px-2 py-1 rounded flex-1 break-all">
-                                {showApiKey === key.id ? key.key : `${key.key.slice(0, 20)}...`}
-                              </span>
-                              <div className="flex gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setShowApiKey(showApiKey === key.id ? null : key.id)}
-                                  data-testid={`button-toggle-key-${key.id}`}
-                                  className="h-6 w-6 p-0"
-                                >
-                                  {showApiKey === key.id ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleCopyKey(key.key)}
-                                  data-testid={`button-copy-key-${key.id}`}
-                                  className="h-6 w-6 p-0"
-                                >
-                                  <Copy className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {key.createdAt.toLocaleDateString(locale)}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
-                              Math.floor((key.lastUsed.getTime() - Date.now()) / (1000 * 60)),
-                              "minute"
-                            )}
-                          </TableCell>
-                          <TableCell className="text-sm">{key.requests.toLocaleString(locale)}</TableCell>
-                          <TableCell className="text-sm">{key.rateLimit}/hour</TableCell>
-                          <TableCell className="text-center">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRevokeApiKey(key.id)}
-                              data-testid={`button-revoke-key-${key.id}`}
-                              className="h-6 w-6 p-0"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            </CardContent>
-          </GlassCard>
-        </TabsContent>
-
-        {/* System Health */}
-        <TabsContent value="health" className="space-y-6">
-          <GlassCard>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                System Health
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                {systemServices.map((service, index) => (
-                  <GlassCard 
-                    key={index} 
-                    data-testid={`service-card-${index}`}
-                    className="cursor-pointer hover-elevate transition-all duration-200"
-                  >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-base">{service.name}</CardTitle>
-                        <Badge variant={getStatusColor(service.status)}>
-                          {service.status}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Uptime</span>
-                        <span className="font-medium">{service.uptime}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Last Heartbeat</span>
-                        <span className="font-medium">
-                          {new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
-                            Math.floor((service.lastHeartbeat.getTime() - Date.now()) / 1000),
-                            "second"
-                          )}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </GlassCard>
-                ))}
-              </div>
-
-              <div className="mt-6 p-4 bg-secondary rounded-lg">
-                <h4 className="font-medium mb-2">Health Legend</h4>
-                <div className="flex flex-col sm:flex-row flex-wrap gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="default">Healthy</Badge>
-                    <span className="text-muted-foreground">Service operating normally</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">Degraded</Badge>
-                    <span className="text-muted-foreground">Service experiencing issues</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="destructive">Down</Badge>
-                    <span className="text-muted-foreground">Service unavailable</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </GlassCard>
-        </TabsContent>
       </Tabs>
-
-      {/* Create API Key Form */}
-      <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
-        <CreateApiKeyForm
-          open={showCreateKeyForm}
-          onOpenChange={setShowCreateKeyForm}
-          onSubmit={handleCreateApiKey}
-        />
-      </Suspense>
       </div>
     </div>
   );

@@ -80,10 +80,10 @@ const translations: Record<string, Record<string, string>> = {
     // Settings
     "settings.title": "Settings",
     "settings.description": "Manage your organization settings and preferences",
-    "settings.profile": "Profile & Branding",
+    "settings.profile": "Global Settings",
     "settings.data-retention": "Data Retention",
     "settings.i18n": "Internationalization",
-    "settings.citation-formatting": "Citation Formatting",
+    "settings.citation-formatting": "Citation Format",
     "settings.api-keys": "API Keys",
     "settings.system-health": "System Health",
     

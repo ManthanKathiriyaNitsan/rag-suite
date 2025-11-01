@@ -50,9 +50,9 @@ export function Pointer({
       const parentElement = containerRef.current.parentElement
 
       if (parentElement) {
-        // Add cursor-none to parent and all children
+        // Add cursor-none to parent and all children (except input elements)
         parentElement.style.cursor = "none !important"
-        const allElements = parentElement.querySelectorAll('*')
+        const allElements = parentElement.querySelectorAll('*:not(input):not(textarea):not(select):not([contenteditable])')
         allElements.forEach(el => {
           (el as HTMLElement).style.setProperty('cursor', 'none', 'important')
         })

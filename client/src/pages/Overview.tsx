@@ -116,7 +116,8 @@ const Overview = React.memo(function Overview() {
               {topSources.map((source, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-3 rounded-lg border hover-elevate bg-background/30 backdrop-blur-sm shadow-sm"
+                  className="flex items-center justify-between p-3 border hover-elevate bg-background/30 backdrop-blur-sm shadow-sm"
+                  style={{ borderRadius: 'var(--component-cardRadius, 2px)' }}
                   data-testid={`source-${index}`}
                 >
                   <div className="space-y-1">
@@ -145,7 +146,8 @@ const Overview = React.memo(function Overview() {
             {latestFeedback.map((feedback, index) => (
               <div
                 key={index}
-                 className="flex items-center justify-between p-3 rounded-lg border hover-elevate bg-background/30 backdrop-blur-sm shadow-sm"
+                 className="flex items-center justify-between p-3 border hover-elevate bg-background/30 backdrop-blur-sm shadow-sm"
+                 style={{ borderRadius: 'var(--component-cardRadius, 2px)' }}
                 data-testid={`feedback-${index}`}
               >
                 <div className="space-y-1">

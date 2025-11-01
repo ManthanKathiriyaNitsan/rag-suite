@@ -124,7 +124,7 @@ const ApiKeys = React.memo(function ApiKeys() {
                       <div>
                         <label className="text-xs text-muted-foreground">API Key</label>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="font-mono text-xs bg-muted px-2 py-1 rounded flex-1 break-all">
+                          <span className="font-mono text-xs bg-card px-2 py-1 rounded flex-1 break-all">
                             {showApiKey === key.id ? key.key : `${key.key.slice(0, 20)}...`}
                           </span>
                           <Button
@@ -198,7 +198,7 @@ const ApiKeys = React.memo(function ApiKeys() {
                         <TableCell className="font-medium">{key.name}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs bg-muted px-2 py-1 rounded flex-1 break-all">
+                            <span className="font-mono text-xs bg-card px-2 py-1 rounded flex-1 break-all">
                               {showApiKey === key.id ? key.key : `${key.key.slice(0, 20)}...`}
                             </span>
                             <div className="flex gap-1">

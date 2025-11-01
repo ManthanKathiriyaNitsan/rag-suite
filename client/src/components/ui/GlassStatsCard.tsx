@@ -29,13 +29,16 @@ export function GlassStatsCard({
   return (
     <div 
       className={cn(
-        "rounded-lg border backdrop-blur-md transition-all duration-300",
+        "border backdrop-blur-md transition-all duration-300",
         "hover:shadow-lg hover:shadow-black/5 p-6",
         isDark 
           ? "glass-card-dark text-white" 
           : "glass-card-light text-black",
         className
       )}
+      style={{
+        borderRadius: 'var(--component-cardRadius, 2px)'
+      }}
     >
       <div className="flex items-center justify-between space-y-0 pb-2">
         <h3 className="text-sm font-medium leading-none tracking-tight">
