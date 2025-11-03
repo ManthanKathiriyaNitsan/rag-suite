@@ -248,7 +248,7 @@ export default function Integrations() {
 
   // Show list view
   return (
-    <div className="relative min-h-screen">
+    <div className="relative">
       {/* Content */}
       <div className="relative z-10 space-y-6 w-full max-w-full overflow-hidden min-w-0 p-0 sm:p-6" style={{ maxWidth: '92vw' }}>
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
@@ -275,17 +275,15 @@ export default function Integrations() {
           </h3>
           <div>
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-            <div className="relative  flex-1">
-              <Search className=" absolute -translate-y-[50%] top-[50%] left-3 h-4 w-4 text-muted-foreground" />
-              <div className="relative">
-                <Input
-                  placeholder="Search by name or public ID..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 "
-                  data-testid="input-search-integrations"
-                />
-              </div>
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name or public ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+                data-testid="input-search-integrations"
+              />
             </div>
 
         <div className="flex flex-wrap items-center gap-4">
@@ -337,7 +335,7 @@ export default function Integrations() {
 
       {/* Bulk Actions */}
       {selectedIntegrations.length > 0 && (
-        <div className="flex items-center gap-4 p-4 bg-accent rounded-lg">
+        <div className="flex items-center gap-4 p-4 bg-sidebar-accent" style={{ borderRadius: '2px' }}>
           <span className="text-sm font-medium">
             {selectedIntegrations.length} integration{selectedIntegrations.length > 1 ? "s" : ""} selected
           </span>
@@ -380,8 +378,9 @@ export default function Integrations() {
             <Table className="min-w-[1000px] w-full table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[5%]">
+                <TableHead className="w-[5%]  text-center ">
                   <Checkbox
+                  className="mt-[4px]"
                     checked={selectedIntegrations.length === filteredIntegrations.length}
                     onCheckedChange={(checked) => {
                       if (checked) {
@@ -411,7 +410,7 @@ export default function Integrations() {
                   className="hover-elevate cursor-pointer"
                   data-testid={`row-integration-${integration.id}`}
                 >
-                  <TableCell>
+                  <TableCell className="text-center" >
                     <Checkbox
                       checked={selectedIntegrations.includes(integration.id)}
                       onCheckedChange={(checked) => {

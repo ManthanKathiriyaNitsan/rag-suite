@@ -183,7 +183,7 @@
   --sidebar-primary-foreground: 0 0% 100%;
 
   /* Sidebar hover/active */
-  --sidebar-accent: 0 0% 85%; /* #D9D9D9 */
+  --sidebar-accent: 0 0% 85%; /* Light grey for subtle hover */
 
   --sidebar-accent-foreground: 222 84% 5%;
 
@@ -219,8 +219,8 @@
   --input: 0 0% 89%;
 
   /* Button hover/active (light) */
-  --button-hover-bg: 0 0% 95%; /* Light gray for subtle hover effect */
-  --button-hover-border: 0 0% 85%; /* Lighter border */
+  --button-hover-bg: 0 0% 90%; /* Better balance for table hover */
+  --button-hover-border: 0 0% 65%; /* Slightly lighter border for better balance */
   --ring: 217 91% 60%;
   --chart-1: 217 91% 55%;
   --chart-2: 142 76% 42%;
@@ -472,8 +472,8 @@
   input[type="week"]:hover:not(:disabled),
   textarea:hover:not(:disabled),
   select:hover:not(:disabled) {
-    background-color: hsl(var(--sidebar-accent));
-    border-color: hsl(var(--sidebar-border));
+    background-color: white !important;
+    border-color: hsl(var(--input)) !important;
   }
 
   /* Dark mode input styles - using theme variables */
@@ -508,8 +508,8 @@
   .dark input[type="week"]:hover:not(:disabled),
   .dark textarea:hover:not(:disabled),
   .dark select:hover:not(:disabled) {
-    background-color: hsl(var(--sidebar-accent));
-    border-color: hsl(var(--sidebar-border));
+    background-color: hsl(var(--card)) !important;
+    border-color: hsl(var(--input)) !important;
   }
 
   /* Ensure minimum font size for body text elements */
@@ -705,9 +705,7 @@
   }
 
 
-  /* Disable hover effects on alerts, badges, toasts, and list items in info boxes */
-  [role="alert"]:hover:not([data-radix-toast]),
-  [role="alert"] li:hover,
+  /* Disable hover on badges - badges are informational and should not change on hover */
   .badge:hover {
     background-color: inherit !important;
     border-color: inherit !important;
@@ -930,3 +928,233 @@ button.h-6.w-11,
 [role="switch"] {
   border-radius: 9999px !important;
 }
+
+/* Code block styling - consistent dark background and white text in both light and dark mode */
+/* Pre elements (code blocks) - always dark background */
+pre {
+  background-color: #262627 !important;
+  color: #fff !important;
+}
+
+/* Code elements - always dark background */
+code {
+  background-color: #262627 !important;
+  color: #fff !important;
+}
+
+/* Code elements inside pre - transparent background, white text */
+pre code {
+  background-color: transparent !important;
+  color: #fff !important;
+}
+
+/* Inline code (not inside pre blocks) */
+code:not(pre code) {
+  background-color: #262627 !important;
+  color: #fff !important;
+}
+
+/* Override any Tailwind background classes on code blocks */
+pre.bg-muted,
+code.bg-muted,
+pre[class*="bg-"]:not([class*="bg-transparent"]),
+code[class*="bg-"]:not([class*="bg-transparent"]) {
+  background-color: #262627 !important;
+  color: #fff !important;
+}
+
+/* Ensure code blocks in any container maintain dark styling */
+div pre,
+div code,
+span pre,
+span code {
+  background-color: #262627 !important;
+  color: #fff !important;
+}
+
+/* Exception: code inside pre should have transparent background */
+div pre code,
+span pre code,
+pre code {
+  background-color: transparent !important;
+  color: #fff !important;
+}
+
+/* Card box-shadow - apply to all cards across the website */
+.shadcn-card,
+.glass-card-light,
+.glass-card-dark,
+[class*="card"][class*="border"] {
+  box-shadow: 0px 1px 5px -1px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Remove hover effects from color picker inputs only */
+input[type="color"]:hover,
+input[type="color"]:hover:not(:disabled) {
+  background-color: inherit !important;
+  border-color: inherit !important;
+}
+
+.dark input[type="color"]:hover,
+.dark input[type="color"]:hover:not(:disabled) {
+  background-color: inherit !important;
+  border-color: inherit !important;
+}
+
+/* Remove hover effects from Switch components (but NOT theme toggle) */
+/* Preserve original background colors - unchecked stays bg-input, checked stays bg-primary */
+button[data-radix-switch-root]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
+[data-radix-switch-root]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
+[role="switch"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper) {
+  border-color: transparent !important;
+  opacity: 1 !important;
+}
+
+button[data-radix-switch-root][data-state="unchecked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
+[data-radix-switch-root][data-state="unchecked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
+[role="switch"][data-state="unchecked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper) {
+  background-color: hsl(var(--input)) !important;
+}
+
+button[data-radix-switch-root][data-state="checked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
+[data-radix-switch-root][data-state="checked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
+[role="switch"][data-state="checked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper) {
+  background-color: hsl(var(--primary)) !important;
+}
+
+.dark button[data-radix-switch-root]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
+.dark [data-radix-switch-root]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
+.dark [role="switch"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper) {
+  border-color: transparent !important;
+  opacity: 1 !important;
+}
+
+.dark button[data-radix-switch-root][data-state="unchecked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
+.dark [data-radix-switch-root][data-state="unchecked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
+.dark [role="switch"][data-state="unchecked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper) {
+  background-color: hsl(var(--input)) !important;
+}
+
+.dark button[data-radix-switch-root][data-state="checked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
+.dark [data-radix-switch-root][data-state="checked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
+.dark [role="switch"][data-state="checked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper) {
+  background-color: hsl(var(--primary)) !important;
+}
+
+/* Remove all hover effects from Checkboxes - no visual changes on hover */
+[data-radix-checkbox-root]:hover,
+[role="checkbox"]:hover,
+button[data-radix-checkbox-root]:hover,
+button[role="checkbox"]:hover {
+  background-color: transparent !important;
+  border-color: hsl(var(--primary)) !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+[data-radix-checkbox-root][data-state="checked"]:hover,
+[role="checkbox"][data-state="checked"]:hover,
+button[data-radix-checkbox-root][data-state="checked"]:hover,
+button[role="checkbox"][data-state="checked"]:hover {
+  background-color: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.dark [data-radix-checkbox-root]:hover,
+.dark [role="checkbox"]:hover,
+.dark button[data-radix-checkbox-root]:hover,
+.dark button[role="checkbox"]:hover {
+  background-color: transparent !important;
+  border-color: hsl(var(--primary)) !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.dark [data-radix-checkbox-root][data-state="checked"]:hover,
+.dark [role="checkbox"][data-state="checked"]:hover,
+.dark button[data-radix-checkbox-root][data-state="checked"]:hover,
+.dark button[role="checkbox"][data-state="checked"]:hover {
+  background-color: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Remove hover effects from Table rows */
+tbody tr:hover,
+table tr:hover,
+[role="row"]:hover,
+tr:hover td,
+tr:hover th {
+  background-color: inherit !important;
+}
+
+.dark tbody tr:hover,
+.dark table tr:hover,
+.dark [role="row"]:hover,
+.dark tr:hover td,
+.dark tr:hover th {
+  background-color: inherit !important;
+}
+
+/* Remove cursor pointer from all table elements */
+table,
+tbody,
+thead,
+tfoot,
+tr,
+td,
+th,
+[role="table"],
+[role="row"],
+[role="rowgroup"],
+[role="columnheader"],
+[role="rowheader"],
+[role="gridcell"] {
+  cursor: default !important;
+}
+
+/* Remove hover effects from all Select/Dropdown triggers - preserve original colors */
+[data-radix-select-trigger]:hover,
+button[data-radix-select-trigger]:hover,
+[data-radix-select-trigger][data-state]:hover,
+[data-radix-select-trigger][data-state="open"]:hover,
+[data-radix-select-trigger][data-state="closed"]:hover,
+[role="combobox"]:hover,
+[role="combobox"][aria-expanded]:hover,
+[role="combobox"][aria-expanded="true"]:hover,
+[role="combobox"][aria-expanded="false"]:hover,
+select:hover,
+select:not(:disabled):hover,
+option:hover {
+  background-color: white !important;
+  border-color: hsl(var(--input)) !important;
+  color: inherit !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Keep hover effects for Select items/options - allow hover in dropdown menu */
+
+.dark [data-radix-select-trigger]:hover,
+.dark button[data-radix-select-trigger]:hover,
+.dark [data-radix-select-trigger][data-state]:hover,
+.dark [data-radix-select-trigger][data-state="open"]:hover,
+.dark [data-radix-select-trigger][data-state="closed"]:hover,
+.dark [role="combobox"]:hover,
+.dark [role="combobox"][aria-expanded]:hover,
+.dark [role="combobox"][aria-expanded="true"]:hover,
+.dark [role="combobox"][aria-expanded="false"]:hover,
+.dark select:hover,
+.dark select:not(:disabled):hover,
+.dark option:hover {
+  background-color: hsl(var(--card)) !important;
+  border-color: hsl(var(--input)) !important;
+  color: inherit !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Keep hover effects for Select items/options in dark mode - allow hover in dropdown menu */

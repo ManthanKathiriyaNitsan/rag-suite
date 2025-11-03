@@ -181,7 +181,7 @@ const Documents = React.memo(function Documents() {
   }, [searchQuery, searchResults, documents]);
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative">
       {/* Content */}
       <div className="relative z-10 space-y-6 p-0 sm:p-6">
         <div className="flex flex-col md:flex-row items-start gap-4 md:gap-0 md:items-center md:justify-between">
@@ -289,7 +289,7 @@ const Documents = React.memo(function Documents() {
 
       {/* Bulk Actions */}
       {selectedDocs.length > 0 && (
-        <div className="flex items-center gap-4 p-4 bg-accent rounded-lg">
+        <div className="flex items-center gap-4 p-4 bg-sidebar-accent" style={{ borderRadius: '2px' }}>
           <span className="text-sm font-medium">
             {selectedDocs.length} document{selectedDocs.length > 1 ? "s" : ""} selected
           </span>

@@ -33,7 +33,6 @@ import {
 } from "@/components/ui/popover";
 import { 
   ArrowLeft, 
-  Save, 
   X, 
   Plus, 
   Check, 
@@ -429,9 +428,9 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
   };
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative">
       {/* Content */}
-      <div className="relative z-10 flex h-screen lg:h-screen min-h-screen">
+      <div className="relative z-10 flex">
         {/* Desktop Sidebar Navigation */}
         <div className="w-64 bg-background/80 backdrop-blur-sm border-r border-border/50 hidden lg:block">
           <div className="p-4">
@@ -452,8 +451,13 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
               {sidebarItems.map((item) => (
                 <Button
                   key={item.id}
-                  variant={activeTab === item.id ? "secondary" : "ghost"}
-                  className="w-full justify-start"
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start border border-transparent transition-[background-color,border-color,color]",
+                    activeTab === item.id 
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]" 
+                      : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
+                  )}
                   onClick={() => handleTabChange(item.id)}
                 >
                   <item.icon className="h-4 w-4 mr-2" />
@@ -465,37 +469,15 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col lg:h-screen">
+        <div className="flex-1 flex flex-col">
           {/* Header */}
           <div className="border-b bg-background/80 backdrop-blur-sm">
             <div className="px-4 lg:px-6 py-4">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0 justify-between">
-                <div>
-                  <h1 className="text-xl lg:text-2xl font-bold">
-                    {mode === "create" ? "Create Integration" : "Edit Integration"}
-                  </h1>
-                  <p className="text-muted-foreground text-sm lg:text-base">Configure your AI chat and search integration</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" className="flex items-center gap-2 text-xs lg:text-sm">
-                    <Save className="h-4 w-4" />
-                    <span className="hidden sm:inline">Save Draft</span>
-                    <span className="sm:hidden">Draft</span>
-                  </Button>
-                  <Button 
-                    onClick={handleSave} 
-                    disabled={isLoading}
-                    className="flex items-center gap-2 text-xs lg:text-sm"
-                  >
-                    <Save className="h-4 w-4" />
-                    <span className="hidden sm:inline">
-                      {isLoading ? "Saving..." : "Save Changes"}
-                    </span>
-                    <span className="sm:hidden">
-                      {isLoading ? "Saving..." : "Success"}
-                    </span>
-                  </Button>
-                </div>
+              <div>
+                <h1 className="text-xl lg:text-2xl font-bold">
+                  {mode === "create" ? "Create Integration" : "Edit Integration"}
+                </h1>
+                <p className="text-muted-foreground text-sm lg:text-base">Configure your AI chat and search integration</p>
               </div>
             </div>
           </div>
@@ -521,9 +503,14 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
                 {sidebarItems.map((item) => (
                   <Button
                     key={item.id}
-                    variant={activeTab === item.id ? "secondary" : "outline"}
+                    variant="ghost"
                     size="sm"
-                    className="flex items-center gap-2 justify-start h-9 text-xs"
+                    className={cn(
+                      "flex items-center gap-2 justify-start h-9 text-xs border border-transparent transition-[background-color,border-color,color]",
+                      activeTab === item.id 
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]" 
+                        : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
+                    )}
                     onClick={() => handleTabChange(item.id)}
                   >
                     <item.icon className="h-3 w-3 flex-shrink-0" />
@@ -535,7 +522,7 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 p-0 pt-3 lg:p-6 lg:overflow-auto">
+          <div className="flex-1 p-0 pt-3 lg:p-6">
             {error && (
               <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
                 <p className="text-destructive text-sm">{error}</p>

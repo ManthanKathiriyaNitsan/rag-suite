@@ -114,7 +114,9 @@ export default function OverviewTab({ data, users = [], onChange }: OverviewTabP
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="slug">Slug *</Label>
+              <Label htmlFor="slug">Slug *  <span className="text-xs text-muted-foreground">
+             (   Used in URLs and API calls. Only lowercase letters, numbers, and hyphens.)
+              </span></Label>
               <Input
                 id="slug"
                 value={slug}
@@ -122,9 +124,7 @@ export default function OverviewTab({ data, users = [], onChange }: OverviewTabP
                 placeholder="docs-widget"
                 data-testid="input-integration-slug"
               />
-              <p className="text-xs text-muted-foreground">
-                Used in URLs and API calls. Only lowercase letters, numbers, and hyphens.
-              </p>
+             
             </div>
           </div>
 

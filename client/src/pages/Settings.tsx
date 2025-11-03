@@ -134,7 +134,7 @@ const Settings = React.memo(function Settings() {
 
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative">
       {/* Content */}
       <div className="relative z-10 space-y-6 sm:px-6 lg:px-8 p-0 sm:p-6">
       <div>

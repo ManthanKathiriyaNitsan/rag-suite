@@ -124,14 +124,6 @@ const ThemeColorsSection: React.FC<ThemeColorsSectionProps> = ({
             Customize your theme colors for light and dark modes
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant={activePreviewMode === "light" ? "default" : "outline"}>
-            Light Mode
-          </Badge>
-          <Badge variant={activePreviewMode === "dark" ? "default" : "outline"}>
-            Dark Mode
-          </Badge>
-        </div>
       </div>
 
       <Alert className="bg-blue-100 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700">
@@ -167,10 +159,7 @@ const ThemeColorsSection: React.FC<ThemeColorsSectionProps> = ({
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <div 
-                    className="w-8 h-8 rounded border border-border"
-                    style={{ backgroundColor: colorValue }}
-                  />
+               
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2">
                       <Input
@@ -178,7 +167,7 @@ const ThemeColorsSection: React.FC<ThemeColorsSectionProps> = ({
                         type="color"
                         value={colorValue}
                         onChange={(e) => updateColor(token.name, e.target.value)}
-                        className="w-12 h-8 p-1 border rounded"
+                        className="w-12 h-8  p-0 border rounded"
                         title="Color picker"
                       />
                       <Input

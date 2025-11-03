@@ -12,7 +12,10 @@ const Card = React.forwardRef<
       "shadcn-card border bg-card border-card-border text-card-foreground shadow-sm",
       className
     )}
-    style={{ borderRadius: 'var(--component-cardRadius, 0.5rem)' }}
+    style={{ 
+      borderRadius: 'var(--component-cardRadius, 0.5rem)',
+      boxShadow: '0px 1px 5px -1px rgba(0, 0, 0, 0.2)'
+    }}
     {...props}
   />
 ));

@@ -320,7 +320,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
             </div>
           </GlassNavbar>
           <main ref={mainRef} className={`flex-1 overflow-auto md:p-6 p-3 bg-transparent min-w-0 ${widgetOpen ? 'main-content-blur' : ''}`}>
-            <div ref={contentRef} className="min-h-full">
+            <div ref={contentRef} className="">
               {children}
             </div>
           </main>

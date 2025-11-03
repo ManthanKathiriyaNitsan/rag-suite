@@ -31,16 +31,20 @@ export function Toaster() {
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, variant, ...props }) {
         const icon = getIcon(variant)
+        // Default title for success variant
+        const displayTitle = title || (variant === "success" ? "Record Saved" : undefined)
+        // Ensure icon shows for success variant
+        const showIcon = icon || (variant === "success" ? getIcon("success") : null)
         return (
           <Toast key={id} {...props} variant={variant}>
             <div className="flex items-start gap-3 flex-1">
-              {icon && (
+              {showIcon && (
                 <div className="flex-shrink-0 mt-0.5">
-                  {icon}
+                  {showIcon}
                 </div>
               )}
               <div className="grid gap-1 flex-1">
-                {title && <ToastTitle>{title}</ToastTitle>}
+                {displayTitle && <ToastTitle>{displayTitle}</ToastTitle>}
                 {description && (
                   <ToastDescription>{description}</ToastDescription>
                 )}

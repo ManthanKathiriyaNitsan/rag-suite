@@ -222,7 +222,7 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+        <Card className="bg-white dark:glass-navbar-dark" style={{ boxShadow: '0px 1px 5px -1px rgba(0,0,0,0.2)' }}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -234,7 +234,7 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-white dark:glass-navbar-dark" style={{ boxShadow: '0px 1px 5px -1px rgba(0,0,0,0.2)' }}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -246,7 +246,7 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-white dark:glass-navbar-dark" style={{ boxShadow: '0px 1px 5px -1px rgba(0,0,0,0.2)' }}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -258,7 +258,7 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-white dark:glass-navbar-dark" style={{ boxShadow: '0px 1px 5px -1px rgba(0,0,0,0.2)' }}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -288,7 +288,7 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
             </div>
             <div className="flex flex-wrap gap-2">
                   <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-auto min-w-[120px]">
                   <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -300,7 +300,7 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
                     </SelectContent>
                   </Select>
                   <Select value={severityFilter} onValueChange={setSeverityFilter}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-auto min-w-[120px]">
                   <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -312,7 +312,7 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
                     </SelectContent>
                   </Select>
               <Select value={timeRange} onValueChange={setTimeRange}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-auto min-w-[120px]">
                   <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -322,7 +322,7 @@ export default function AuditLogsTab({ data, onChange }: AuditLogsTabProps) {
                   <SelectItem value="90d">Last 90 days</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
+            </div>
               </div>
             </CardContent>
           </Card>

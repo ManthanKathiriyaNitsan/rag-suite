@@ -39,7 +39,7 @@ const Overview = React.memo(function Overview() {
   const { t } = useTranslation();
   
   return (
-    <div className="relative min-h-screen">
+    <div className="relative">
       {/* Content */}
       <div className="relative z-10 space-y-6 p-0 sm:p-6">
         <div>

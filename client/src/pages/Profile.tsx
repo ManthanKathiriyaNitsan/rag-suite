@@ -76,7 +76,7 @@ const Profile = React.memo(function Profile() {
   }, []);
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative">
       {/* Content */}
       <div className="relative z-10 max-w-6xl mx-auto space-y-8 p-0 sm:p-6">
       {/* Header */}

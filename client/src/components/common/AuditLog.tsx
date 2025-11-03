@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { History, Filter, ExternalLink, User, Settings, Database, Key, Globe, FileText } from "lucide-react";
+import { History, Filter, ExternalLink, User, Settings, Database, Key, Globe, FileText, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -243,11 +243,13 @@ export function AuditLog() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-5">
-            <div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search activities..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
                 data-testid="input-search-audit"
               />
             </div>

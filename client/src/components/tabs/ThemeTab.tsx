@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { flushSync } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -155,7 +156,7 @@ interface ThemeTabProps {
 }
 
 export default function ThemeTab({ data, onChange }: ThemeTabProps) {
-  const { setTypography, setLayout } = useTheme();
+  const { theme: currentTheme, setTheme: setCurrentTheme, setTypography, setLayout } = useTheme();
   const [theme, setTheme] = useState<ThemeData>(() => ({
     ...data,
     // Default values if not provided
@@ -273,9 +274,15 @@ export default function ThemeTab({ data, onChange }: ThemeTabProps) {
     },
   }));
 
-  const [activePreviewMode, setActivePreviewMode] = useState<"light" | "dark">("light");
+  const [activePreviewMode, setActivePreviewMode] = useState<"light" | "dark">(currentTheme);
   const [copiedColor, setCopiedColor] = useState<string | null>(null);
   const { toast } = useToast();
+  const previewButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Sync preview mode with actual theme
+  useEffect(() => {
+    setActivePreviewMode(currentTheme);
+  }, [currentTheme]);
 
   // Update parent component when theme changes
   useEffect(() => {
@@ -331,9 +338,61 @@ export default function ThemeTab({ data, onChange }: ThemeTabProps) {
     });
   }, [theme, toast]);
 
-  const togglePreviewMode = useCallback(() => {
-    setActivePreviewMode(prev => prev === "light" ? "dark" : "light");
-  }, []);
+  const togglePreviewMode = useCallback(async () => {
+    const newMode = activePreviewMode === "light" ? "dark" : "light";
+
+    /**
+     * Return early if View Transition API is not supported
+     * or user prefers reduced motion
+     */
+    if (
+        !previewButtonRef.current ||
+        !document.startViewTransition ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      setActivePreviewMode(newMode);
+      setCurrentTheme(newMode);
+      return;
+    }
+
+    try {
+      await document.startViewTransition(() => {
+        flushSync(() => {
+          setActivePreviewMode(newMode);
+          setCurrentTheme(newMode);
+        });
+      }).ready;
+
+      const { top, left, width, height } = previewButtonRef.current.getBoundingClientRect();
+      const x = left + width / 2;
+      const y = top + height / 2;
+      const right = window.innerWidth - left;
+      const bottom = window.innerHeight - top;
+      const maxRadius = Math.hypot(
+        Math.max(left, right),
+        Math.max(top, bottom),
+      );
+
+      document.documentElement.animate(
+        {
+          clipPath: [
+            `circle(0px at ${x}px ${y}px)`,
+            `circle(${maxRadius}px at ${x}px ${y}px)`,
+          ],
+        },
+        {
+          duration: 500,
+          easing: 'ease-in-out',
+          pseudoElement: '::view-transition-new(root)',
+        }
+      );
+    } catch (error) {
+      // Fallback if view transition fails
+      console.warn('View transition failed, falling back to normal toggle:', error);
+      setActivePreviewMode(newMode);
+      setCurrentTheme(newMode);
+    }
+  }, [activePreviewMode, setCurrentTheme]);
 
   return (
     <div className="space-y-6">
@@ -349,6 +408,7 @@ export default function ThemeTab({ data, onChange }: ThemeTabProps) {
         </div>
         <div className="flex items-center gap-2">
           <Button
+            ref={previewButtonRef}
             variant="outline"
             size="sm"
             onClick={togglePreviewMode}

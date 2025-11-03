@@ -43,7 +43,7 @@ export function GlassCard({
         borderRadius: 'var(--component-cardRadius, 2px)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        ...(noHover && { boxShadow: '0px 1px 5px -1px rgba(0,0,0,0.2)' })
+        boxShadow: '0px 1px 5px -1px rgba(0, 0, 0, 0.2)'
       }}
       onClick={onClick}
       {...props}

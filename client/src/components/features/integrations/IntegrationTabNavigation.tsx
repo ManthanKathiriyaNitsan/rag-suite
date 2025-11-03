@@ -51,7 +51,7 @@ export function IntegrationTabNavigation({
               key={tab.id}
               value={tab.id}
               disabled={tab.disabled}
-              className="flex flex-col items-center gap-1 p-3 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              className="flex flex-col items-center gap-1 p-3 border border-transparent transition-[background-color,border-color,color] hover:!bg-sidebar-accent hover:!text-sidebar-accent-foreground hover:!border-[hsl(var(--button-hover-border))] data-[state=active]:!bg-sidebar-accent data-[state=active]:!text-sidebar-accent-foreground data-[state=active]:!border-[hsl(var(--button-hover-border))] data-[state=active]:shadow-none"
             >
               <tab.icon className="h-4 w-4" />
               <span className="text-xs font-medium">{tab.label}</span>

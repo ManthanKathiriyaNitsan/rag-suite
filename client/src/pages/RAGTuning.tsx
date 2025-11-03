@@ -277,7 +277,7 @@ export default function RAGTuning() {
   ], []);
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative">
       {/* Content */}
       <div className="relative z-10 space-y-6 p-0 sm:p-6">
       <div className="flex flex-col md:flex-row gap-5 md:gap-0 justify-between items-start">

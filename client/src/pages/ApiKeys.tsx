@@ -73,7 +73,7 @@ const ApiKeys = React.memo(function ApiKeys() {
   }, [toast]);
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative">
       {/* Content */}
       <div className="relative z-10 space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden min-w-0 p-0 sm:p-6" style={{ maxWidth: '93vw' }}>
         {/* Header */}

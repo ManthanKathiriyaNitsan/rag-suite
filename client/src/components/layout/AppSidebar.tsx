@@ -189,7 +189,7 @@ const AppSidebar = React.memo(function AppSidebar() {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="w-full justify-between h-auto p-3 border border-transparent transition-colors hover:bg-sidebar-accent hover:border-[hsl(var(--button-hover-border))]"
+              className="w-full justify-between h-auto p-3 transition-[background-color,border-color] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))] active:bg-sidebar-accent active:text-sidebar-accent-foreground active:border-[hsl(var(--button-hover-border))]"
               data-testid="dropdown-projects"
             >
               <div className="flex items-center gap-3">

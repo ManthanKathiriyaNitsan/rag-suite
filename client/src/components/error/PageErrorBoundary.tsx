@@ -148,7 +148,7 @@ export class PageErrorBoundary extends Component<Props, State> {
                 {showRetryButton && canRetry && (
                   <Button
                     onClick={this.handleRetry}
-                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                    className="hover:!bg-primary"
                   >
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Try Again {retryCount > 0 && `(${this.maxRetries - retryCount} attempts left)`}
@@ -186,17 +186,17 @@ export class PageErrorBoundary extends Component<Props, State> {
               )}
 
               {isDevelopment && (
-                <Alert className="mt-4">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
+                <Alert className="mt-4 border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
+                  <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  <AlertDescription className="text-red-800 dark:text-red-200">
                     <div className="space-y-2">
                       <div><strong>Error ID:</strong> {errorId}</div>
                       <div><strong>Error:</strong> {error?.message}</div>
                       <div><strong>Retry Count:</strong> {retryCount}/{this.maxRetries}</div>
                       {error?.stack && (
                         <details className="mt-2">
-                          <summary className="cursor-pointer text-sm font-medium">Stack Trace</summary>
-                          <pre className="mt-2 text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-auto">
+                          <summary className="cursor-pointer text-sm font-medium text-red-700 dark:text-red-300">Stack Trace</summary>
+                          <pre className="mt-2 text-xs bg-red-100 dark:bg-red-900 p-2 rounded overflow-auto text-red-900 dark:text-red-100">
                             {error.stack}
                           </pre>
                         </details>

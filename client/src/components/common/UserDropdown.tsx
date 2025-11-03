@@ -96,7 +96,7 @@ const UserDropdown = React.memo(function UserDropdown({ user }: UserDropdownProp
         <div className="flex items-center gap-3 p-4 border-b">
           <Avatar className="h-12 w-12">
             <AvatarImage src={safeUser.avatar} alt={safeUser.name} />
-            <AvatarFallback className="bg-primary/10 text-primary font-medium text-base">
+            <AvatarFallback className="bg-primary/10 text-primary font-medium text-lg">
               {userInitials}
             </AvatarFallback>
           </Avatar>
@@ -166,7 +166,13 @@ const UserDropdown = React.memo(function UserDropdown({ user }: UserDropdownProp
               <p className="font-medium">Notifications</p>
               <p className="text-xs text-muted-foreground">Manage alerts and updates</p>
             </div>
-            <Badge variant="outline" className="text-xs">3</Badge>
+            <Badge
+              variant="destructive"
+              className="h-[20px] w-[20px] min-w-[20px] text-[12px] font-semibold flex items-center justify-center rounded-full !p-0"
+              style={{ borderRadius: '9999px' }}
+            >
+              3
+            </Badge>
           </DropdownMenuItem>
           
           <DropdownMenuItem className="flex items-center gap-3 p-3 cursor-pointer hover-elevate" data-testid="menu-billing">
