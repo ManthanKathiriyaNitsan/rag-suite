@@ -100,7 +100,7 @@ const Analytics = React.memo(function Analytics() {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           <div className="relative">
             <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-full sm:w-32" data-testid="select-time-range">
+              <SelectTrigger className="w-full " data-testid="select-time-range">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

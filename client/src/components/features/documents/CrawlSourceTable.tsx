@@ -12,6 +12,7 @@ import {
 import { VirtualizedTable } from "@/components/ui/VirtualizedTable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -125,35 +126,43 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
 
   if (isLoading) {
     return (
-      <div className="rounded-md w-full border">
-        <div className="text-center py-8">
-          <div className="flex items-center justify-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Loading sites...</span>
+      <Card className="w-full overflow-hidden">
+        <CardContent>
+          <div className="text-center py-8">
+            <div className="flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Loading sites...</span>
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
   if (sites.length === 0) {
     return (
-      <div className="rounded-md w-full border">
-        <div className="text-center py-8">
-          <div className="text-muted-foreground">
-            No crawl sites found. Add your first site to get started.
+      <Card className="w-full overflow-hidden">
+        <CardContent>
+          <div className="text-center py-8">
+            <div className="text-muted-foreground">
+              No crawl sites found. Add your first site to get started.
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="rounded-md w-full border">
-      <div className="text-xs text-muted-foreground mb-2 p-2">
-        🚀 Virtualized table for optimal performance with large datasets
-      </div>
-      <VirtualizedTable
+    <Card className="w-full overflow-hidden">
+      <CardHeader>
+        <CardTitle>Crawl Sources</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-xs text-muted-foreground mb-2 p-2">
+          🚀 Virtualized table for optimal performance with large datasets
+        </div>
+        <VirtualizedTable
         data={sites}
         columns={[
           {
@@ -290,7 +299,8 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
         className="min-w-[800px]"
         onRowClick={(site: CrawlSite) => handleAction("edit", site.id)}
       />
-    </div>
+      </CardContent>
+    </Card>
   );
 });
 

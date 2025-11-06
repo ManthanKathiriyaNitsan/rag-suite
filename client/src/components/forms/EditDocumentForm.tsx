@@ -118,8 +118,21 @@ function EditDocumentForm({ open, onOpenChange, documentId, initialMetadata, onS
           </div>
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={isSaving}>{isSaving ? "Saving..." : "Save Changes"}</Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="sm:min-w-[140px]"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              className="sm:min-w-[140px]"
+              disabled={isSaving}
+            >
+              {isSaving ? "Saving..." : "Save Changes"}
+            </Button>
           </div>
         </form>
       </DialogContent>

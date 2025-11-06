@@ -330,11 +330,13 @@ class ViewController: UIViewController {
                 <DialogFooter>
                   <Button
                     variant="outline"
+                    className="sm:min-w-[140px]"
                     onClick={() => setCreateKeyOpen(false)}
                   >
                     Cancel
                   </Button>
                   <Button
+                    className="sm:min-w-[140px]"
                     onClick={handleCreateKey}
                     disabled={!newKeyLabel.trim()}
                     data-testid="button-confirm-create-key"
@@ -478,6 +480,7 @@ class ViewController: UIViewController {
 
     <DialogFooter>
       <Button
+        className="sm:min-w-[140px]"
         onClick={() => setShowGeneratedKey(false)}
         data-testid="button-close-generated-key"
       >

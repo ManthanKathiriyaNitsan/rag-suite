@@ -253,10 +253,17 @@ export default function EnvironmentsTab({ data, onChange }: EnvironmentsTabProps
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+              <Button 
+                variant="outline" 
+                className="sm:min-w-[140px]"
+                onClick={() => setIsCreateOpen(false)}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleCreateEnvironment}>
+              <Button 
+                className="sm:min-w-[140px]"
+                onClick={handleCreateEnvironment}
+              >
                 Create Environment
               </Button>
             </DialogFooter>

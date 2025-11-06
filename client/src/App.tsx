@@ -351,6 +351,12 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
         isActive={isTourActive}
         onComplete={completeTour}
         onClose={skipTour}
+        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+        onOpenNotifications={() => setNotificationsOpen(true)}
+        onNavigate={(path: string) => {
+          window.location.href = path;
+        }}
+        onOpenWidget={() => setWidgetOpen(true)}
       />
     </SidebarProvider>
   );

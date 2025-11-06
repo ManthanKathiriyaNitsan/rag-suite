@@ -36,7 +36,8 @@ export function GlassStatsCard({
         className
       )}
       style={{
-        borderRadius: 'var(--component-cardRadius, 2px)'
+        borderRadius: 'var(--component-cardRadius, 2px)',
+        boxShadow:'0px 1px 5px -1px rgba(0,0,0,0.2)'
       }}
     >
       <div className="flex items-center justify-between space-y-0 pb-2">

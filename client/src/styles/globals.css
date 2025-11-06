@@ -981,12 +981,7 @@ pre code {
 }
 
 /* Card box-shadow - apply to all cards across the website */
-.shadcn-card,
-.glass-card-light,
-.glass-card-dark,
-[class*="card"][class*="border"] {
-  box-shadow: 0px 1px 5px -1px rgba(0, 0, 0, 0.2) !important;
-}
+
 
 /* Remove hover effects from color picker inputs only */
 input[type="color"]:hover,

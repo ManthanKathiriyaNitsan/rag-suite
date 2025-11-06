@@ -46,8 +46,7 @@ export { default as Dialog } from './Dialog';
 export { default as Drawer } from './Drawer';
 export { default as HoverCard } from './HoverCard';
 export { default as Popover } from './Popover';
-export { default as Toast } from './Toast';
-export { default as Toaster } from './Toaster';
+export { Toaster } from './toaster';
 export { default as Tooltip } from './Tooltip';
 
 // Data Display Components

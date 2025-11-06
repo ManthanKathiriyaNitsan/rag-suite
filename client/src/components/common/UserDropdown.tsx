@@ -71,7 +71,7 @@ const UserDropdown = React.memo(function UserDropdown({ user }: UserDropdownProp
   }
 
   return (
-    <div className="relative">
+    <div className="relative  ">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -91,9 +91,17 @@ const UserDropdown = React.memo(function UserDropdown({ user }: UserDropdownProp
           </Button>
         </DropdownMenuTrigger>
       
-      <DropdownMenuContent className="w-80" align="end" forceMount>
+      <DropdownMenuContent 
+        className="w-screen md:w-80 !overflow-y-auto max-h-[91vh] pr-1 md:!overflow-y-hidden md:max-h-none md:pr-1 z-[10000]" 
+        align="end" 
+        forceMount
+        style={{ 
+          zIndex: 10000,
+          WebkitOverflowScrolling: 'touch'
+        }}
+      >
         {/* User Info Header */}
-        <div className="flex items-center gap-3 p-4 border-b">
+        <div className="flex items-center gap-3 p-4 border-b flex-shrink-0">
           <Avatar className="h-12 w-12">
             <AvatarImage src={safeUser.avatar} alt={safeUser.name} />
             <AvatarFallback className="bg-primary/10 text-primary font-medium text-lg">

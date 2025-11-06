@@ -299,10 +299,17 @@ export default function PermissionsTab({ data, users, onChange }: PermissionsTab
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsRoleCreateOpen(false)}>
+                <Button 
+                  variant="outline" 
+                  className="sm:min-w-[140px]"
+                  onClick={() => setIsRoleCreateOpen(false)}
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleCreateRole}>
+                <Button 
+                  className="sm:min-w-[140px]"
+                  onClick={handleCreateRole}
+                >
                   Create Role
                 </Button>
               </DialogFooter>
@@ -360,10 +367,17 @@ export default function PermissionsTab({ data, users, onChange }: PermissionsTab
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsInviteOpen(false)}>
+                <Button 
+                  variant="outline" 
+                  className="sm:min-w-[140px]"
+                  onClick={() => setIsInviteOpen(false)}
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleInviteUser}>
+                <Button 
+                  className="sm:min-w-[140px]"
+                  onClick={handleInviteUser}
+                >
                   Send Invitation
                 </Button>
               </DialogFooter>

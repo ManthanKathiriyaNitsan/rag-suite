@@ -99,7 +99,7 @@ const Settings = React.memo(function Settings() {
       const data = { orgName, primaryColor, logoDataUrl };
       localStorage.setItem("branding", JSON.stringify(data));
       setBranding(data); // update global context so all pages reflect immediately
-      toast({ title: "Branding saved", description: "Organization name, color, and logo were saved.", variant: "success" });
+      toast({ title: "Record saved", description: "Organization name, color, and logo were saved.", variant: "success" });
     } catch (e) {
       toast({ title: "Save failed", description: "Could not save branding settings.", variant: "destructive" });
     }
@@ -740,7 +740,16 @@ const Settings = React.memo(function Settings() {
                 <Button variant="outline" onClick={resetFormatting} className="w-full sm:w-auto">
                   Reset
                 </Button>
-                <Button className="w-full sm:w-auto">
+                <Button 
+                  onClick={() => {
+                    toast({
+                      title: "Citation settings saved",
+                      description: "Your citation formatting preferences have been saved successfully.",
+                      variant: "success"
+                    });
+                  }}
+                  className="w-full sm:w-auto"
+                >
                   Save Changes
                 </Button>
               </div>

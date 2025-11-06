@@ -198,11 +198,17 @@ const UploadDocumentForm = React.memo(function UploadDocumentForm({ open, onOpen
           </div>
 
           <DialogFooter>
-            <Button type="button" className="my-2" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="sm:min-w-[140px]"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
             <Button 
               type="submit" 
+              className="sm:min-w-[140px]"
               disabled={!files || isUploading} 
               data-testid="button-upload-documents"
             >

@@ -221,10 +221,19 @@ export function CreateIntegrationForm({ open, onOpenChange, onSubmit }: CreateIn
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="sm:min-w-[140px]"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
-            <Button type="submit" data-testid="button-create-integration">
+            <Button 
+              type="submit" 
+              className="sm:min-w-[140px]"
+              data-testid="button-create-integration"
+            >
               <Globe className="h-4 w-4 mr-2" />
               Create Integration
             </Button>

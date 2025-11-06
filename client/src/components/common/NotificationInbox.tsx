@@ -174,25 +174,25 @@ const NotificationInbox = React.memo(function NotificationInbox({ open, onOpenCh
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="w-96">
-          <SheetHeader>
+        <SheetContent className="w-96 flex flex-col overflow-hidden">
+          <SheetHeader className="flex-shrink-0 pb-4">
             <SheetTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
               Notifications
               {unreadCount > 0 && (
-                <Badge variant="destructive" className="ml-auto ">
+                <Badge variant="destructive" className="ml-auto mr-4  rounded-full">
                   {unreadCount}
                 </Badge>
               )}
             </SheetTitle>
-            <SheetDescription>
+            <SheetDescription className="text-start">
               System alerts, updates, and important notifications
             </SheetDescription>
           </SheetHeader>
 
-          <div className="mt-6 space-y-4">
+          <div className="flex flex-col flex-1 min-h-0 space-y-4">
             {/* Filters */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-shrink-0">
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="flex-1" data-testid="select-type-filter">
                   <SelectValue placeholder="Type" />
@@ -223,7 +223,7 @@ const NotificationInbox = React.memo(function NotificationInbox({ open, onOpenCh
                 variant="outline"
                 size="sm"
                 onClick={markAllAsRead}
-                className="w-full"
+                className="w-full flex-shrink-0"
                 data-testid="button-mark-all-read"
               >
                 Mark All as Read
@@ -231,7 +231,7 @@ const NotificationInbox = React.memo(function NotificationInbox({ open, onOpenCh
             )}
 
             {/* Notifications List */}
-            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-2 flex-1 overflow-y-auto min-h-0 pr-1">
               {filteredNotifications.map((notification) => (
                 <Card
                   key={notification.id}

@@ -150,6 +150,7 @@ const AppSidebar = React.memo(function AppSidebar() {
   
   return (
     <Sidebar 
+      collapsible="icon"
       className={cn(
         "backdrop-blur-xl transition-all duration-300",
         theme === 'dark' 
@@ -173,18 +174,18 @@ const AppSidebar = React.memo(function AppSidebar() {
           WebkitBackdropFilter: 'blur(20px)',
         }}
       >
-        <div className="flex px-2 py-[7px] items-center gap-2">
+        <div className="flex  py-[7px] items-center gap-2">
           {logoDataUrl ? (
             <img src={logoDataUrl} alt={`${orgName} logo`} className="h-6 w-6 rounded-sm" />
           ) : (
             <Bot className="h-6 w-6 text-[var(--primary)]" />
           )}
-          <span className="font-semibold text-lg">{orgName || "RAGSuite"}</span>
+          <span className="font-semibold text-lg transition-[opacity,max-width] duration-300 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:overflow-hidden">{orgName || "RAGSuite"}</span>
         </div>
       </SidebarHeader>
 
       {/* Projects Dropdown */}
-      <div className="px-4 py-2 border-t border-b" style={{ borderColor: theme === 'dark' ? '#2b2b2b' : '#d8d8d8' }}>
+      <div className="px-4 py-2 border-t border-b transition-[opacity,height,margin,padding,border-color] duration-300 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:m-0 group-data-[collapsible=icon]:border-0" style={{ borderColor: theme === 'dark' ? '#2b2b2b' : '#d8d8d8' }}>
         <DropdownMenu  >
           <DropdownMenuTrigger asChild>
             <Button
@@ -268,13 +269,13 @@ const AppSidebar = React.memo(function AppSidebar() {
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild
-                      className="p-5"
+                      className="p-5 group-data-[collapsible=icon]:justify-center"
                       isActive={location === item.url}
                       data-testid={`link-${item.title.toLowerCase().replace(' ', '-')}`}
                     >
                       <Link href={item.url}>
                         <item.icon className="h-4 w-4" />
-                        <span>{t(translationKey)}</span>
+                        <span className="transition-[opacity,max-width] duration-300 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:overflow-hidden">{t(translationKey)}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -292,13 +293,13 @@ const AppSidebar = React.memo(function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    className="p-4"
+                    className="p-4 group-data-[collapsible=icon]:justify-center"
                     isActive={location === item.url}
                     data-testid={`link-${item.title.toLowerCase().replace(' ', '-')}`}
                   >
                     <Link href={item.url}>
                       <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      <span className="transition-[opacity,max-width] duration-300 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:overflow-hidden">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -308,7 +309,7 @@ const AppSidebar = React.memo(function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="px-4 py-4 border-t border-b" style={{ borderColor: theme === 'dark' ? '#2b2b2b' : '#d8d8d8' }}>
+      <SidebarFooter className="px-4 py-4 border-t border-b transition-[opacity,height,margin,padding,border-color] duration-300 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:m-0 group-data-[collapsible=icon]:border-0" style={{ borderColor: theme === 'dark' ? '#2b2b2b' : '#d8d8d8' }}>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Badge variant="outline" className="text-xs bg-white dark:bg-card border-none">v1.0.0</Badge>
         </div>

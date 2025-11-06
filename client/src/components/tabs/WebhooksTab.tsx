@@ -300,12 +300,19 @@ export default function WebhooksTab({ data, onChange }: WebhooksTabProps) {
                   </div>
                     </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                      Cancel
-                    </Button>
-              <Button onClick={handleCreateWebhook}>
-                      Create Webhook
-                    </Button>
+              <Button 
+                variant="outline" 
+                className="sm:min-w-[140px]"
+                onClick={() => setIsCreateOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                className="sm:min-w-[140px]"
+                onClick={handleCreateWebhook}
+              >
+                Create Webhook
+              </Button>
             </DialogFooter>
               </DialogContent>
             </Dialog>

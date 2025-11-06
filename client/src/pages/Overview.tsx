@@ -57,6 +57,7 @@ const Overview = React.memo(function Overview() {
           description="from yesterday"
           trend={{ value: 12, isPositive: true }}
           icon={<Search className="h-4 w-4" />}
+        
         />
         <GlassStatsCard
           title="p95 Latency"

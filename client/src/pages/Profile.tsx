@@ -143,7 +143,7 @@ const Profile = React.memo(function Profile() {
 
       {/* Profile Settings Tabs */}
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid grid-cols-2 w-full h-full  lg:grid-cols-4">
           <TabsTrigger value="general" className="flex items-center gap-2" data-testid="tab-general">
             <User className="h-4 w-4" />
             General
@@ -475,7 +475,7 @@ const Profile = React.memo(function Profile() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="public">Public - Visible to everyone</SelectItem>
-                      <SelectItem value="team">Team - Visible to team members only</SelectItem>
+                      <SelectItem value="team">Team - Only team members only</SelectItem>
                       <SelectItem value="private">Private - Only visible to you</SelectItem>
                     </SelectContent>
                   </Select>

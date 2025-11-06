@@ -120,7 +120,11 @@ function CreateApiKeyForm({ open, onOpenChange, onSubmit }: CreateApiKeyFormProp
           </div>
 
           <DialogFooter>
-            <Button onClick={handleClose} data-testid="button-close-key-dialog">
+            <Button 
+              onClick={handleClose} 
+              className="sm:min-w-[140px]"
+              data-testid="button-close-key-dialog"
+            >
               Done
             </Button>
           </DialogFooter>
@@ -212,10 +216,19 @@ function CreateApiKeyForm({ open, onOpenChange, onSubmit }: CreateApiKeyFormProp
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" className="my-2" onClick={() => onOpenChange(false)}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="sm:min-w-[140px]"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
-            <Button type="submit" data-testid="button-create-key">
+            <Button 
+              type="submit" 
+              className="sm:min-w-[140px]"
+              data-testid="button-create-key"
+            >
               <Key className="h-4 w-4 mr-2" />
               Create API Key
             </Button>

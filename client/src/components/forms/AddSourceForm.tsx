@@ -261,10 +261,19 @@ const AddSourceForm = React.memo(function AddSourceForm({ open, onOpenChange, on
           </div>
 
           <DialogFooter>
-            <Button type="button" className="my-2" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="sm:min-w-[140px]"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
-            <Button type="submit" data-testid="button-save-source">
+            <Button 
+              type="submit" 
+              className="sm:min-w-[140px]"
+              data-testid="button-save-source"
+            >
               {editData ? "Update Source" : "Create Source"}
             </Button>
           </DialogFooter>

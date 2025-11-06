@@ -261,12 +261,19 @@ export default function VersionsTab({ data, onChange }: VersionsTabProps) {
                   </div>
                 </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                    Cancel
-                  </Button>
-              <Button onClick={handleCreateVersion}>
-                    Create Version
-                  </Button>
+              <Button 
+                variant="outline" 
+                className="sm:min-w-[140px]"
+                onClick={() => setIsCreateOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                className="sm:min-w-[140px]"
+                onClick={handleCreateVersion}
+              >
+                Create Version
+              </Button>
             </DialogFooter>
             </DialogContent>
           </Dialog>

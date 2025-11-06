@@ -216,6 +216,7 @@ export default function DomainsTab({ data, onChange }: DomainsTabProps) {
                 <DialogFooter>
                   <Button
                     variant="outline"
+                    className="sm:min-w-[140px]"
                     onClick={() => {
                       setAddDomainOpen(false);
                       setNewDomain("");
@@ -225,6 +226,7 @@ export default function DomainsTab({ data, onChange }: DomainsTabProps) {
                     Cancel
                   </Button>
                   <Button
+                    className="sm:min-w-[140px]"
                     onClick={handleAddDomain}
                     disabled={!newDomain.trim()}
                     data-testid="button-confirm-add-domain"
@@ -331,13 +333,13 @@ export default function DomainsTab({ data, onChange }: DomainsTabProps) {
             <p className="text-sm text-muted-foreground">
               If your website uses CSP headers, add these directives to allow the widget to function:
             </p>
-            <div className="bg-muted p-4 rounded-lg">
-              <code className="text-sm">
+            <pre className="bg-muted p-2 sm:p-4 rounded-[2px] text-xs sm:text-sm overflow-x-auto min-w-0">
+              <code className="whitespace-pre-wrap break-words">
                 {`script-src 'self' https://cdn.ragsuite.com;\n`}
                 {`connect-src 'self' https://api.ragsuite.com;\n`}
                 {`frame-src 'self' https://widget.ragsuite.com;`}
               </code>
-            </div>
+            </pre>
           </div>
           
           <div className="space-y-2">

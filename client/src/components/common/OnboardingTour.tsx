@@ -14,12 +14,18 @@ interface TourStep {
   action?: "click" | "hover" | "none";
   actionText?: string;
   optional?: boolean; // Mark steps that may not have elements on all pages
+  navigateTo?: string; // Path to navigate to for this step (deprecated - use sidebarHighlight instead)
+  sidebarHighlight?: string; // Path to highlight in sidebar instead of navigating
 }
 
 interface OnboardingTourProps {
   isActive: boolean;
   onComplete: () => void;
   onClose: () => void;
+  onOpenCommandPalette?: () => void;
+  onOpenNotifications?: () => void;
+  onNavigate?: (path: string) => void;
+  onOpenWidget?: () => void;
 }
 
 const tourSteps: TourStep[] = [
@@ -35,7 +41,7 @@ const tourSteps: TourStep[] = [
     id: "sidebar",
     title: "Navigation Sidebar",
     content: "Use the sidebar to navigate between different sections of your platform. You can access all major features from here.",
-    target: "[data-testid='sidebar']",
+    target: "[data-testid='sidebar'], nav",
     position: "right",
     action: "none",
   },
@@ -60,41 +66,49 @@ const tourSteps: TourStep[] = [
   {
     id: "crawl-sources",
     title: "Crawl Sources",
-    content: "Add and manage your website sources for content crawling. This is where you configure what content to index. Navigate to the Crawl page to see this feature.",
-    target: "[data-testid='button-add-source']",
-    position: "bottom",
-    action: "hover",
-    actionText: "Hover to explore",
-    optional: true, // Mark as optional so it doesn't block tour
+    content: "Add and manage your website sources for content crawling. This is where you configure what content to index.",
+    target: "a[href='/crawl'], [data-testid='link-crawl']",
+    position: "right",
+    action: "none",
+    sidebarHighlight: "/crawl",
   },
   {
     id: "documents",
     title: "Document Library",
-    content: "View and manage all your indexed documents. Upload additional files or browse crawled content. Navigate to the Documents page to see this feature.",
-    target: "[data-testid='button-upload-document']",
-    position: "left",
+    content: "View and manage all your indexed documents. Upload additional files or browse crawled content.",
+    target: "a[href='/documents'], [data-testid='link-documents']",
+    position: "right",
     action: "none",
-    optional: true, // Mark as optional so it doesn't block tour
+    sidebarHighlight: "/documents",
   },
   {
     id: "widget-demo",
     title: "Embeddable Widget",
-    content: "This is your AI assistant widget that can be embedded on any website. The widget launcher is typically in the bottom-right corner of your screen.",
+    content: "This is your AI assistant widget that can be embedded on any website. Try chatting with it!",
     target: "[data-testid='button-widget-launcher']",
     position: "left",
     action: "click",
     actionText: "Open widget demo",
-    optional: true, // Mark as optional so it doesn't block tour
   },
 ];
 
-const OnboardingTour = React.memo(function OnboardingTour({ isActive, onComplete, onClose }: OnboardingTourProps) {
+const OnboardingTour = React.memo(function OnboardingTour({ isActive, onComplete, onClose, onOpenCommandPalette, onOpenNotifications, onNavigate, onOpenWidget }: OnboardingTourProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isStepCompleted, setIsStepCompleted] = useState(false);
   const [highlightElement, setHighlightElement] = useState<HTMLElement | null>(null);
   const [elementNotFound, setElementNotFound] = useState(false);
   const [cardPosition, setCardPosition] = useState<{ top?: number; left?: number; right?: number; bottom?: number }>({});
-  const originalStylesRef = useRef<{ position: string; zIndex: string; boxShadow: string; borderRadius: string } | null>(null);
+  const originalStylesRef = useRef<{
+    position: string;
+    zIndex: string;
+    boxShadow: string;
+    borderRadius: string;
+    backgroundColor?: string;
+    border?: string;
+    borderLeft?: string;
+    transform?: string;
+    transition?: string;
+  } | null>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
 
   // Filter out optional steps where elements don't exist
@@ -114,7 +128,7 @@ const OnboardingTour = React.memo(function OnboardingTour({ isActive, onComplete
   // Calculate card position based on element position
   const calculateCardPosition = useCallback((element: HTMLElement, position: string) => {
     const rect = element.getBoundingClientRect();
-    const cardWidth = 384; // w-96 = 384px
+    const cardWidth = window.innerWidth < 640 ? Math.min(384, window.innerWidth - 32) : 384; // Responsive width
     const cardHeight = 300; // approximate height
     const spacing = 20;
     const viewportWidth = window.innerWidth;
@@ -129,6 +143,10 @@ const OnboardingTour = React.memo(function OnboardingTour({ isActive, onComplete
         break;
       case "bottom":
         cardPos.top = rect.bottom + spacing;
+        // Ensure card doesn't go off screen
+        if (cardPos.top + cardHeight > viewportHeight - spacing) {
+          cardPos.top = viewportHeight - cardHeight - spacing;
+        }
         cardPos.left = Math.max(spacing, Math.min(rect.left + rect.width / 2 - cardWidth / 2, viewportWidth - cardWidth - spacing));
         break;
       case "left":
@@ -138,6 +156,10 @@ const OnboardingTour = React.memo(function OnboardingTour({ isActive, onComplete
       case "right":
         cardPos.top = Math.max(spacing, Math.min(rect.top + rect.height / 2 - cardHeight / 2, viewportHeight - cardHeight - spacing));
         cardPos.left = rect.right + spacing;
+        // Ensure card doesn't go off screen on mobile
+        if (cardPos.left + cardWidth > viewportWidth - spacing) {
+          cardPos.left = viewportWidth - cardWidth - spacing;
+        }
         break;
       case "center":
       default:
@@ -151,13 +173,39 @@ const OnboardingTour = React.memo(function OnboardingTour({ isActive, onComplete
 
   // Cleanup function to restore element styles
   const restoreElementStyles = useCallback(() => {
+    // Restore current highlighted element
     if (highlightElement && originalStylesRef.current) {
       const styles = originalStylesRef.current;
       highlightElement.style.position = styles.position === "static" ? "" : styles.position;
       highlightElement.style.zIndex = styles.zIndex === "auto" || styles.zIndex === "" ? "" : styles.zIndex;
       highlightElement.style.boxShadow = styles.boxShadow === "none" ? "" : styles.boxShadow;
       highlightElement.style.borderRadius = styles.borderRadius === "0px" ? "" : styles.borderRadius;
+      highlightElement.style.pointerEvents = "";
+      highlightElement.style.backgroundColor = styles.backgroundColor || "";
+      highlightElement.style.border = styles.border || "";
+      highlightElement.style.borderLeft = styles.borderLeft || "";
+      highlightElement.style.transform = styles.transform || "";
+      highlightElement.style.transition = styles.transition || "";
+      highlightElement.removeAttribute('data-tour-highlighted');
     }
+    
+    // Also restore ALL elements that might have been highlighted (in case tour was skipped/completed)
+    const allHighlighted = document.querySelectorAll('[data-tour-highlighted]');
+    allHighlighted.forEach((el) => {
+      const element = el as HTMLElement;
+      element.style.position = "";
+      element.style.zIndex = "";
+      element.style.boxShadow = "";
+      element.style.borderRadius = "";
+      element.style.pointerEvents = "";
+      element.style.backgroundColor = "";
+      element.style.border = "";
+      element.style.borderLeft = "";
+      element.style.transform = "";
+      element.style.transition = "";
+      element.removeAttribute('data-tour-highlighted');
+    });
+    
     if (cleanupRef.current) {
       cleanupRef.current();
       cleanupRef.current = null;
@@ -169,12 +217,71 @@ const OnboardingTour = React.memo(function OnboardingTour({ isActive, onComplete
   // Main effect to highlight elements
   useEffect(() => {
     if (!isActive) {
+      // When tour is no longer active, restore all highlighted elements
       restoreElementStyles();
+      // Additional cleanup to ensure all elements are restored
+      const allHighlighted = document.querySelectorAll('[data-tour-highlighted]');
+      allHighlighted.forEach((el) => {
+        const element = el as HTMLElement;
+        element.style.position = "";
+        element.style.zIndex = "";
+        element.style.boxShadow = "";
+        element.style.borderRadius = "";
+        element.style.pointerEvents = "";
+        element.style.backgroundColor = "";
+        element.style.border = "";
+        element.style.borderLeft = "";
+        element.style.transform = "";
+        element.style.transition = "";
+        element.removeAttribute('data-tour-highlighted');
+      });
       return;
     }
 
     // Small delay to ensure DOM is ready
     const timer = setTimeout(() => {
+      // Handle sidebar highlight steps (no navigation, just highlight sidebar item)
+      if (step.sidebarHighlight) {
+        const sidebarLink = document.querySelector(`a[href='${step.sidebarHighlight}']`) as HTMLElement;
+        if (sidebarLink) {
+          // Find the parent menu item container
+          const menuItem = sidebarLink.closest('[role="menuitem"], .sidebar-menu-item, li') || sidebarLink.parentElement;
+          const target = (menuItem as HTMLElement) || sidebarLink;
+          
+          setElementNotFound(false);
+          setHighlightElement(target);
+          
+          // Store original styles
+          const computed = window.getComputedStyle(target);
+          originalStylesRef.current = {
+            position: target.style.position || computed.position,
+            zIndex: target.style.zIndex || computed.zIndex,
+            boxShadow: target.style.boxShadow || computed.boxShadow,
+            borderRadius: target.style.borderRadius || computed.borderRadius,
+            backgroundColor: target.style.backgroundColor || computed.backgroundColor,
+            border: target.style.border || computed.border,
+            borderLeft: target.style.borderLeft || computed.borderLeft,
+            transform: target.style.transform || computed.transform,
+            transition: target.style.transition || computed.transition,
+          };
+          
+          // Apply active/highlighted styling with constant, prominent highlight
+          target.style.zIndex = "9999";
+          target.style.position = computed.position === "static" ? "relative" : computed.position;
+          target.style.pointerEvents = "auto";
+          target.style.boxShadow = "0 0 0 4px rgba(59, 130, 246, 0.6), 0 0 0 8px rgba(59, 130, 246, 0.4), 0 0 20px rgba(59, 130, 246, 0.3)";
+          target.style.backgroundColor = "rgba(59, 130, 246, 0.2)";
+          target.style.borderLeft = "4px solid rgb(59, 130, 246)";
+          if (!computed.borderRadius || computed.borderRadius === "0px") {
+            target.style.borderRadius = "8px";
+          }
+          // No transition - keep it constant
+          target.setAttribute('data-tour-highlighted', 'true');
+          target.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+        }
+        return;
+      }
+      
       const target = document.querySelector(step.target) as HTMLElement;
       
       if (!target) {
@@ -191,7 +298,7 @@ const OnboardingTour = React.memo(function OnboardingTour({ isActive, onComplete
       setCardPosition(pos);
 
       // Scroll element into view
-      target.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+      target.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
 
       // Store original styles
       const computed = window.getComputedStyle(target);
@@ -200,14 +307,50 @@ const OnboardingTour = React.memo(function OnboardingTour({ isActive, onComplete
         zIndex: target.style.zIndex || computed.zIndex,
         boxShadow: target.style.boxShadow || computed.boxShadow,
         borderRadius: target.style.borderRadius || computed.borderRadius,
+        backgroundColor: target.style.backgroundColor || computed.backgroundColor,
+        border: target.style.border || computed.border,
+        borderLeft: target.style.borderLeft || computed.borderLeft,
+        transform: target.style.transform || computed.transform,
+        transition: target.style.transition || computed.transition,
       };
 
-      // Apply highlighting
+      // Apply highlighting - ensure element is clickable with constant, prominent highlight
       target.style.zIndex = "9999";
-      target.style.boxShadow = "0 0 0 4px rgb(59 130 246 / 0.5), 0 0 0 8px rgb(59 130 246 / 0.2)";
-      if (!computed.borderRadius || computed.borderRadius === "0px") {
-        target.style.borderRadius = "8px";
+      target.style.position = computed.position === "static" ? "relative" : computed.position;
+      target.style.pointerEvents = "auto";
+      
+      // Apply active styling for interactive elements (search bar, notifications, buttons)
+      const isSearchBar = target.closest('[data-testid="button-search"]') || target.closest('[data-testid="search-bar-container"]');
+      const isNotificationButton = target.closest('[data-testid="button-notifications"]');
+      const isButton = target.tagName === 'BUTTON' || target.closest('button');
+      const isSidebarItem = target.closest('[data-testid^="link-"]') || target.closest('a[href]');
+      
+      if (isSearchBar || isNotificationButton || isButton) {
+        // Make buttons/search/notifications look active with constant highlight
+        target.style.backgroundColor = "rgba(59, 130, 246, 0.2)";
+        target.style.border = "3px solid rgb(59, 130, 246)";
+        target.style.boxShadow = "0 0 0 4px rgba(59, 130, 246, 0.6), 0 0 0 8px rgba(59, 130, 246, 0.4), 0 0 20px rgba(59, 130, 246, 0.3)";
+        target.style.borderRadius = computed.borderRadius || "8px";
+        // No transform or transition - keep it constant
+      } else if (isSidebarItem) {
+        // Make sidebar items look active with constant highlight
+        const sidebarItem = target.closest('a') || target;
+        sidebarItem.style.backgroundColor = "rgba(59, 130, 246, 0.2)";
+        sidebarItem.style.borderLeft = "4px solid rgb(59, 130, 246)";
+        sidebarItem.style.boxShadow = "0 0 0 4px rgba(59, 130, 246, 0.6), 0 0 0 8px rgba(59, 130, 246, 0.4), 0 0 20px rgba(59, 130, 246, 0.3)";
+        sidebarItem.style.borderRadius = computed.borderRadius || "8px";
+        // No transition - keep it constant
+      } else {
+        // For other elements, apply constant highlight
+        target.style.boxShadow = "0 0 0 4px rgba(59, 130, 246, 0.6), 0 0 0 8px rgba(59, 130, 246, 0.4), 0 0 20px rgba(59, 130, 246, 0.3)";
+        target.style.backgroundColor = "rgba(59, 130, 246, 0.1)";
+        if (!computed.borderRadius || computed.borderRadius === "0px") {
+          target.style.borderRadius = "8px";
+        }
       }
+      
+      // Make sure the element is above overlay
+      target.setAttribute('data-tour-highlighted', 'true');
 
       // Add event listeners for interactions
       const handleHover = () => {
@@ -218,19 +361,34 @@ const OnboardingTour = React.memo(function OnboardingTour({ isActive, onComplete
 
       const handleClick = (e: Event) => {
         if (step.action === "click") {
-          // Allow the click to process, then mark as completed
+          // Don't prevent default - let the click happen naturally
+          // Mark as completed after the click processes
           setTimeout(() => {
             setIsStepCompleted(true);
           }, 300);
         }
       };
 
+      // Add event listeners for interactions
       target.addEventListener("mouseenter", handleHover);
-      target.addEventListener("click", handleClick, true); // Use capture phase
+      target.addEventListener("click", handleClick, true); // Use capture phase to catch early
+      
+      // Also listen on document level to catch clicks that might bubble up
+      const handleClickCapture = (e: Event) => {
+        if (step.action === "click" && (e.target === target || target.contains(e.target as Node))) {
+          // Allow event to propagate normally
+          setTimeout(() => {
+            setIsStepCompleted(true);
+          }, 300);
+        }
+      };
+      
+      document.addEventListener("click", handleClickCapture, true);
 
       cleanupRef.current = () => {
         target.removeEventListener("mouseenter", handleHover);
         target.removeEventListener("click", handleClick, true);
+        document.removeEventListener("click", handleClickCapture, true);
       };
     }, 100);
 
@@ -238,7 +396,7 @@ const OnboardingTour = React.memo(function OnboardingTour({ isActive, onComplete
       clearTimeout(timer);
       restoreElementStyles();
     };
-  }, [currentStep, step.target, step.action, step.position, isActive, restoreElementStyles, calculateCardPosition]);
+   }, [currentStep, step.target, step.action, step.position, step.navigateTo, step.sidebarHighlight, isActive, restoreElementStyles, calculateCardPosition, onNavigate]);
 
   // Navigation handlers
   const handleNext = useCallback(() => {
@@ -249,7 +407,21 @@ const OnboardingTour = React.memo(function OnboardingTour({ isActive, onComplete
       setIsStepCompleted(false);
       setElementNotFound(false);
     } else {
+      // Final cleanup when completing tour
       restoreElementStyles();
+      // Additional cleanup to ensure all elements are restored
+      setTimeout(() => {
+        const allHighlighted = document.querySelectorAll('[data-tour-highlighted]');
+        allHighlighted.forEach((el) => {
+          const element = el as HTMLElement;
+          element.style.position = "";
+          element.style.zIndex = "";
+          element.style.boxShadow = "";
+          element.style.borderRadius = "";
+          element.style.pointerEvents = "";
+          element.removeAttribute('data-tour-highlighted');
+        });
+      }, 100);
       onComplete();
     }
   }, [currentStep, availableSteps.length, onComplete, restoreElementStyles]);
@@ -266,13 +438,102 @@ const OnboardingTour = React.memo(function OnboardingTour({ isActive, onComplete
 
   const handleSkip = useCallback(() => {
     restoreElementStyles();
+    // Additional cleanup to ensure all elements are restored when skipping
+    setTimeout(() => {
+      const allHighlighted = document.querySelectorAll('[data-tour-highlighted]');
+      allHighlighted.forEach((el) => {
+        const element = el as HTMLElement;
+        element.style.position = "";
+        element.style.zIndex = "";
+        element.style.boxShadow = "";
+        element.style.borderRadius = "";
+        element.style.pointerEvents = "";
+        element.removeAttribute('data-tour-highlighted');
+      });
+    }, 100);
     onClose();
   }, [onClose, restoreElementStyles]);
 
   const handleActionClick = useCallback(() => {
+    // Special handling for search/command palette step - always open command palette
+    if (step.id === "search") {
+      if (onOpenCommandPalette) {
+        onOpenCommandPalette();
+      } else {
+        // Fallback: try to find and click the search button
+        const searchButton = document.querySelector("[data-testid='button-search']") as HTMLElement;
+        if (searchButton) {
+          searchButton.click();
+        }
+      }
+      setIsStepCompleted(true);
+      return;
+    }
+    
+    // Special handling for notifications step - always open notifications
+    if (step.id === "notifications") {
+      if (onOpenNotifications) {
+        onOpenNotifications();
+      } else {
+        // Fallback: try to find and click the notifications button
+        const notificationsButton = document.querySelector("[data-testid='button-notifications']") as HTMLElement;
+        if (notificationsButton) {
+          notificationsButton.click();
+        }
+      }
+      setIsStepCompleted(true);
+      return;
+    }
+    
+    // Special handling for widget step - open widget
+    if (step.id === "widget-demo") {
+      if (onOpenWidget) {
+        onOpenWidget();
+      } else {
+        // Fallback: try to find and click the widget launcher
+        const widgetButton = document.querySelector("[data-testid='button-widget-launcher']") as HTMLElement;
+        if (widgetButton) {
+          widgetButton.click();
+        }
+      }
+      setIsStepCompleted(true);
+      return;
+    }
+    
+      // Handle sidebar highlight steps (no actual navigation)
+      if (step.sidebarHighlight) {
+        // Just mark as completed - we're just highlighting, not navigating
+        setIsStepCompleted(true);
+        return;
+      }
+      
+      // Handle navigation steps (deprecated - use sidebarHighlight instead)
+      if (step.navigateTo && onNavigate) {
+        onNavigate(step.navigateTo);
+        setIsStepCompleted(true);
+        return;
+      }
+    
     if (step.action === "click" && highlightElement) {
-      // Trigger the actual click
-      highlightElement.click();
+      // Find the actual button element (might be nested)
+      const button = highlightElement.querySelector('button') || highlightElement;
+      
+      // Create and dispatch a proper click event
+      const clickEvent = new MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        detail: 1,
+      });
+      
+      // Try to trigger the click on the button
+      button.dispatchEvent(clickEvent);
+      
+      // Also try native click as fallback
+      if (typeof (button as HTMLElement).click === 'function') {
+        (button as HTMLElement).click();
+      }
+      
       // Mark as completed after a short delay to allow the action to process
       setTimeout(() => {
         setIsStepCompleted(true);
@@ -287,28 +548,43 @@ const OnboardingTour = React.memo(function OnboardingTour({ isActive, onComplete
       highlightElement.dispatchEvent(hoverEvent);
       setIsStepCompleted(true);
     }
-  }, [step.action, highlightElement]);
+   }, [step.action, step.id, step.navigateTo, step.sidebarHighlight, highlightElement, onOpenCommandPalette, onOpenNotifications, onNavigate, onOpenWidget]);
 
   if (!isActive) return null;
 
-  // For center position (welcome step), use centered positioning
-  const isCentered = step.position === "center" || elementNotFound;
-  const cardStyle = isCentered
-    ? { top: "50%", left: "50%", transform: "translate(-50%, -50%)" }
-    : {
-        ...cardPosition,
-        transform: undefined,
-      };
+  // Always center the onboarding card
+  const cardStyle = { 
+    top: "50%", 
+    left: "50%", 
+    transform: "translate(-50%, -50%)",
+    position: "fixed" as const
+  };
 
   return (
     <>
-      {/* Overlay */}
-      <div className="fixed inset-0 bg-black/50 z-[9998]" onClick={handleSkip} />
+      {/* Overlay - with cutout for highlighted element */}
+      <div 
+        className="fixed inset-0 bg-black/50 z-[9998]" 
+        onClick={(e) => {
+          // Only skip if clicking on the overlay itself, not on highlighted elements or tour card
+          const target = e.target as HTMLElement;
+          if (target === e.currentTarget && !target.closest('[data-tour-highlighted]') && !target.closest('.tour-card')) {
+            handleSkip();
+          }
+        }}
+        style={{ pointerEvents: 'auto' }}
+      />
       
-      {/* Tour Card */}
+      {/* Tour Card - Always centered */}
       <Card 
-        className="fixed w-96 z-[9999] shadow-2xl"
-        style={cardStyle as React.CSSProperties}
+        className="fixed w-96 max-w-[calc(100vw-2rem)] md:w-96 z-[10000] shadow-2xl pointer-events-auto tour-card"
+        style={{
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          position: "fixed"
+        }}
+        onClick={(e) => e.stopPropagation()}
       >
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
@@ -346,14 +622,18 @@ const OnboardingTour = React.memo(function OnboardingTour({ isActive, onComplete
             </p>
           )}
           
-          {step.action && step.action !== "none" && !elementNotFound && (
+          {step.action && step.action !== "none" && (
             <div className="p-3 bg-secondary rounded-lg">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleActionClick}
-                disabled={isStepCompleted}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleActionClick();
+                }}
                 className="w-full"
+                type="button"
               >
                 <Play className="h-4 w-4 mr-2" />
                 {step.actionText || "Complete action"}

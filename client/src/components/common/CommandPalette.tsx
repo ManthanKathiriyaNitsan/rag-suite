@@ -241,7 +241,7 @@ const CommandPalette = React.memo(function CommandPalette({ open, onOpenChange }
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder="Type a command or search..." data-testid="command-input" />
+      <CommandInput placeholder="Type a command or search..." className="px-5" data-testid="command-input" />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         

@@ -90,7 +90,7 @@ export function useOnboarding() {
 
       return () => clearTimeout(timer);
     }
-  }, [onboardingState.hasSeenTour, isTourActive, setIsTourActive]);
+  }, [onboardingState.hasSeenTour, isTourActive]);
 
   return {
     onboardingState,
