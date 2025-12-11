@@ -217,6 +217,9 @@ export interface Message {
   serverMessage?: string; // Server response message with actual TopK
   actualTopK?: number; // Actual TopK used by server
   actualReranker?: boolean; // Actual reranker status from server
+  // 💬 Chat/Feedback data
+  messageId?: string; // Message ID for feedback submission
+  sessionId?: string; // Session ID for feedback submission
 }
 
 // Integrations Page

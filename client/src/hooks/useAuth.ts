@@ -45,24 +45,16 @@ export const useAuth = () => {
     mutationFn: (credentials: LoginCredentials) => authAPI.login(credentials),
     
     onSuccess: (data: LoginResponse) => {
-      console.log('✅ Login mutation successful - Received data:', data);
+      console.log('✅ Login successful:', data);
       
-      // Validate token exists
-      if (!data.token) {
-        console.error('❌ Login response missing token!', data);
-        throw new Error('Login successful but no token received');
-      }
-      
-      // Store token in localStorage (store in both keys for compatibility)
+      // Store token in localStorage
       localStorage.setItem('auth_token', data.token);
-      localStorage.setItem('auth-token', data.token); // Also store with hyphen for compatibility
       localStorage.setItem('user_data', JSON.stringify(data.user));
       localStorage.setItem('token_expires', data.expiresAt);
       
-      console.log('🔐 Stored auth data in localStorage:', {
-        hasToken: !!data.token,
-        tokenLength: data.token.length,
-        user: data.user?.username,
+      console.log('🔐 Stored auth data:', {
+        token: data.token,
+        user: data.user,
         expiresAt: data.expiresAt
       });
       
@@ -72,19 +64,9 @@ export const useAuth = () => {
         ...data.user,
         createdAt: (data.user as any).createdAt || new Date().toISOString()
       };
-      
-      console.log('🔄 Updating auth state:', {
-        user: userWithCreatedAt.username,
-        hasToken: !!data.token,
-        willSetAuthenticated: true
-      });
-      
       setUser(userWithCreatedAt);
       setToken(data.token);
       setIsAuthenticated(true);
-      
-      // Verify state was updated
-      console.log('✅ Auth state updated - should trigger redirect');
       
       // Invalidate and refetch user queries
       queryClient.invalidateQueries({ queryKey: ['auth-user'] });

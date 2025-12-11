@@ -59,44 +59,9 @@ import LanguageSelector from "@/components/common/LanguageSelector";
 
 // 🔐 Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Check if user is authenticated
-    const checkAuth = () => {
-      const token = localStorage.getItem('auth_token');
-      const user = localStorage.getItem('user_data');
-      
-      console.log('🔐 ProtectedRoute - Checking auth:', {
-        hasToken: !!token,
-        hasUser: !!user,
-        token: token ? 'present' : 'missing',
-        user: user ? 'present' : 'missing'
-      });
-      
-      if (token && user) {
-        setIsAuthenticated(true);
-        console.log('✅ ProtectedRoute - User authenticated');
-      } else {
-        setIsAuthenticated(false);
-        console.log('❌ ProtectedRoute - User not authenticated');
-      }
-      setIsLoading(false);
-    };
-
-    checkAuth();
-
-    // Listen for storage changes (logout from other tabs)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'auth_token' || e.key === 'user_data' || e.key === 'token_expires') {
-        checkAuth();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []); // Empty dependency array - runs only on mount
+  // Use AuthContext instead of checking localStorage directly
+  // This ensures we're using the same auth state as the rest of the app
+  const { isAuthenticated, isLoading } = useAuthContext();
 
   if (isLoading) {
     return (

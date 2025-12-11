@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { MoreHorizontal, Eye, Edit, Play, Pause, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import {
@@ -25,6 +25,8 @@ import { CrawlSite, crawlAPI } from "@/services/api/api";
 interface CrawlSourceTableProps {
   sites: CrawlSite[];
   isLoading: boolean;
+  isRefetching?: boolean;
+  isFetching?: boolean;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onStartCrawl: (id: string) => void;
@@ -34,7 +36,9 @@ interface CrawlSourceTableProps {
 
 const CrawlSourceTable = React.memo(function CrawlSourceTable({ 
   sites, 
-  isLoading, 
+  isLoading,
+  isRefetching = false,
+  isFetching = false, 
   onEdit, 
   onDelete, 
   onStartCrawl, 
@@ -43,6 +47,17 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
 }: CrawlSourceTableProps) {
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const { toast } = useToast();
+  
+  // Track if we've ever had data - this helps detect refetch vs initial load
+  // CRITICAL: Update this synchronously during render, not in useEffect
+  // useEffect runs AFTER render, so the refetch check would miss it
+  const hasHadDataRef = useRef(false);
+  
+  // Update ref synchronously during render if we have data
+  // This ensures the refetch check can see it immediately
+  if (sites && Array.isArray(sites) && sites.length > 0) {
+    hasHadDataRef.current = true;
+  }
 
   const getStatusBadge = (status: string): { variant: "default" | "secondary" | "destructive" | "outline"; className: string } => {
     const s = (status || "").toLowerCase();
@@ -91,15 +106,94 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
   };
 
   // Ensure sites is an array and filter out any invalid entries
+  // CRITICAL: Always return an array, never undefined/null
   const safeSites = useMemo(() => {
-    if (!Array.isArray(sites)) {
-      console.warn('CrawlSourceTable: sites is not an array');
+    console.log('🔍 CrawlSourceTable - Processing sites:', {
+      sites,
+      sitesType: typeof sites,
+      isArray: Array.isArray(sites),
+      length: Array.isArray(sites) ? sites.length : 'N/A',
+      isFetching,
+      isLoading,
+      hasHadData: hasHadDataRef.current
+    });
+    
+    if (!sites) {
+      console.warn('⚠️ CrawlSourceTable: sites is falsy, returning empty array');
       return [];
     }
-    return sites.filter((site) => site != null && site.id);
-  }, [sites]);
+    if (!Array.isArray(sites)) {
+      console.warn('⚠️ CrawlSourceTable: sites is not an array, got:', typeof sites);
+      return [];
+    }
+    // Filter out null/undefined and ensure each site has an id
+    const filtered = sites.filter((site) => site != null && site.id);
+    console.log('✅ CrawlSourceTable - Filtered sites:', {
+      originalLength: sites.length,
+      filteredLength: filtered.length
+    });
+    return filtered;
+  }, [sites, isFetching, isLoading]);
 
-  if (isLoading) {
+  // CRITICAL: Prevent rendering VirtualizedTable during ANY refetch operation
+  // Check isFetching FIRST - if we're fetching and we've had data, it's a refetch
+  // This prevents react-window from receiving undefined data during refetch transitions
+  // The key is checking isFetching BEFORE processing the data
+  if (isFetching && hasHadDataRef.current) {
+    // We're refetching (we've had data before) - don't render table
+    // This prevents the brief moment when data becomes undefined during refetch
+    console.log('🔄 Refetch detected - showing loading state to prevent undefined error', {
+      isRefetching,
+      isFetching,
+      isLoading,
+      hasHadData: hasHadDataRef.current,
+      sitesLength: sites?.length || 0,
+      safeSitesLength: safeSites?.length || 0
+    });
+    return (
+      <Card className="w-full overflow-hidden">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            Crawl Sources
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground text-sm">
+            Refreshing data...
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // ADDITIONAL SAFETY: If sites is undefined/null but we've had data, we're in a transition
+  // Don't render table during this transition
+  if ((!sites || (Array.isArray(sites) && sites.length === 0)) && hasHadDataRef.current && !isLoading) {
+    console.log('⚠️ Sites is empty but we had data before - transition state, showing loading', {
+      sites,
+      hasHadData: hasHadDataRef.current,
+      isLoading
+    });
+    return (
+      <Card className="w-full overflow-hidden">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            Crawl Sources
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground text-sm">
+            Refreshing data...
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show loading state if initial load and no data
+  if (isLoading && (!safeSites || safeSites.length === 0)) {
     return (
       <Card className="w-full overflow-hidden">
         <CardContent>
@@ -114,7 +208,9 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
     );
   }
 
-  if (!safeSites || safeSites.length === 0) {
+  // Additional safety check: Don't render table if sites is invalid
+  // This prevents the error during refetch transitions
+  if (!safeSites || !Array.isArray(safeSites) || safeSites.length === 0) {
     return (
       <Card className="w-full overflow-hidden">
         <CardContent>
@@ -138,8 +234,8 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
           🚀 Virtualized table for optimal performance with large datasets
         </div>
         <VirtualizedTable
-        data={safeSites}
-        columns={[
+            data={safeSites}
+            columns={[
           {
             key: 'url',
             label: 'URL',

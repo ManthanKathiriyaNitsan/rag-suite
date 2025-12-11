@@ -28,7 +28,16 @@ export const useCrawlSites = () => {
     // Set initial data to empty array to prevent undefined
     initialData: [],
     // Keep previous data while refetching to prevent undefined during transitions
-    placeholderData: (previousData) => previousData || [],
+    // CRITICAL: Use a function that ALWAYS returns a valid array
+    // This ensures data is NEVER undefined during refetch, even for a brief moment
+    placeholderData: (previousData) => {
+      // Always return previous data if it exists and is a valid array, otherwise return empty array
+      // This prevents the undefined error because placeholderData ensures data is never undefined
+      if (previousData && Array.isArray(previousData)) {
+        return previousData;
+      }
+      return [];
+    },
     // Don't throw errors, just return empty array
     throwOnError: false,
   });
@@ -39,9 +48,14 @@ export const useCrawlSites = () => {
     
     onSuccess: (data) => {
       console.log('✅ Site added successfully:', data);
-      // Refresh sites list - this will trigger a refetch
-      // placeholderData ensures we keep previous data during refetch
-      queryClient.invalidateQueries({ queryKey: ['crawl-sites'] });
+      console.log('🔄 Invalidating queries to trigger refetch...');
+      // Just invalidate - React Query will refetch with placeholderData keeping old data visible
+      // This prevents the undefined error because placeholderData ensures data is never undefined
+      queryClient.invalidateQueries({ 
+        queryKey: ['crawl-sites'],
+        exact: true
+      });
+      console.log('✅ Queries invalidated, refetch should start soon');
     },
     
     onError: (error: any) => {
@@ -111,10 +125,44 @@ export const useCrawlSites = () => {
     },
   });
 
+  // Get the current data, ensuring it's always an array
+  // placeholderData in query config will automatically be used if data is undefined
+  // CRITICAL: This ensures we NEVER return undefined, even during refetch transitions
+  const currentSites = useMemo(() => {
+    // sitesQuery.data will use placeholderData automatically if configured
+    // But we add an extra safety check here to be absolutely sure
+    const data = sitesQuery.data;
+    console.log('🔍 useCrawl - Processing query data:', {
+      data,
+      dataType: typeof data,
+      isArray: Array.isArray(data),
+      length: Array.isArray(data) ? data.length : 'N/A',
+      isFetching: sitesQuery.isFetching,
+      isLoading: sitesQuery.isLoading,
+      status: sitesQuery.status
+    });
+    
+    if (data === undefined || data === null) {
+      // If data is undefined/null, placeholderData should have kicked in
+      // But as a safety net, return empty array
+      console.warn('⚠️ sitesQuery.data is undefined/null, using empty array as fallback');
+      return [];
+    }
+    if (Array.isArray(data)) {
+      console.log('✅ useCrawl - Returning valid array with', data.length, 'items');
+      return data;
+    }
+    // Fallback to empty array if data is not an array
+    console.warn('⚠️ sitesQuery.data is not an array, got:', typeof data);
+    return [];
+  }, [sitesQuery.data, sitesQuery.isFetching, sitesQuery.isLoading, sitesQuery.status]);
+
   return {
     // Ensure sites is always an array, even during refetch
-    sites: Array.isArray(sitesQuery.data) ? sitesQuery.data : [],
+    sites: currentSites,
     isLoading: sitesQuery.isLoading || sitesQuery.isFetching,
+    isRefetching: sitesQuery.isFetching && !sitesQuery.isLoading,
+    isFetching: sitesQuery.isFetching, // Expose isFetching directly for more precise control
     error: sitesQuery.error,
     refetch: sitesQuery.refetch,
     

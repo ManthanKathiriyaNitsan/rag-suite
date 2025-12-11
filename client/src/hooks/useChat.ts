@@ -76,8 +76,8 @@ export const useChatSessions = () => {
 // 👍 Feedback hook
 export const useChatFeedback = () => {
   const feedbackMutation = useMutation({
-    mutationFn: ({ messageId, feedback }: { messageId: string; feedback: 'positive' | 'negative' }) =>
-      chatAPI.submitFeedback(messageId, feedback),
+    mutationFn: ({ sessionId, messageId, feedback }: { sessionId: string; messageId: string; feedback: 'positive' | 'negative' }) =>
+      chatAPI.submitFeedback(sessionId, messageId, feedback),
     
     onSuccess: (data) => {
       console.log('✅ Feedback submitted successfully:', data);

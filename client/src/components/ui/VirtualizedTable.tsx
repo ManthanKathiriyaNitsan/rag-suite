@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import { List } from 'react-window';
 import {
   Table,
@@ -34,49 +34,29 @@ interface RowProps<T> {
 }
 
 function VirtualizedRow<T>({ index, style, data }: RowProps<T>) {
-  // Validate data structure
-  if (!data || typeof data !== 'object') {
-    console.error('VirtualizedRow: Invalid data prop', data);
-    return (
-      <div style={style}>
-        <TableRow>
-          <TableCell colSpan={1} className="p-2 text-center text-muted-foreground">
-            Invalid data structure
-          </TableCell>
-        </TableRow>
-      </div>
-    );
+  // CRITICAL: Ensure data and its properties are valid before accessing
+  // This prevents crashes in react-window's internal useMemoizedObject
+  if (!data || 
+      typeof data !== 'object' ||
+      !data.items || 
+      !Array.isArray(data.items) || 
+      !data.columns || 
+      !Array.isArray(data.columns)) {
+    return null;
   }
 
   const { items, columns, onRowClick } = data;
   
-  // Validate items and columns
-  if (!Array.isArray(items) || !Array.isArray(columns)) {
-    console.error('VirtualizedRow: Invalid items or columns', { items, columns });
-    return (
-      <div style={style}>
-        <TableRow>
-          <TableCell colSpan={1} className="p-2 text-center text-muted-foreground">
-            Invalid data format
-          </TableCell>
-        </TableRow>
-      </div>
-    );
+  // Ensure index is valid
+  if (index < 0 || index >= items.length) {
+    return null;
   }
-
+  
   const item = items[index];
 
   // Handle undefined/null items gracefully
-  if (!item) {
-    return (
-      <div style={style}>
-        <TableRow>
-          <TableCell colSpan={columns.length || 1} className="p-2 text-center text-muted-foreground">
-            Invalid data
-          </TableCell>
-        </TableRow>
-      </div>
-    );
+  if (!item || item == null) {
+    return null;
   }
 
   const handleClick = useCallback(() => {
@@ -85,9 +65,6 @@ function VirtualizedRow<T>({ index, style, data }: RowProps<T>) {
     }
   }, [item, index, onRowClick]);
 
-  // Ensure columns is an array before mapping
-  const validColumns = Array.isArray(columns) ? columns.filter(col => col && col.key) : [];
-
   return (
     <div style={style}>
       <TableRow 
@@ -95,20 +72,15 @@ function VirtualizedRow<T>({ index, style, data }: RowProps<T>) {
         onClick={handleClick}
         data-testid={`row-virtual-${index}`}
       >
-        {validColumns.map((column) => {
-          if (!column || !column.key) {
-            return null;
-          }
-          return (
-            <TableCell 
-              key={column.key}
-              style={{ width: column.width }}
-              className="p-2"
-            >
-              {column.render ? column.render(item, index) : (item as any)?.[column.key] ?? ''}
-            </TableCell>
-          );
-        })}
+        {columns.map((column) => (
+          <TableCell 
+            key={column.key}
+            style={{ width: column.width }}
+            className="p-2"
+          >
+            {column.render ? column.render(item, index) : (item as any)?.[column.key] ?? ''}
+          </TableCell>
+        ))}
       </TableRow>
     </div>
   );
@@ -137,40 +109,42 @@ export function VirtualizedTable<T>({
       console.warn('VirtualizedTable: columns is not an array, returning empty array');
       return [];
     }
-    return columns.filter((col) => col != null && col.key);
+    return columns.filter((col) => col != null);
   }, [columns]);
 
+  // Ensure itemData is always a valid object with all required properties
+  // This must be a stable reference to prevent react-window errors
+  // CRITICAL: react-window's useMemoizedObject will crash if any property is undefined
   const itemData = useMemo(() => {
-    // Ensure itemData is always a valid object
-    const data = {
-      items: safeData,
-      columns: safeColumns,
-      onRowClick: onRowClick || undefined,
+    // Ensure safeData and safeColumns are always arrays (never undefined/null)
+    const validItems: T[] = Array.isArray(safeData) 
+      ? safeData.filter((item) => item != null) 
+      : [];
+    
+    const validColumns: VirtualizedTableProps<T>['columns'] = Array.isArray(safeColumns)
+      ? safeColumns.filter((col) => col != null)
+      : [];
+    
+    // Create a completely valid object with NO undefined values
+    // All properties must be explicitly defined to prevent useMemoizedObject crashes
+    const dataObj: {
+      items: T[];
+      columns: VirtualizedTableProps<T>['columns'];
+      onRowClick?: (item: T, index: number) => void;
+    } = {
+      items: validItems, // Always an array, never undefined
+      columns: validColumns, // Always an array, never undefined
     };
     
-    // Validate the structure before returning
-    if (!Array.isArray(data.items) || !Array.isArray(data.columns)) {
-      console.error('VirtualizedTable: Invalid itemData structure', data);
-      return {
-        items: [],
-        columns: [],
-        onRowClick: undefined,
-      };
+    // Only add onRowClick if it's a valid function (optional property)
+    if (onRowClick && typeof onRowClick === 'function') {
+      dataObj.onRowClick = onRowClick;
     }
     
-    return data;
+    // Return the object directly without freezing
+    // This avoids potential issues with some libraries that might try to mutate or add properties
+    return dataObj;
   }, [safeData, safeColumns, onRowClick]);
-
-  // Don't render if no columns
-  if (safeColumns.length === 0) {
-    return (
-      <div className={`w-full ${className}`}>
-        <div className="text-center py-8 text-muted-foreground">
-          No columns defined
-        </div>
-      </div>
-    );
-  }
 
   if (safeData.length === 0) {
     return (
@@ -178,7 +152,7 @@ export function VirtualizedTable<T>({
         <Table>
           <TableHeader>
             <TableRow>
-              {safeColumns.map((column) => (
+              {columns.map((column) => (
                 <TableHead 
                   key={column.key}
                   style={{ width: column.width }}
@@ -196,8 +170,65 @@ export function VirtualizedTable<T>({
     );
   }
 
+  // Create a stable key that changes when data actually changes
+  // This forces react-window to remount when data changes, preventing undefined errors
+  const listKey = useMemo(() => {
+    if (safeData.length === 0) return 'empty';
+    // Create a key from the first few item IDs to detect actual data changes
+    const ids = safeData.slice(0, 5).map((item: any) => item?.id || '').join('-');
+    return `list-${safeData.length}-${ids}`;
+  }, [safeData]);
+
+  // Only render List if we have valid data and itemData is properly structured
+  // CRITICAL: Ensure itemData is a valid object before passing to react-window
+  // Double-check all conditions to prevent useMemoizedObject crashes
+  // Add extra validation to ensure itemData is completely valid
+  const shouldRenderList = safeData.length > 0 && 
+                          itemData != null &&
+                          typeof itemData === 'object' &&
+                          !Array.isArray(itemData) && // Ensure it's an object, not an array
+                          Object.keys(itemData).length > 0 && // Ensure object has properties
+                          'items' in itemData &&
+                          'columns' in itemData &&
+                          Array.isArray(itemData.items) &&
+                          Array.isArray(itemData.columns) &&
+                          itemData.items.length > 0 && 
+                          itemData.columns.length > 0 &&
+                          itemData.items.every((item: any) => item != null && typeof item === 'object') && // Ensure no null items and all are objects
+                          itemData.columns.every((col: any) => col != null && typeof col === 'object'); // Ensure no null columns and all are objects
+
+  // Use a ref to get the actual width of the container
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(800); // Default width
+
+  // Measure container width on mount and resize
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        const width = containerRef.current.offsetWidth || 800;
+        setContainerWidth(width);
+      }
+    };
+    updateWidth();
+    const resizeObserver = new ResizeObserver(updateWidth);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    window.addEventListener('resize', updateWidth);
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateWidth);
+    };
+  }, []);
+
+  // Ensure all props are valid numbers (not undefined/null)
+  const validHeight = typeof height === 'number' && height > 0 ? height : 400;
+  const validItemHeight = typeof itemHeight === 'number' && itemHeight > 0 ? itemHeight : 50;
+  const validWidth = typeof containerWidth === 'number' && containerWidth > 0 ? containerWidth : 800;
+  const validItemCount = typeof safeData.length === 'number' ? safeData.length : 0;
+
   return (
-    <div className={`w-full ${className}`}>
+    <div className={`w-full ${className}`} ref={containerRef}>
       <Table>
         <TableHeader>
           <TableRow>
@@ -212,16 +243,32 @@ export function VirtualizedTable<T>({
           </TableRow>
         </TableHeader>
       </Table>
-      <div style={{ height }}>
-        {React.createElement(List as any, {
-          height,
-          width: "100%",
-          itemCount: safeData.length,
-          itemSize: itemHeight,
-          itemData,
-          overscanCount: 5,
-          children: VirtualizedRow as any,
-        })}
+      <div style={{ height: validHeight }}>
+        {shouldRenderList && itemData != null && validItemCount > 0 ? (
+          React.createElement(List, {
+            key: listKey,
+            height: validHeight,
+            width: validWidth,
+            itemCount: validItemCount,
+            itemSize: validItemHeight,
+            itemData: itemData,
+            itemProps: itemData, // For newer/different versions of react-window
+            overscanCount: 5,
+            children: (({ index, style, data, itemProps }: any) => {
+              // Handle both data (standard) and itemProps (custom/v2)
+              const actualData = data || itemProps;
+              
+              if (!actualData || !actualData.items || !actualData.columns || index < 0 || index >= actualData.items.length) {
+                return null;
+              }
+              return React.createElement(VirtualizedRow, { index, style, data: actualData });
+            }) as any,
+          } as any)
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            No data available
+          </div>
+        )}
       </div>
     </div>
   );

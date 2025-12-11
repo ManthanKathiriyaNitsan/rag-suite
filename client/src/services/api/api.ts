@@ -100,21 +100,28 @@ export const searchAPI = {
       });
       
       console.log('✅ API Response:', response.data);
-      console.log('🔍 API Sources:', response.data.sources);
       console.log('🔍 API Response structure:', response.data);
+      
+      // Backend returns: { success, data: { answer, sources, ... }, message, timestamp, request_id }
+      // Extract the nested data object
+      const responseData = response.data.data || response.data;
+      console.log('🔍 Extracted data:', responseData);
+      console.log('🔍 API Sources:', responseData.sources);
       
       // Map server response to expected format - use only real API data
       const mappedResponse = {
         success: response.data.success || true,
-        answer: response.data.answer || '',
-        sources: response.data.sources ? response.data.sources.map((source: any) => ({
+        answer: responseData.answer || '',
+        sources: responseData.sources ? responseData.sources.map((source: any) => ({
           title: source.title || 'Untitled Source',
           url: source.url || '#',
           snippet: source.snippet || 'No snippet available'
         })) : [],
         message: response.data.message || '',
         timestamp: response.data.timestamp || new Date().toISOString(),
-        request_id: response.data.request_id || ''
+        request_id: response.data.request_id || '',
+        message_id: responseData.message_id || '',
+        session_id: responseData.session_id || ''
       };
       
       console.log('🔄 Mapped Response:', mappedResponse);
@@ -140,23 +147,27 @@ export const chatAPI = {
     console.log('⚙️ Chat RAG Settings:', ragSettings);
     
     try {
+      // Backend ChatMessageRequest only accepts session_id and message
+      // RAG settings are ignored (backend uses hardcoded CHAT_TOP_K = 3)
       const response = await apiClient.post('/chat/message', {
         message: message,
-        session_id: sessionId,  // Fixed: server expects session_id
-        topK: ragSettings?.topK || 5,
-        similarityThreshold: ragSettings?.similarityThreshold || 0.2,
-        useReranker: ragSettings?.useReranker || false,
-        maxTokens: ragSettings?.maxTokens || 0,
+        session_id: sessionId,  // Backend expects session_id
       });
       
       console.log('✅ Chat Response:', response.data);
+      console.log('🔍 Chat Response structure:', response.data);
+      
+      // Backend returns: { success, data: { answer, sources, session_id, message_id }, message, ... }
+      // Extract the nested data object
+      const responseData = response.data.data || response.data;
+      console.log('🔍 Extracted chat data:', responseData);
       
       // Map server response to ChatResponse format - use only real API data
       const chatResponse: ChatResponse = {
-        messageId: response.data.messageId || response.data.request_id || `msg-${Date.now()}`,
-        response: response.data.answer || response.data.response || '',
-        sessionId: sessionId || response.data.sessionId || `session-${Date.now()}`,
-        sources: response.data.sources ? response.data.sources.map((source: any) => ({
+        messageId: responseData.message_id || response.data.request_id || `msg-${Date.now()}`,
+        response: responseData.answer || responseData.response || '',
+        sessionId: responseData.session_id || sessionId || `session-${Date.now()}`,
+        sources: responseData.sources ? responseData.sources.map((source: any) => ({
           title: source.title || 'Untitled Source',
           url: source.url || '#',
           snippet: source.snippet || 'No snippet available'
@@ -178,7 +189,9 @@ export const chatAPI = {
     try {
       const response = await apiClient.get('/chat/sessions');
       console.log('✅ Sessions Response:', response.data);
-      return response.data;
+      // Backend returns: { success, data: { sessions, count }, message, ... }
+      const responseData = response.data.data || response.data;
+      return responseData;
     } catch (error) {
       console.error('❌ Sessions Error:', error);
       throw error;
@@ -200,13 +213,15 @@ export const chatAPI = {
   },
 
   // Submit feedback for a response
-  submitFeedback: async (messageId: string, feedback: 'positive' | 'negative') => {
-    console.log('👍 Chat API - Submitting feedback:', feedback);
+  submitFeedback: async (sessionId: string, messageId: string, feedback: 'positive' | 'negative') => {
+    console.log('👍 Chat API - Submitting feedback:', { sessionId, messageId, feedback });
     
     try {
+      // Backend expects: { session_id: str, message_id: str, feedback: bool }
       const response = await apiClient.post('/chat/feedback', {
-        messageId: messageId,
-        feedback: feedback,
+        session_id: sessionId,  // Backend expects snake_case
+        message_id: messageId,   // Backend expects snake_case
+        feedback: feedback === 'positive',  // Backend expects boolean
       });
       console.log('✅ Feedback Response:', response.data);
       return response.data;
@@ -516,28 +531,19 @@ export const authAPI = {
         password: credentials.password,
       });
       
-      console.log('✅ Login successful - Full response:', JSON.stringify(response.data, null, 2));
+      console.log('✅ Login successful:', response.data);
       
       // Transform response to match expected format
       // Handle different token field names: access_token, token, or auth_token
       const token = response.data.access_token || 
                    response.data.token || 
                    response.data.auth_token ||
-                   response.data.accessToken ||
-                   response.data.access_token_value;
-      
-      console.log('🔑 Extracted token:', token ? 'Token found' : 'No token found', {
-        hasAccessToken: !!response.data.access_token,
-        hasToken: !!response.data.token,
-        hasAuthToken: !!response.data.auth_token,
-        hasAccessTokenValue: !!response.data.access_token_value,
-        responseKeys: Object.keys(response.data || {})
-      });
+                   response.data.accessToken;
       
       // Handle different user object structures
       const userData = response.data.user || response.data;
       
-      const transformedResponse = {
+      return {
         token: token || '',
         user: {
           id: userData?.id || userData?.user_id || '1',
@@ -548,20 +554,10 @@ export const authAPI = {
         },
         expiresAt: response.data.expiresAt || 
                    response.data.expires_at || 
-                   (response.data.expires_in ? 
+                   response.data.expires_in ? 
                      new Date(Date.now() + (response.data.expires_in * 1000)).toISOString() :
-                     new Date(Date.now() + 30 * 60 * 1000).toISOString()) // Default: 30 minutes from now
+                     new Date(Date.now() + 30 * 60 * 1000).toISOString() // Default: 30 minutes from now
       };
-      
-      console.log('🔄 Transformed login response:', transformedResponse);
-      
-      // Validate that we have a token
-      if (!transformedResponse.token) {
-        console.error('❌ No token found in response! Response data:', response.data);
-        throw new Error('Login successful but no token received from server');
-      }
-      
-      return transformedResponse;
     } catch (error) {
       console.error('❌ Login failed:', error);
       throw error;
@@ -842,6 +838,8 @@ export interface SearchResponse {
   message?: string;
   timestamp?: string;
   request_id?: string;
+  message_id?: string; // 💬 Message ID from backend response
+  session_id?: string; // 💬 Session ID from backend response
 }
 
 // 💬 Chat type definitions

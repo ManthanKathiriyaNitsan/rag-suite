@@ -43,6 +43,8 @@ export default function Crawl() {
   const {
     sites,
     isLoading: sitesLoading,
+    isRefetching: sitesRefetching,
+    isFetching: sitesFetching,
     error: sitesError,
     addSite,
     addSiteAsync,
@@ -79,9 +81,14 @@ export default function Crawl() {
   } = useCrawlStats();
 
   // Filter and search logic
+  // CRITICAL: Always return an array, never undefined/null
   const filteredSites = useMemo(() => {
     // Ensure sites is an array before filtering
-    if (!sites || !Array.isArray(sites)) {
+    if (!sites) {
+      return [];
+    }
+    if (!Array.isArray(sites)) {
+      console.warn('Crawl: sites is not an array, got:', typeof sites);
       return [];
     }
     
@@ -304,12 +311,14 @@ export default function Crawl() {
             <CrawlSourceTable 
               sites={filteredSites}
               isLoading={sitesLoading}
+              isRefetching={sitesRefetching}
+              isFetching={sitesFetching}
               onEdit={setEditingSite}
-            onDelete={handleDeleteSite}
-            onStartCrawl={handleStartCrawl}
-            isStarting={isStarting}
-            isDeleting={isDeleting}
-          />
+              onDelete={handleDeleteSite}
+              onStartCrawl={handleStartCrawl}
+              isStarting={isStarting}
+              isDeleting={isDeleting}
+            />
           </Suspense>
         </TabsContent>
 

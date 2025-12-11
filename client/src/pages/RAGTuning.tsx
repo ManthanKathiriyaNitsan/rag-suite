@@ -213,6 +213,8 @@ export default function RAGTuning() {
         serverMessage: serverMessage, // 📊 Server response message
         actualTopK: actualTopK, // 📊 Actual TopK used by server
         actualReranker: actualReranker, // 📊 Actual reranker status
+        messageId: searchResponse.message_id, // 💬 Message ID for feedback
+        sessionId: searchResponse.session_id, // 💬 Session ID for feedback
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -381,6 +383,8 @@ export default function RAGTuning() {
                     citations={message.citations}
                     timestamp={message.timestamp}
                     showFeedback={message.type === "assistant"}
+                    messageId={message.messageId}
+                    sessionId={message.sessionId || currentSessionId}
                     ragSettings={message.ragSettings}
                     queryString={message.queryString}
                     serverMessage={message.serverMessage}

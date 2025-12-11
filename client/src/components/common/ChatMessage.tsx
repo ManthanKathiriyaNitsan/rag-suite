@@ -37,6 +37,7 @@ interface ChatMessageProps {
   timestamp?: Date;
   showFeedback?: boolean;
   messageId?: string; // 💬 Add message ID for feedback
+  sessionId?: string; // 💬 Add session ID for feedback
   // 🎛️ RAG Settings display
   ragSettings?: {
     topK?: number;
@@ -58,6 +59,7 @@ const ChatMessage = React.memo(function ChatMessage({
   timestamp,
   showFeedback = false,
   messageId,
+  sessionId,
   ragSettings,
   queryString,
   serverMessage,
@@ -162,15 +164,18 @@ const ChatMessage = React.memo(function ChatMessage({
     const newFeedback = feedback === type ? null : type;
     setFeedback(newFeedback);
     
-    // Submit feedback to API if we have a messageId
-    if (messageId && newFeedback) {
+    // Submit feedback to API if we have both messageId and sessionId
+    if (messageId && sessionId && newFeedback) {
       submitFeedback({
+        sessionId: sessionId,
         messageId: messageId,
         feedback: newFeedback === "up" ? "positive" : "negative"
       });
-      console.log(`👍 Feedback submitted: ${newFeedback} for message ${messageId}`);
+      console.log(`👍 Feedback submitted: ${newFeedback} for message ${messageId} in session ${sessionId}`);
+    } else if (newFeedback) {
+      console.warn('⚠️ Cannot submit feedback: missing messageId or sessionId', { messageId, sessionId });
     }
-  }, [feedback, messageId, submitFeedback]);
+  }, [feedback, messageId, sessionId, submitFeedback]);
 
   return (
     <div

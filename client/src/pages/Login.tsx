@@ -10,22 +10,13 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { BackgroundWrapper } from "@/components/common/BackgroundWrapper";
 import { GlassCard } from "@/components/ui/GlassCard";
 
-function Login() {
+const Login = React.memo(function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, setLocation] = useLocation();
   const { login, isLoading, isAuthenticated, error: authError } = useAuthContext();
-  
-  // Debug: Log when isAuthenticated changes
-  useEffect(() => {
-    console.log('🔍 Login component - Auth state:', {
-      isAuthenticated,
-      isLoading,
-      shouldRedirect: isAuthenticated && !isLoading
-    });
-  }, [isAuthenticated, isLoading]);
 
   // Sync error from auth context
   useEffect(() => {
@@ -34,36 +25,41 @@ function Login() {
     }
   }, [authError]);
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (wait for loading to complete)
   useEffect(() => {
-    console.log('🔍 Login useEffect - Checking auth state:', {
-      isAuthenticated,
-      isLoading,
-      willRedirect: isAuthenticated && !isLoading
-    });
-    
     if (isAuthenticated && !isLoading) {
-      console.log('✅ User authenticated and not loading, redirecting to dashboard');
-      // Use setTimeout to ensure state is fully updated before redirect
-      const redirectTimer = setTimeout(() => {
-        console.log('🔄 Executing redirect to dashboard via setLocation');
-        try {
-          setLocation("/");
-          // Fallback: if setLocation doesn't work, use window.location
-          setTimeout(() => {
-            if (window.location.pathname === '/login') {
-              console.log('⚠️ Still on login page, using window.location as fallback');
-              window.location.href = '/';
-            }
-          }, 200);
-        } catch (error) {
-          console.error('❌ Redirect error:', error);
-          // Fallback to window.location
-          window.location.href = '/';
-        }
-      }, 150);
+      console.log('✅ User authenticated and loading complete, redirecting to dashboard', {
+        isAuthenticated,
+        isLoading,
+        timestamp: new Date().toISOString()
+      });
       
-      return () => clearTimeout(redirectTimer);
+      // Verify localStorage is updated before redirecting
+      const token = localStorage.getItem('auth_token');
+      const userData = localStorage.getItem('user_data');
+      
+      console.log('🔍 Pre-redirect check:', {
+        hasToken: !!token,
+        hasUserData: !!userData,
+        tokenLength: token?.length || 0
+      });
+      
+      if (token && userData) {
+        // Use a small delay to ensure all state updates are processed
+        const redirectTimer = setTimeout(() => {
+          console.log('🚀 Executing redirect to /');
+          setLocation("/");
+        }, 200);
+        
+        return () => clearTimeout(redirectTimer);
+      } else {
+        console.warn('⚠️ Auth state is true but localStorage is not updated yet');
+      }
+    } else {
+      console.log('⏳ Waiting for authentication or loading to complete', {
+        isAuthenticated,
+        isLoading
+      });
     }
   }, [isAuthenticated, isLoading, setLocation]);
 
@@ -74,28 +70,12 @@ function Login() {
     if (username && password) {
       // Use the unified auth system from AuthContext
       // The login function will handle storing tokens and updating state
+      // Navigation will happen automatically via the useEffect above
       login({ username, password });
-      
-      // Backup redirect: Check after a delay if redirect didn't happen via useEffect
-      setTimeout(() => {
-        const token = localStorage.getItem('auth_token');
-        const user = localStorage.getItem('user_data');
-        if (token && user && window.location.pathname === '/login') {
-          console.log('🔄 Backup redirect triggered - still on login page');
-          setLocation("/");
-          // Final fallback
-          setTimeout(() => {
-            if (window.location.pathname === '/login') {
-              console.log('🔄 Final fallback redirect using window.location');
-              window.location.href = '/';
-            }
-          }, 100);
-        }
-      }, 500);
     } else {
       setError('Please enter both username and password');
     }
-  }, [username, password, login, setLocation]);
+  }, [username, password, login]);
 
   return (
     <div className="relative min-h-screen flex">
@@ -296,6 +276,6 @@ function Login() {
       </div>
     </div>
   );
-}
+});
 
 export default Login;
