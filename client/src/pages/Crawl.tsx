@@ -135,18 +135,6 @@ export default function Crawl() {
       // React Query will refetch, but we use placeholderData to prevent undefined
     } catch (error: any) {
       console.error('❌ Add site error:', error);
-      
-      // Check if it's an authentication error
-      if (error?.message?.includes('Authentication failed') || error?.response?.status === 401) {
-        toast({
-          title: "Authentication Error",
-          description: "Your session has expired. Please log in again.",
-          variant: "destructive",
-        });
-        // The API interceptor will handle the redirect
-        return;
-      }
-      
       toast({
         title: "Error",
         description: error?.message || "Failed to add site. Please try again.",

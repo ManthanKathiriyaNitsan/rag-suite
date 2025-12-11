@@ -32,10 +32,10 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    port: 5001,
+    port: 5000,
     host: '0.0.0.0', // Bind to all network interfaces
     hmr: {
-      port: 5001,
+      port: 5000,
       host: '192.168.0.128' // Use your IP for HMR
     },
     fs: {

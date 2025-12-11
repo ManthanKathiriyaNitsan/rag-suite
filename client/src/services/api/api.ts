@@ -16,19 +16,9 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     // Add authentication token if available (check both token storage keys for compatibility)
-    // Priority: auth_token (current) > auth-token (legacy)
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('auth-token');
-    
+    const token = localStorage.getItem('auth-token') || localStorage.getItem('auth_token');
     if (token) {
-      // Ensure token is not empty string or 'null' or 'undefined'
-      const cleanToken = token.trim();
-      if (cleanToken && cleanToken !== 'null' && cleanToken !== 'undefined') {
-        config.headers.Authorization = `Bearer ${cleanToken}`;
-      } else {
-        console.warn('⚠️ Invalid token format in localStorage, skipping auth header');
-      }
-    } else {
-      console.warn('⚠️ No authentication token found in localStorage');
+      config.headers.Authorization = `Bearer ${token}`;
     }
     
     console.log('🌐 API Request:', {
@@ -37,7 +27,6 @@ apiClient.interceptors.request.use(
       baseURL: config.baseURL,
       fullURL: `${config.baseURL}${config.url}`,
       hasAuth: !!config.headers.Authorization,
-      tokenLength: token ? token.length : 0,
     });
     return config;
   },
@@ -72,25 +61,14 @@ apiClient.interceptors.response.use(
     
     // Check if it's a 401 Unauthorized error
     if (error.response?.status === 401) {
-      console.warn('🔐 Authentication failed - 401 Unauthorized');
-      // Only redirect if we're not already on the login page
-      // This prevents infinite redirect loops
-      const currentPath = window.location.pathname;
-      if (currentPath !== '/login' && currentPath !== '/') {
-        // Clear auth data (clear both token storage keys for compatibility)
-        localStorage.removeItem('auth-token');
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth-user');
-        localStorage.removeItem('user_data');
-        localStorage.removeItem('token_expires');
-        // Only redirect if not already on login page
-        if (currentPath !== '/login') {
-          console.warn('🔐 Redirecting to login page');
-          window.location.href = '/login';
-        }
-      } else {
-        console.warn('🔐 Already on login page, not redirecting');
-      }
+      console.warn('🔐 Authentication failed - redirecting to login');
+      // Clear auth data and redirect to login (clear both token storage keys for compatibility)
+      localStorage.removeItem('auth-token');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth-user');
+      localStorage.removeItem('user_data');
+      localStorage.removeItem('token_expires');
+      window.location.href = '/login';
     }
     
     return Promise.reject(error);
@@ -292,8 +270,13 @@ export const crawlAPI = {
       // Handle authentication errors
       if ((error as any).response?.status === 401) {
         console.error('🔐 Authentication failed - please log in again');
-        // Don't redirect here - let the interceptor handle it to avoid double redirects
-        // Just throw the error with a clear message
+        // Clear auth data and redirect to login (clear both token storage keys for compatibility)
+        localStorage.removeItem('auth-token');
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth-user');
+        localStorage.removeItem('user_data');
+        localStorage.removeItem('token_expires');
+        window.location.href = '/login';
         throw new Error('Authentication failed. Please log in again.');
       }
       

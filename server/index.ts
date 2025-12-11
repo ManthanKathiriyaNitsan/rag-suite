@@ -7,7 +7,7 @@ const app = express();
 
 // Enable CORS for all routes
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5000', 'http://localhost:5001', 'http://192.168.0.117:8000', 'http://192.168.0.136:8000', 'http://192.168.0.128:5000', 'http://192.168.0.128:5001'],
+  origin: ['http://localhost:3000', 'http://localhost:5000', 'http://192.168.0.117:8000', 'http://192.168.0.136:8000', 'http://192.168.0.128:5000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
@@ -53,20 +53,13 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // For Vercel, don't start the server - Vercel will handle it via serverless functions
-  // For local development, start the server normally
-  if (!process.env.VERCEL) {
-    // ALWAYS serve the app on the port specified in the environment variable PORT
-    // Other ports are firewalled. Default to 5001 if not specified.
-    // this serves both the API and the client.
-    // It is the only port that is not firewalled.
-    const port = parseInt(process.env.PORT || '5001', 10);
-    app.listen(port, '0.0.0.0', () => {
-      console.log(`Server running on http://localhost:${port}`);
-      console.log(`Network access available at http://192.168.0.128:${port}`);
-    });
-  }
+  // ALWAYS serve the app on the port specified in the environment variable PORT
+  // Other ports are firewalled. Default to 5000 if not specified.
+  // this serves both the API and the client.
+  // It is the only port that is not firewalled.
+  const port = parseInt(process.env.PORT || '5000', 10);
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running on http://localhost:${port}`);
+    console.log(`Network access available at http://192.168.0.128:${port}`);
+  });
 })();
-
-// Export app for Vercel serverless functions
-export default app;
