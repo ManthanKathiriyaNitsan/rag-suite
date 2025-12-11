@@ -29,13 +29,13 @@ const AddSourceForm = React.memo(function AddSourceForm({ open, onOpenChange, on
   const [url, setUrl] = useState(editData?.url || "");
   const [name, setName] = useState(editData?.name || "");
   const [description, setDescription] = useState(editData?.description || "");
-  const [crawlDepth, setCrawlDepth] = useState<number>(editData?.crawlDepth || 2);
+  const [crawlDepth, setCrawlDepth] = useState<number>((editData as any)?.crawlDepth ?? 2);
   // UI cadence values: "hourly" | "daily" | "weekly" (mapped to API on submit)
   const [cadenceUI, setCadenceUI] = useState<string>("daily");
   // Use a simple boolean toggle for headless, map to API headlessMode on submit
   const [headless, setHeadless] = useState<boolean>(false);
-  const [includePatterns, setIncludePatterns] = useState<string[]>(editData?.includePatterns || []);
-  const [excludePatterns, setExcludePatterns] = useState<string[]>(editData?.excludePatterns || []);
+  const [includePatterns, setIncludePatterns] = useState<string[]>((editData as any)?.includePatterns ?? []);
+  const [excludePatterns, setExcludePatterns] = useState<string[]>((editData as any)?.excludePatterns ?? []);
   const [newAllowPattern, setNewAllowPattern] = useState("");
   const [newDenyPattern, setNewDenyPattern] = useState("");
 
@@ -44,12 +44,12 @@ const AddSourceForm = React.memo(function AddSourceForm({ open, onOpenChange, on
     setUrl(editData?.url || "");
     setName(editData?.name || "");
     setDescription(editData?.description || "");
-    setCrawlDepth(editData?.crawlDepth || 2);
+    setCrawlDepth((editData as any)?.crawlDepth ?? 2);
     // Defaults for fields not present in site object
     setCadenceUI("daily");
     setHeadless(false);
-    setIncludePatterns(editData?.includePatterns || []);
-    setExcludePatterns(editData?.excludePatterns || []);
+    setIncludePatterns((editData as any)?.settings?.allowedDomains ?? (editData as any)?.includePatterns ?? []);
+    setExcludePatterns((editData as any)?.settings?.blockedDomains ?? (editData as any)?.excludePatterns ?? []);
   }, [editData, open]); // Only depend on actual values
 
   const handleSubmit = useCallback((e: React.FormEvent) => {

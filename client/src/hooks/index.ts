@@ -9,12 +9,12 @@ export { useAuth } from './useAuth';
 // Data Management
 export { useSearch } from './useSearch';
 export { useDocuments } from './useDocuments';
-export { useCrawl } from './useCrawl';
+export { useCrawlSites, useCrawlOperations, useCrawlStats } from './useCrawl';
 export { useChat } from './useChat';
 
 // UI & Interaction
 export { useToast } from './useToast';
-export { useMobile } from './useMobile';
+export { useIsMobile as useMobile } from './useMobile';
 export { useOnboarding } from './useOnboarding';
 export { useErrorBoundary } from './useErrorBoundary';
 

@@ -60,7 +60,7 @@ export class ComponentErrorBoundary extends Component<Props, State> {
     errorReportingService.reportError({
       message: error.message,
       stack: error.stack,
-      componentStack: errorInfo.componentStack,
+      componentStack: errorInfo.componentStack || undefined,
       timestamp: new Date().toISOString(),
       userAgent: navigator.userAgent,
       url: window.location.href,

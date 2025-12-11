@@ -188,19 +188,13 @@ export default function RAGTuning() {
       console.log("🔍 First 5 RAG sources:", ragSources.slice(0, 5));
       console.log("🔍 All RAG sources structure:", ragSources.map((s, i) => ({ index: i, title: s.title, url: s.url, snippet: s.snippet?.substring(0, 50) + "..." })));
 
-      // 🔧 Fallback: If no sources from API, create mock sources based on TopK
-      let finalRagSources = ragSources;
-      if (ragSources.length === 0 && actualTopK > 0) {
-        console.log("🔧 No sources from RAG API, creating mock sources for TopK:", actualTopK);
-        finalRagSources = Array.from({ length: actualTopK }, (_, i) => ({
-          title: `RAG Result ${i + 1}`,
-          url: "#",
-          snippet: `This is RAG result ${i + 1} based on your query: "${query}"`
-        }));
+      // Use only real API sources - no mock data fallback
+      if (ragSources.length === 0) {
+        console.log("⚠️ No sources returned from API for this query");
       }
 
-      // Create final assistant message with RAG settings
-      const mappedRagSources = finalRagSources.map((source: any) => ({
+      // Create final assistant message with RAG settings using only real API data
+      const mappedRagSources = ragSources.map((source: any) => ({
         title: source.title || "Unknown Source",
         url: source.url || "#",
         snippet: source.snippet || "No snippet available",

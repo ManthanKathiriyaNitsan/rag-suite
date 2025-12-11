@@ -9,12 +9,28 @@ export const useCrawlSites = () => {
   // Get all crawl sites
   const sitesQuery = useQuery({
     queryKey: ['crawl-sites'],
-    queryFn: crawlAPI.getSites,
+    queryFn: async () => {
+      try {
+        const result = await crawlAPI.getSites();
+        // Ensure we always return an array
+        return Array.isArray(result) ? result : [];
+      } catch (error) {
+        console.error('❌ Error in sitesQuery:', error);
+        // Return empty array on error to prevent crashes
+        return [];
+      }
+    },
     // Disable automatic polling/refresh; fetch once unless manually invalidated
     staleTime: Infinity,
     refetchInterval: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
+    // Set initial data to empty array to prevent undefined
+    initialData: [],
+    // Keep previous data while refetching to prevent undefined during transitions
+    placeholderData: (previousData) => previousData || [],
+    // Don't throw errors, just return empty array
+    throwOnError: false,
   });
 
   // Add a new site
@@ -23,7 +39,8 @@ export const useCrawlSites = () => {
     
     onSuccess: (data) => {
       console.log('✅ Site added successfully:', data);
-      // Refresh sites list
+      // Refresh sites list - this will trigger a refetch
+      // placeholderData ensures we keep previous data during refetch
       queryClient.invalidateQueries({ queryKey: ['crawl-sites'] });
     },
     
@@ -39,6 +56,7 @@ export const useCrawlSites = () => {
       } else {
         console.error('🌐 Network error. Please check your connection.');
       }
+      // Don't throw - let the component handle the error via the promise rejection
     },
   });
 
@@ -94,8 +112,9 @@ export const useCrawlSites = () => {
   });
 
   return {
-    sites: sitesQuery.data || [],
-    isLoading: sitesQuery.isLoading,
+    // Ensure sites is always an array, even during refetch
+    sites: Array.isArray(sitesQuery.data) ? sitesQuery.data : [],
+    isLoading: sitesQuery.isLoading || sitesQuery.isFetching,
     error: sitesQuery.error,
     refetch: sitesQuery.refetch,
     
@@ -190,26 +209,54 @@ export const useCrawlStats = () => {
   // Reuse the crawl-sites query cache to derive stats without additional network calls
   const sitesQuery = useQuery({
     queryKey: ['crawl-sites'],
-    queryFn: crawlAPI.getSites,
+    queryFn: async () => {
+      try {
+        const result = await crawlAPI.getSites();
+        return Array.isArray(result) ? result : [];
+      } catch (error) {
+        console.error('❌ Error in stats query:', error);
+        return [];
+      }
+    },
     staleTime: Infinity,
     refetchInterval: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
+    initialData: [],
+    placeholderData: (previousData) => previousData || [],
+    throwOnError: false,
   });
 
-  const sites = (sitesQuery.data || []) as CrawlSite[];
+  // Ensure sites is always an array
+  const sites = Array.isArray(sitesQuery.data) ? (sitesQuery.data as CrawlSite[]) : [];
   
   // 📊 Memoized crawl statistics
   const stats = useMemo(() => {
-    const activeSites = sites.filter((site: CrawlSite) => site.status === 'active');
-    const crawlingSites = sites.filter((site: CrawlSite) => site.status === 'crawling');
-    const totalPages = sites.reduce((sum: number, site: CrawlSite) => sum + (site.pagesCrawled || 0), 0);
+    // Additional safety check
+    if (!Array.isArray(sites) || sites.length === 0) {
+      return {
+        totalSites: 0,
+        activeSites: 0,
+        crawlingSites: 0,
+        totalPages: 0,
+        lastCrawled: undefined,
+      };
+    }
+    
+    const activeSites = sites.filter((site: CrawlSite) => site && site.status === 'active');
+    const crawlingSites = sites.filter((site: CrawlSite) => site && site.status === 'crawling');
+    const totalPages = sites.reduce((sum: number, site: CrawlSite) => {
+      if (!site) return sum;
+      return sum + (site.pagesCrawled || 0);
+    }, 0);
     
     const lastCrawled = sites
-      .filter((site: CrawlSite) => site.lastCrawled)
-      .sort((a: CrawlSite, b: CrawlSite) => 
-        new Date(b.lastCrawled || '').getTime() - new Date(a.lastCrawled || '').getTime()
-      )[0]?.lastCrawled;
+      .filter((site: CrawlSite) => site && site.lastCrawled)
+      .sort((a: CrawlSite, b: CrawlSite) => {
+        const aTime = a.lastCrawled ? new Date(a.lastCrawled).getTime() : 0;
+        const bTime = b.lastCrawled ? new Date(b.lastCrawled).getTime() : 0;
+        return bTime - aTime;
+      })[0]?.lastCrawled;
     
     return {
       totalSites: sites.length,

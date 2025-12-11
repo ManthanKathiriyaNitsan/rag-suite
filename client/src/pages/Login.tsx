@@ -6,79 +6,46 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { mockLogin } from "@/utils/mockAuth";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { BackgroundWrapper } from "@/components/common/BackgroundWrapper";
 import { GlassCard } from "@/components/ui/GlassCard";
+
 const Login = React.memo(function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [, setLocation] = useLocation();
+  const { login, isLoading, isAuthenticated, error: authError } = useAuthContext();
+
+  // Sync error from auth context
+  useEffect(() => {
+    if (authError) {
+      setError(authError);
+    }
+  }, [authError]);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('✅ User already authenticated, redirecting to dashboard');
+      setLocation("/");
+    }
+  }, [isAuthenticated, setLocation]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     
     if (username && password) {
-      try {
-        // Authenticate with server
-        const response = await fetch('http://localhost:5000/api/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            username: username,
-            password: password
-          })
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          // Store real authentication tokens
-          localStorage.setItem('auth_token', data.access_token || data.token);
-          localStorage.setItem('user_data', JSON.stringify({
-            id: data.user?.id || 1,
-            username: username,
-            email: data.user?.email || username + '@example.com',
-            name: data.user?.name || username
-          }));
-          localStorage.setItem('token_expires', data.expiresAt || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString());
-          
-          console.log('✅ Real authentication successful');
-          console.log('🔐 Stored auth data:', {
-            token: data.access_token || data.token,
-            user: data.user,
-            expiresAt: data.expiresAt
-          });
-          // Force page reload to update authentication state
-          window.location.href = "/";
-        } else {
-          throw new Error('Authentication failed');
-        }
-      } catch (error) {
-        console.warn('🔐 Real authentication failed, using mock authentication for development');
-        console.warn('💡 This allows development to continue without real server authentication');
-        
-        // Use mock authentication system
-        try {
-          const mockData = await mockLogin(username, password);
-          localStorage.setItem('auth_token', mockData.token);
-          localStorage.setItem('user_data', JSON.stringify(mockData.user));
-          localStorage.setItem('token_expires', mockData.expiresAt);
-          localStorage.setItem('mock-mode', 'true'); // Flag that we're in mock mode
-          
-          console.log('✅ Mock authentication successful');
-          // Force page reload to update authentication state
-          window.location.href = "/";
-        } catch (mockError) {
-          console.error('❌ Mock authentication also failed:', mockError);
-          alert('Authentication failed. Please try again.');
-        }
-      }
+      // Use the unified auth system from AuthContext
+      // The login function will handle storing tokens and updating state
+      // Navigation will happen automatically via the useEffect above
+      login({ username, password });
     } else {
-      alert('Please enter both username and password');
+      setError('Please enter both username and password');
     }
-  }, [username, password, setLocation]);
+  }, [username, password, login]);
 
   return (
     <div className="relative min-h-screen flex">
@@ -170,6 +137,12 @@ const Login = React.memo(function Login() {
             </CardHeader>
             
             <CardContent className="space-y-6">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              
               <form onSubmit={handleSubmit} className="space-y-4">
                 
                 <div className="space-y-2">
@@ -183,6 +156,7 @@ const Login = React.memo(function Login() {
                     data-testid="input-username"
                     className="h-11"
                     required
+                    disabled={isLoading}
                   />
                 </div>
                 
@@ -198,6 +172,7 @@ const Login = React.memo(function Login() {
                       data-testid="input-password"
                       className="h-11 pr-10"
                       required
+                      disabled={isLoading}
                     />
                     <Button
                       type="button"
@@ -206,6 +181,7 @@ const Login = React.memo(function Login() {
                       className="absolute right-0 top-0 h-11 px-3"
                       onClick={() => setShowPassword(!showPassword)}
                       data-testid="button-toggle-password"
+                      disabled={isLoading}
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -228,8 +204,16 @@ const Login = React.memo(function Login() {
                   type="submit"
                   className="w-full h-11 group"
                   data-testid="button-sign-in"
+                  disabled={isLoading}
                 >
-                  Sign in
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    'Sign in'
+                  )}
                 </Button>
               </form>
               

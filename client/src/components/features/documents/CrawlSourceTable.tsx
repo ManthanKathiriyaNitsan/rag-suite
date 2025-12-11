@@ -32,40 +32,6 @@ interface CrawlSourceTableProps {
   isDeleting: boolean;
 }
 
-// todo: remove mock functionality - keeping for reference
-const mockSources = [
-  {
-    id: "1",
-    url: "https://docs.company.com",
-    depth: 3,
-    cadence: "Daily",
-    headless: "Auto",
-    status: "Active",
-    lastCrawl: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    documents: 245,
-  },
-  {
-    id: "2",
-    url: "https://help.company.com",
-    depth: 2,
-    cadence: "Weekly",
-    headless: "On",
-    status: "Active",
-    lastCrawl: new Date(Date.now() - 6 * 60 * 60 * 1000),
-    documents: 89,
-  },
-  {
-    id: "3",
-    url: "https://blog.company.com",
-    depth: 1,
-    cadence: "Daily",
-    headless: "Off",
-    status: "Error",
-    lastCrawl: new Date(Date.now() - 24 * 60 * 60 * 1000),
-    documents: 156,
-  },
-];
-
 const CrawlSourceTable = React.memo(function CrawlSourceTable({ 
   sites, 
   isLoading, 
@@ -124,6 +90,15 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
     }
   };
 
+  // Ensure sites is an array and filter out any invalid entries
+  const safeSites = useMemo(() => {
+    if (!Array.isArray(sites)) {
+      console.warn('CrawlSourceTable: sites is not an array');
+      return [];
+    }
+    return sites.filter((site) => site != null && site.id);
+  }, [sites]);
+
   if (isLoading) {
     return (
       <Card className="w-full overflow-hidden">
@@ -139,7 +114,7 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
     );
   }
 
-  if (sites.length === 0) {
+  if (!safeSites || safeSites.length === 0) {
     return (
       <Card className="w-full overflow-hidden">
         <CardContent>
@@ -153,27 +128,17 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
     );
   }
 
-  return (
-    <Card className="w-full overflow-hidden">
-      <CardHeader>
-        <CardTitle>Crawl Sources</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-xs text-muted-foreground mb-2 p-2">
-          🚀 Virtualized table for optimal performance with large datasets
-        </div>
-        <VirtualizedTable
-        data={sites}
-        columns={[
+  // Memoize columns to prevent recreation on every render
+  const tableColumns = useMemo(() => [
           {
             key: 'url',
             label: 'URL',
             width: 250,
             render: (site: CrawlSite) => (
               <div className="flex flex-col">
-                <span className="font-medium">{site.name}</span>
+                <span className="font-medium">{site?.name || 'Unnamed'}</span>
                 <span className="text-xs text-muted-foreground truncate">
-                  {crawlAPI.normalizeUrl(site.url)}
+                  {site?.url ? crawlAPI.normalizeUrl(site.url) : 'No URL'}
                 </span>
               </div>
             ),
@@ -205,10 +170,11 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
             label: 'Status',
             width: 100,
             render: (site: CrawlSite) => {
-              const badge = getStatusBadge(site.status);
+              const status = site?.status || 'unknown';
+              const badge = getStatusBadge(status);
               return (
                 <Badge variant={badge.variant} className={`text-xs ${badge.className}`}>
-                  {site.status}
+                  {status}
                 </Badge>
               );
             },
@@ -293,12 +259,25 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
               </DropdownMenu>
             ),
           },
-        ]}
-        height={400}
-        itemHeight={60}
-        className="min-w-[800px]"
-        onRowClick={(site: CrawlSite) => handleAction("edit", site.id)}
-      />
+        ], [isStarting, isDeleting]);
+
+  return (
+    <Card className="w-full overflow-hidden">
+      <CardHeader>
+        <CardTitle>Crawl Sources</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-xs text-muted-foreground mb-2 p-2">
+          🚀 Virtualized table for optimal performance with large datasets
+        </div>
+        <VirtualizedTable
+          data={safeSites}
+          columns={tableColumns}
+          height={400}
+          itemHeight={60}
+          className="min-w-[800px]"
+          onRowClick={(site: CrawlSite) => handleAction("edit", site.id)}
+        />
       </CardContent>
     </Card>
   );

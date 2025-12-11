@@ -47,16 +47,34 @@ export const useAuth = () => {
     onSuccess: (data: LoginResponse) => {
       console.log('✅ Login successful:', data);
       
-      // Store token in localStorage
+      // Validate token before storing
+      if (!data.token || data.token.trim() === '') {
+        console.error('❌ Invalid token received from API:', data.token);
+        throw new Error('Invalid token received from server');
+      }
+      
+      // Store token in localStorage (use auth_token as primary key)
       localStorage.setItem('auth_token', data.token);
+      // Also store in legacy key for compatibility
+      localStorage.setItem('auth-token', data.token);
       localStorage.setItem('user_data', JSON.stringify(data.user));
       localStorage.setItem('token_expires', data.expiresAt);
       
+      // Verify token was stored correctly
+      const storedToken = localStorage.getItem('auth_token');
       console.log('🔐 Stored auth data:', {
-        token: data.token,
-        user: data.user,
+        token: data.token ? `${data.token.substring(0, 20)}...` : 'missing',
+        tokenLength: data.token?.length || 0,
+        storedToken: storedToken ? `${storedToken.substring(0, 20)}...` : 'missing',
+        storedTokenLength: storedToken?.length || 0,
+        user: data.user?.username || 'missing',
         expiresAt: data.expiresAt
       });
+      
+      if (!storedToken || storedToken !== data.token) {
+        console.error('❌ Token storage verification failed!');
+        throw new Error('Failed to store authentication token');
+      }
       
       // 🔧 FIXED: Update reactive state immediately
       // Ensure user object has all required fields
@@ -71,8 +89,8 @@ export const useAuth = () => {
       // Invalidate and refetch user queries
       queryClient.invalidateQueries({ queryKey: ['auth-user'] });
       
-      // Force a page reload to update authentication state
-      window.location.reload();
+      // Note: Navigation will be handled by the Login component's useEffect
+      // No need to reload the page - the auth state is now reactive
     },
     
     onError: (error) => {

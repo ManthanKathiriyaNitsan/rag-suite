@@ -1,19 +1,12 @@
 import axios from 'axios';
-import { mockSearch, isMockMode } from "@/utils/mockAuth";
 
-// 🌐 API Configuration - This sets up your API connection
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://api.ragsuite.com/api/v1' 
-  : 'http://localhost:5000/api/v1';
+// 🌐 API Configuration - Unified API base URL for all endpoints
+const API_BASE_URL = 'http://192.168.0.112:8000/api/v1';
 
-// 🕷️ Crawl API Configuration - Separate base URL for crawl functionality
-const CRAWL_API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://api.ragsuite.com/api/v1' 
-  : 'http://localhost:5000/api/v1';
-// 📡 Create axios instance - This is your API client
+// 📡 Create axios instance - This is your unified API client
 export const apiClient = axios.create({
-  baseURL: API_BASE_URL,           // Your API base URL
-  timeout: 1500000,                  // 15 seconds timeout
+  baseURL: API_BASE_URL,           // Unified API base URL
+  timeout: 3000000,                  // 30 seconds timeout (crawling can take longer)
   headers: {
     'Content-Type': 'application/json',  // Tell server we're sending JSON
   },
@@ -22,10 +15,20 @@ export const apiClient = axios.create({
 // 🔧 Add request interceptor for debugging and authentication
 apiClient.interceptors.request.use(
   (config) => {
-    // Add authentication token if available
-    const token = localStorage.getItem('auth-token');
+    // Add authentication token if available (check both token storage keys for compatibility)
+    // Priority: auth_token (current) > auth-token (legacy)
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('auth-token');
+    
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      // Ensure token is not empty string or 'null' or 'undefined'
+      const cleanToken = token.trim();
+      if (cleanToken && cleanToken !== 'null' && cleanToken !== 'undefined') {
+        config.headers.Authorization = `Bearer ${cleanToken}`;
+      } else {
+        console.warn('⚠️ Invalid token format in localStorage, skipping auth header');
+      }
+    } else {
+      console.warn('⚠️ No authentication token found in localStorage');
     }
     
     console.log('🌐 API Request:', {
@@ -34,6 +37,7 @@ apiClient.interceptors.request.use(
       baseURL: config.baseURL,
       fullURL: `${config.baseURL}${config.url}`,
       hasAuth: !!config.headers.Authorization,
+      tokenLength: token ? token.length : 0,
     });
     return config;
   },
@@ -68,76 +72,31 @@ apiClient.interceptors.response.use(
     
     // Check if it's a 401 Unauthorized error
     if (error.response?.status === 401) {
-      console.warn('🔐 Authentication failed - redirecting to login');
-      // Clear auth data and redirect to login
-      localStorage.removeItem('auth-token');
-      localStorage.removeItem('auth-user');
-      window.location.href = '/login';
+      console.warn('🔐 Authentication failed - 401 Unauthorized');
+      // Only redirect if we're not already on the login page
+      // This prevents infinite redirect loops
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/login' && currentPath !== '/') {
+        // Clear auth data (clear both token storage keys for compatibility)
+        localStorage.removeItem('auth-token');
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth-user');
+        localStorage.removeItem('user_data');
+        localStorage.removeItem('token_expires');
+        // Only redirect if not already on login page
+        if (currentPath !== '/login') {
+          console.warn('🔐 Redirecting to login page');
+          window.location.href = '/login';
+        }
+      } else {
+        console.warn('🔐 Already on login page, not redirecting');
+      }
     }
     
     return Promise.reject(error);
   }
 );
 
-// 🕷️ Create crawl axios instance - Separate client for crawl functionality
-export const crawlApiClient = axios.create({
-  baseURL: CRAWL_API_BASE_URL,     // Crawl API base URL
-  timeout: 3000000,                  // 30 seconds timeout (crawling can take longer)
-  headers: {
-    'Content-Type': 'application/json',  // Tell server we're sending JSON
-  },
-});
-
-// 🔐 Add request interceptor for authentication
-crawlApiClient.interceptors.request.use(
-  (config) => {
-    // Add authentication token if available
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    
-    console.log('🕷️ Crawl API Request:', {
-      method: config.method?.toUpperCase(),
-      url: config.url,
-      baseURL: config.baseURL,
-      fullURL: `${config.baseURL}${config.url}`,
-      hasAuth: !!config.headers.Authorization,
-    });
-    return config;
-  },
-  (error) => {
-    console.error('❌ Crawl Request Error:', error);
-    return Promise.reject(error);
-  }
-);
-
-// 🔧 Add response interceptor for debugging
-crawlApiClient.interceptors.response.use(
-  (response) => {
-    console.log('✅ Crawl API Response:', {
-      status: response.status,
-      url: response.config.url,
-      data: response.data,
-    });
-    return response;
-  },
-  (error) => {
-    console.error('❌ Crawl API Error:', {
-      message: error.message,
-      code: error.code,
-      status: error.response?.status,
-      url: error.config?.url,
-      fullURL: error.config ? `${error.config.baseURL}${error.config.url}` : 'unknown',
-    });
-    
-    if (error.code === 'ERR_NETWORK') {
-      console.error('🌐 Network Error: Cannot reach the crawl server. Check if the API server is running at:', CRAWL_API_BASE_URL);
-    }
-    
-    return Promise.reject(error);
-  }
-);
 
 // 🔍 Search API function - This calls your search endpoint
 export const searchAPI = {
@@ -150,18 +109,7 @@ export const searchAPI = {
   }) => {
     console.log('🚀 API Call - Searching for:', query);
     console.log('⚙️ RAG Settings:', ragSettings);
-    
-    // Check if we're in mock mode
-    if (isMockMode()) {
-      console.log('🎭 Using mock search - API is offline');
-      try {
-        const mockResponse = await mockSearch(query);
-        return mockResponse;
-      } catch (error) {
-        console.error('❌ Mock search failed:', error);
-        throw error;
-      }
-    }
+    console.log('🌐 Using real API at:', `${API_BASE_URL}/search`);
     
     try {
       // Send POST request to /search endpoint with RAG settings
@@ -177,14 +125,14 @@ export const searchAPI = {
       console.log('🔍 API Sources:', response.data.sources);
       console.log('🔍 API Response structure:', response.data);
       
-      // Map server response to expected format
+      // Map server response to expected format - use only real API data
       const mappedResponse = {
         success: response.data.success || true,
         answer: response.data.answer || '',
         sources: response.data.sources ? response.data.sources.map((source: any) => ({
-          title: source.title || source.additionalProp1 || `Source ${Math.random().toString(36).substr(2, 9)}`,
-          url: source.url || source.additionalProp2 || '#',
-          snippet: source.snippet || source.additionalProp3 || 'No snippet available'
+          title: source.title || 'Untitled Source',
+          url: source.url || '#',
+          snippet: source.snippet || 'No snippet available'
         })) : [],
         message: response.data.message || '',
         timestamp: response.data.timestamp || new Date().toISOString(),
@@ -195,19 +143,8 @@ export const searchAPI = {
       return mappedResponse;
     } catch (error) {
       console.error('❌ API Error:', error);
-      
-      // If API fails and we're not already in mock mode, try mock search
-      if (!isMockMode()) {
-        console.log('🔄 API failed, falling back to mock search');
-        try {
-          const mockResponse = await mockSearch(query);
-          return mockResponse;
-        } catch (mockError) {
-          console.error('❌ Mock search also failed:', mockError);
-        }
-      }
-      
-      throw error;  // Let the calling function handle the error
+      // Throw error - no mock fallback
+      throw error;
     }
   },
 };
@@ -236,15 +173,15 @@ export const chatAPI = {
       
       console.log('✅ Chat Response:', response.data);
       
-      // Map server response to ChatResponse format
+      // Map server response to ChatResponse format - use only real API data
       const chatResponse: ChatResponse = {
         messageId: response.data.messageId || response.data.request_id || `msg-${Date.now()}`,
         response: response.data.answer || response.data.response || '',
         sessionId: sessionId || response.data.sessionId || `session-${Date.now()}`,
         sources: response.data.sources ? response.data.sources.map((source: any) => ({
-          title: source.title || source.additionalProp1 || `Source ${Math.random().toString(36).substr(2, 9)}`,
-          url: source.url || source.additionalProp2 || '#',
-          snippet: source.snippet || source.additionalProp3 || 'No snippet available'
+          title: source.title || 'Untitled Source',
+          url: source.url || '#',
+          snippet: source.snippet || 'No snippet available'
         })) : undefined
       };
       
@@ -319,6 +256,11 @@ export const crawlAPI = {
     console.log('🕷️ Crawl API - Adding site:', siteData);
     
     try {
+      // Validate required fields
+      if (!siteData.name || !siteData.url) {
+        throw new Error('Name and URL are required');
+      }
+      
       // Transform frontend data to backend schema
       const backendData = {
         name: siteData.name,
@@ -327,12 +269,22 @@ export const crawlAPI = {
         depth: siteData.crawlDepth || 2,
         cadence: siteData.cadence || 'ONCE',
         headless_mode: siteData.headlessMode || 'AUTO',
-        allowlist: siteData.includePatterns || [],
-        denylist: siteData.excludePatterns || []
+        allowlist: Array.isArray(siteData.includePatterns) ? siteData.includePatterns : [],
+        denylist: Array.isArray(siteData.excludePatterns) ? siteData.excludePatterns : []
       };
       
-      const response = await crawlApiClient.post('/crawl/sites', backendData);
+      const response = await apiClient.post('/crawl/sites', backendData);
       console.log('✅ Site added successfully:', response.data);
+      
+      // Ensure we return a valid response object
+      if (!response || !response.data) {
+        console.warn('⚠️ API returned invalid response, returning success object');
+        return {
+          id: `temp-${Date.now()}`,
+          ...backendData
+        };
+      }
+      
       return response.data;
     } catch (error) {
       console.error('❌ Add site failed:', error);
@@ -340,12 +292,9 @@ export const crawlAPI = {
       // Handle authentication errors
       if ((error as any).response?.status === 401) {
         console.error('🔐 Authentication failed - please log in again');
-        // Clear auth data and redirect to login
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_data');
-        localStorage.removeItem('token_expires');
-        window.location.href = '/login';
-        return;
+        // Don't redirect here - let the interceptor handle it to avoid double redirects
+        // Just throw the error with a clear message
+        throw new Error('Authentication failed. Please log in again.');
       }
       
       if ((error as any).response?.status === 403) {
@@ -353,51 +302,98 @@ export const crawlAPI = {
         throw new Error('Access forbidden. Please check your permissions.');
       }
       
-      throw error;
+      // Re-throw with a user-friendly message
+      const errorMessage = (error as any).response?.data?.detail || 
+                          (error as any).message || 
+                          'Failed to add site. Please try again.';
+      throw new Error(errorMessage);
     }
   },
 
   // Get all crawling targets
   getSites: async () => {
-    console.log('🕷️ Crawl API - Getting sites');
+    console.log('🕷️ Crawl API - Getting sites from:', `${API_BASE_URL}/crawl/sites`);
     
     try {
-      const response = await crawlApiClient.get('/crawl/sites');
-      console.log('✅ Sites retrieved successfully:', response.data);
+      const response = await apiClient.get('/crawl/sites');
+      console.log('✅ Sites retrieved successfully:', {
+        hasData: !!response.data,
+        dataType: typeof response.data,
+        isArray: Array.isArray(response.data),
+        dataLength: Array.isArray(response.data) ? response.data.length : 'N/A',
+        rawData: response.data
+      });
+      
+      // Handle cases where response.data might be undefined, null, or not an array
+      if (!response.data) {
+        console.warn('⚠️ API returned no data, returning empty array');
+        return [];
+      }
+      
+      // Ensure response.data is an array
+      const sitesArray = Array.isArray(response.data) ? response.data : [];
+      
+      if (!Array.isArray(response.data)) {
+        console.warn('⚠️ API returned non-array data:', typeof response.data, response.data);
+        // If it's an object with a data property, try that
+        if (response.data && typeof response.data === 'object' && response.data !== null && 'data' in response.data) {
+          const nestedData = (response.data as any).data;
+          if (Array.isArray(nestedData)) {
+            console.log('✅ Found nested data array, using that');
+            sitesArray.push(...nestedData);
+          } else {
+            console.warn('⚠️ Nested data is not an array, returning empty array');
+            return [];
+          }
+        } else {
+          console.warn('⚠️ Response data is not an array or valid object, returning empty array');
+          return [];
+        }
+      }
       
       // Transform backend response to frontend format
-      return response.data.map((site: any) => ({
-        id: site.id,
-        name: site.name,
-        url: crawlAPI.normalizeUrl(site.base_url),
-        description: site.description,
-        status: site.status === 'READY' ? 'active' : 
-                site.status === 'PENDING' ? 'pending' : 
-                site.status === 'DISABLED' ? 'inactive' : 'error',
-        lastCrawled: site.last_crawl_at,
-        pagesFound: 0, // Will be updated from crawl status
-        pagesCrawled: site.documents_count || 0,
-        createdAt: site.created_at,
-        updatedAt: site.updated_at,
-        crawlDepth: site.depth,
-        maxPages: site.max_pages,
-        includePatterns: site.allowlist || [],
-        excludePatterns: site.denylist || [],
-        crawlDelay: site.delay_seconds,
-        cadence: site.cadence,
-        headlessMode: site.headless_mode,
-        respectRobotsTxt: true,
-        followRedirects: true,
-        customHeaders: {}
-      }));
+      const transformedSites = sitesArray
+        .filter((site: any) => site != null) // Filter out null/undefined first
+        .map((site: any) => {
+          // All sites here are guaranteed to be non-null
+          return {
+            id: site.id || '',
+            name: site.name || '',
+            url: crawlAPI.normalizeUrl(site.base_url || ''),
+            description: site.description || '',
+            status: (site.status === 'READY' ? 'active' : 
+                    site.status === 'PENDING' ? 'active' : // Map PENDING to active for display
+                    site.status === 'DISABLED' ? 'inactive' : 
+                    site.status === 'CRAWLING' || site.status === 'RUNNING' ? 'crawling' : 'error') as 'active' | 'inactive' | 'crawling' | 'error',
+            lastCrawled: site.last_crawl_at || null,
+            pagesFound: 0, // Will be updated from crawl status
+            pagesCrawled: site.documents_count || 0,
+            createdAt: site.created_at || new Date().toISOString(),
+            updatedAt: site.updated_at || new Date().toISOString(),
+            crawlDepth: site.depth || 2,
+            maxPages: site.max_pages || null,
+            includePatterns: Array.isArray(site.allowlist) ? site.allowlist : [],
+            excludePatterns: Array.isArray(site.denylist) ? site.denylist : [],
+            crawlDelay: site.delay_seconds || null,
+            cadence: site.cadence || 'ONCE',
+            headlessMode: site.headless_mode || 'AUTO',
+            respectRobotsTxt: true,
+            followRedirects: true,
+            customHeaders: {}
+          };
+        });
+      
+      return transformedSites;
     } catch (error) {
       console.error('❌ Get sites failed:', error);
       
       // Handle authentication errors
       if ((error as any).response?.status === 401) {
         console.error('🔐 Authentication failed - please log in again');
-        // Clear auth data and redirect to login
+        // Clear auth data and redirect to login (clear both token storage keys for compatibility)
+        localStorage.removeItem('auth-token');
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth-user');
         localStorage.removeItem('user_data');
         localStorage.removeItem('token_expires');
         window.location.href = '/login';
@@ -409,7 +405,9 @@ export const crawlAPI = {
         throw new Error('Access forbidden. Please check your permissions.');
       }
       
-      throw error;
+      // Return empty array instead of throwing to prevent error page
+      console.warn('⚠️ Error fetching sites, returning empty array');
+      return [];
     }
   },
 
@@ -430,7 +428,7 @@ export const crawlAPI = {
         denylist: siteData.excludePatterns || []
       };
       
-      const response = await crawlApiClient.put(`/crawl/sites/${id}`, backendData);
+      const response = await apiClient.put(`/crawl/sites/${id}`, backendData);
       console.log('✅ Site updated successfully:', response.data);
       return response.data;
     } catch (error) {
@@ -444,7 +442,7 @@ export const crawlAPI = {
     console.log('🕷️ Crawl API - Deleting site:', id);
     
     try {
-      const response = await crawlApiClient.delete(`/crawl/sites/${id}`);
+      const response = await apiClient.delete(`/crawl/sites/${id}`);
       console.log('✅ Site deleted successfully:', response.data);
       return response.data;
     } catch (error) {
@@ -458,7 +456,7 @@ export const crawlAPI = {
     console.log('🕷️ Crawl API - Starting crawl:', id);
     
     try {
-      const response = await crawlApiClient.post(`/crawl/start/${id}`);
+      const response = await apiClient.post(`/crawl/start/${id}`);
       console.log('✅ Crawl started successfully:', response.data);
       return response.data;
     } catch (error) {
@@ -472,7 +470,7 @@ export const crawlAPI = {
     console.log('🕷️ Crawl API - Getting crawl status:', id);
     
     try {
-      const response = await crawlApiClient.get(`/crawl/status/${id}`);
+      const response = await apiClient.get(`/crawl/status/${id}`);
       console.log('✅ Crawl status retrieved:', response.data);
       
       // Transform backend response to frontend format
@@ -501,7 +499,7 @@ export const crawlAPI = {
     console.log('🕷️ Crawl API - Previewing URL:', url);
     
     try {
-      const response = await crawlApiClient.put('/crawl/preview', { url });
+      const response = await apiClient.put('/crawl/preview', { url });
       console.log('✅ URL preview retrieved:', response.data);
       
       // Transform backend response to frontend format
@@ -530,7 +528,7 @@ export const authAPI = {
     console.log('🔐 Auth API - Attempting login:', credentials.username);
     
     try {
-      const response = await crawlApiClient.post('/auth/login', {
+      const response = await apiClient.post('/crawl/auth/login', {
         username: credentials.username,
         password: credentials.password,
       });
@@ -560,7 +558,7 @@ export const authAPI = {
     console.log('🔐 Auth API - Logging out');
     
     try {
-      const response = await crawlApiClient.post('/crawl/auth/logout');
+      const response = await apiClient.post('/crawl/auth/logout');
       console.log('✅ Logout successful:', response.data);
       return response.data;
     } catch (error) {
@@ -574,7 +572,7 @@ export const authAPI = {
     console.log('🔐 Auth API - Verifying token');
     
     try {
-      const response = await crawlApiClient.get('/crawl/auth/verify', {
+      const response = await apiClient.get('/auth/verify', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -645,6 +643,12 @@ export const documentAPI = {
         timeout: 150000,
         // No default headers - let axios handle FormData automatically
       });
+      
+      // Add authentication token to upload client
+      const token = localStorage.getItem('auth-token') || localStorage.getItem('auth_token');
+      if (token) {
+        uploadClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      }
       
       const response = await uploadClient.post('/documents/upload', formData);
       

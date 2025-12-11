@@ -9,10 +9,10 @@ import { CrawlSite } from "./api";
 // FORM PROPS INTERFACES
 // =============================================================================
 
-export interface BaseFormProps {
+export interface BaseFormProps<T = Record<string, unknown>> {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit?: (data: Record<string, unknown>) => void;
+  onSubmit?: (data: T) => void;
 }
 
 // Upload Document Form
@@ -29,33 +29,32 @@ export interface DocumentUploadMetadata {
 }
 
 // Add Source Form
-export interface AddSourceFormProps extends BaseFormProps {
+export interface AddSourceFormProps extends BaseFormProps<CrawlSiteData> {
   onSubmit: (data: CrawlSiteData) => void;
   editData?: CrawlSite;
 }
 
-export interface CrawlSiteData {
-  url: string;
-  name: string;
-  config: {
-    maxDepth: number;
-    includePatterns: string[];
-    excludePatterns: string[];
-    sitemapUrl?: string;
-  };
-}
+// Use the API version of CrawlSiteData for consistency
+import { CrawlSiteData as APICrawlSiteData } from '@/services/api/api';
+
+export type CrawlSiteData = APICrawlSiteData;
 
 // Create Integration Form
-export interface CreateIntegrationFormProps extends BaseFormProps {
+export interface CreateIntegrationFormProps extends BaseFormProps<IntegrationFormData> {
   onSubmit: (data: IntegrationFormData) => void;
 }
 
 export interface IntegrationFormData {
   name: string;
+  slug?: string;
   description: string;
-  type: "web" | "mobile" | "api" | "custom";
-  environment: "staging" | "production" | "both";
-  settings: {
+  status?: string;
+  owner?: string;
+  tags?: string[];
+  publicId?: string;
+  type?: "web" | "mobile" | "api" | "custom";
+  environment?: "staging" | "production" | "both";
+  settings?: {
     enableChat: boolean;
     enableSearch: boolean;
     enableSuggestions: boolean;
@@ -70,7 +69,7 @@ export interface IntegrationFormData {
 }
 
 // Create API Key Form
-export interface CreateApiKeyFormProps extends BaseFormProps {
+export interface CreateApiKeyFormProps extends BaseFormProps<ApiKeyFormData> {
   onSubmit: (data: ApiKeyFormData) => void;
 }
 
@@ -253,7 +252,7 @@ export interface SearchFilters {
   };
   status?: string;
   author?: string;
-  [key: string]: string | number | boolean | null;
+  [key: string]: string | number | boolean | null | string[] | { start: Date; end: Date } | undefined;
 }
 
 // =============================================================================

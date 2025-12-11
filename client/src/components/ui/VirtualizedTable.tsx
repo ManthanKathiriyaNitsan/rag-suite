@@ -34,11 +34,53 @@ interface RowProps<T> {
 }
 
 function VirtualizedRow<T>({ index, style, data }: RowProps<T>) {
+  // Defensive checks for data structure
+  if (!data || !data.items || !data.columns) {
+    console.error('VirtualizedRow: Invalid data prop', data);
+    return (
+      <div style={style}>
+        <TableRow>
+          <TableCell colSpan={1} className="p-2 text-center text-muted-foreground">
+            Invalid row data
+          </TableCell>
+        </TableRow>
+      </div>
+    );
+  }
+
   const { items, columns, onRowClick } = data;
+  
+  // Ensure items and columns are arrays
+  if (!Array.isArray(items) || !Array.isArray(columns)) {
+    console.error('VirtualizedRow: items or columns is not an array', { items, columns });
+    return (
+      <div style={style}>
+        <TableRow>
+          <TableCell colSpan={1} className="p-2 text-center text-muted-foreground">
+            Invalid data structure
+          </TableCell>
+        </TableRow>
+      </div>
+    );
+  }
+
   const item = items[index];
 
+  // Handle undefined/null items gracefully
+  if (!item) {
+    return (
+      <div style={style}>
+        <TableRow>
+          <TableCell colSpan={columns.length} className="p-2 text-center text-muted-foreground">
+            Invalid data
+          </TableCell>
+        </TableRow>
+      </div>
+    );
+  }
+
   const handleClick = useCallback(() => {
-    if (onRowClick) {
+    if (onRowClick && item) {
       onRowClick(item, index);
     }
   }, [item, index, onRowClick]);
@@ -50,15 +92,21 @@ function VirtualizedRow<T>({ index, style, data }: RowProps<T>) {
         onClick={handleClick}
         data-testid={`row-virtual-${index}`}
       >
-        {columns.map((column) => (
-          <TableCell 
-            key={column.key}
-            style={{ width: column.width }}
-            className="p-2"
-          >
-            {column.render ? column.render(item, index) : (item as any)[column.key]}
-          </TableCell>
-        ))}
+        {columns.map((column) => {
+          // Ensure column is valid
+          if (!column || !column.key) {
+            return null;
+          }
+          return (
+            <TableCell 
+              key={column.key}
+              style={{ width: column.width }}
+              className="p-2"
+            >
+              {column.render ? column.render(item, index) : (item as any)?.[column.key] ?? ''}
+            </TableCell>
+          );
+        })}
       </TableRow>
     </div>
   );
@@ -72,18 +120,88 @@ export function VirtualizedTable<T>({
   className = '',
   onRowClick,
 }: VirtualizedTableProps<T>) {
-  const itemData = useMemo(() => ({
-    items: data,
-    columns,
-    onRowClick,
-  }), [data, columns, onRowClick]);
+  // Ensure data is an array and filter out any null/undefined entries
+  const safeData = useMemo(() => {
+    if (!Array.isArray(data)) {
+      console.warn('VirtualizedTable: data is not an array, returning empty array');
+      return [];
+    }
+    return data.filter((item) => item != null);
+  }, [data]);
+
+  // Ensure columns is always an array
+  const safeColumns = useMemo(() => {
+    if (!Array.isArray(columns)) {
+      console.warn('VirtualizedTable: columns is not an array, returning empty array');
+      return [];
+    }
+    return columns.filter((col) => col != null);
+  }, [columns]);
+
+  // Create stable itemData object - ensure it's never undefined
+  const itemData = useMemo(() => {
+    const dataObj = {
+      items: safeData,
+      columns: safeColumns,
+      onRowClick: onRowClick || undefined,
+    };
+    // Ensure the object is properly structured
+    if (!dataObj.items || !dataObj.columns) {
+      console.warn('VirtualizedTable: itemData has invalid structure', dataObj);
+      return {
+        items: [],
+        columns: [],
+        onRowClick: undefined,
+      };
+    }
+    return dataObj;
+  }, [safeData, safeColumns, onRowClick]);
+
+  // Early return if no data or no columns
+  if (safeData.length === 0 || safeColumns.length === 0) {
+    return (
+      <div className={`w-full ${className}`}>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {safeColumns.length > 0 ? safeColumns.map((column) => (
+                <TableHead 
+                  key={column.key}
+                  style={{ width: column.width }}
+                >
+                  {column.label}
+                </TableHead>
+              )) : (
+                <TableHead>No columns defined</TableHead>
+              )}
+            </TableRow>
+          </TableHeader>
+        </Table>
+        <div className="text-center py-8 text-muted-foreground">
+          {safeData.length === 0 ? 'No data available' : 'No columns available'}
+        </div>
+      </div>
+    );
+  }
+
+  // Ensure itemData is valid before rendering List
+  if (!itemData || !itemData.items || !itemData.columns) {
+    console.error('VirtualizedTable: Invalid itemData, cannot render List', itemData);
+    return (
+      <div className={`w-full ${className}`}>
+        <div className="text-center py-8 text-muted-foreground">
+          Error: Invalid table data
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`w-full ${className}`}>
       <Table>
         <TableHeader>
           <TableRow>
-            {columns.map((column) => (
+            {safeColumns.map((column) => (
               <TableHead 
                 key={column.key}
                 style={{ width: column.width }}
@@ -95,15 +213,15 @@ export function VirtualizedTable<T>({
         </TableHeader>
       </Table>
       <div style={{ height }}>
-        <List
-          height={height}
-          itemCount={data.length}
-          itemSize={itemHeight}
-          itemData={itemData}
-          overscanCount={5}
-        >
-          {VirtualizedRow}
-          </List>
+        {React.createElement(List as any, {
+          height,
+          width: "100%",
+          itemCount: safeData.length,
+          itemSize: itemHeight,
+          itemData: itemData, // Explicitly pass the validated itemData
+          overscanCount: 5,
+          children: VirtualizedRow as any,
+        })}
       </div>
     </div>
   );

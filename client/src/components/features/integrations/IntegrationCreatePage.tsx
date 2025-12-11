@@ -70,11 +70,11 @@ import AuditLogsTab from "@/components/tabs/AuditLogsTab";
 import SecurityComplianceTab from "@/components/tabs/SecurityComplianceTab";
 
 // Mock users for owner selection
-const mockUsers = [
-  { id: "user-001", name: "John Doe", email: "john@company.com" },
-  { id: "user-002", name: "Jane Smith", email: "jane@company.com" },
-  { id: "user-003", name: "Bob Wilson", email: "bob@company.com" },
-  { id: "user-004", name: "Alice Johnson", email: "alice@company.com" },
+const mockUsers: any[] = [
+  { id: "user-001", firstName: "John", lastName: "Doe", email: "john@company.com", role: "admin" as const, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: "user-002", firstName: "Jane", lastName: "Smith", email: "jane@company.com", role: "admin" as const, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: "user-003", firstName: "Bob", lastName: "Wilson", email: "bob@company.com", role: "user" as const, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: "user-004", firstName: "Alice", lastName: "Johnson", email: "alice@company.com", role: "user" as const, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
 ];
 
 // Sidebar navigation items
@@ -109,7 +109,7 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
     description: "",
     status: "active",
     ownerId: "",
-    tags: [],
+    tags: [] as string[],
     // Theme data
     primaryColor: "#3b82f6",
     secondaryColor: "#6b7280",
@@ -129,7 +129,7 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
     // Embed keys data
     embedKeys: [],
     // Domains data
-    domains: [],
+    domains: [] as any[],
     // Config data
     ragModel: "gpt-3.5-turbo",
     temperature: 0.7,
@@ -156,8 +156,30 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
     versions: [],
     // Analytics data
     analytics: {
-      kpis: [],
+      kpis: {
+        totalQueries: 0,
+        totalUsers: 0,
+        avgResponseTime: 0,
+        successRate: 0,
+        queriesToday: 0,
+        usersToday: 0,
+        avgSessionDuration: 0,
+        conversionRate: 0,
+      },
       chartData: [],
+      topQueries: [],
+      userEngagement: {
+        newUsers: 0,
+        returningUsers: 0,
+        activeUsers: 0,
+        churnRate: 0,
+      },
+      performance: {
+        avgResponseTime: 0,
+        p95ResponseTime: 0,
+        errorRate: 0,
+        uptime: 0,
+      },
       timeRange: "7d"
     },
     // A/B Testing data
@@ -258,7 +280,7 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
       case "domains":
         return (
           <DomainsTab 
-            data={formData.domains || []}
+            data={{ domains: formData.domains || [] }}
             onChange={(domains) => handleDataChange({ domains })}
           />
         );
@@ -266,7 +288,7 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
       case "config":
         return (
           <ConfigTab 
-            data={formData.config || {
+            data={{
               ragModel: "gpt-3.5-turbo",
               temperature: 0.7,
               maxTokens: 1000,
@@ -307,7 +329,7 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
       case "theme":
         return (
           <ThemeTab 
-            data={formData}
+            data={formData as any}
             onChange={handleDataChange} 
           />
         );
@@ -397,7 +419,7 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
       case "security":
         return (
           <SecurityComplianceTab 
-            data={formData.security || {
+            data={(formData.security && Object.keys(formData.security).length > 0 ? formData.security : {
               securityScore: 87,
               complianceScore: 78,
               vulnerabilities: 26,
@@ -412,7 +434,7 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
               scans: [],
               policies: [],
               compliance: [],
-            }}
+            }) as any}
             onChange={(security) => handleDataChange({ security })}
           />
         );

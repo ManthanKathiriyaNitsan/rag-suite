@@ -23,36 +23,6 @@ import {
 import { useCrawlSites, useCrawlOperations, useCrawlStats } from "@/hooks/useCrawl";
 import { CrawlSiteData } from "@/services/api/api";
 
-const crawlJobs = [
-  {
-    id: "job-001",
-    source: "docs.company.com",
-    started: new Date(Date.now() - 3 * 60 * 60 * 1000),
-    duration: "45m 23s",
-    pages: 142,
-    errors: 0,
-    status: "Completed",
-  },
-  {
-    id: "job-002", 
-    source: "help.company.com",
-    started: new Date(Date.now() - 6 * 60 * 60 * 1000),
-    duration: "23m 12s",
-    pages: 89,
-    errors: 2,
-    status: "Completed",
-  },
-  {
-    id: "job-003",
-    source: "blog.company.com",
-    started: new Date(Date.now() - 30 * 60 * 1000),
-    duration: "30m 45s",
-    pages: 67,
-    errors: 0,
-    status: "Running",
-  },
-];
-
 export default function Crawl() {
   const [activeTab, setActiveTab] = useState("sources");
   const [showAddSourceForm, setShowAddSourceForm] = useState(false);
@@ -75,12 +45,27 @@ export default function Crawl() {
     isLoading: sitesLoading,
     error: sitesError,
     addSite,
+    addSiteAsync,
     updateSite,
+    updateSiteAsync,
     deleteSite,
+    deleteSiteAsync,
     isAdding,
     isUpdating,
     isDeleting,
   } = useCrawlSites();
+
+  // 🔍 Debug: Log sites data to help diagnose issues
+  useEffect(() => {
+    console.log('🔍 Crawl Page - Sites data:', {
+      sites,
+      sitesType: typeof sites,
+      isArray: Array.isArray(sites),
+      length: Array.isArray(sites) ? sites.length : 'N/A',
+      isLoading: sitesLoading,
+      error: sitesError
+    });
+  }, [sites, sitesLoading, sitesError]);
 
   const {
     startCrawl,
@@ -95,9 +80,17 @@ export default function Crawl() {
 
   // Filter and search logic
   const filteredSites = useMemo(() => {
-    if (!sites) return [];
+    // Ensure sites is an array before filtering
+    if (!sites || !Array.isArray(sites)) {
+      return [];
+    }
     
     return sites.filter((site: any) => {
+      // Ensure site is valid
+      if (!site || !site.id) {
+        return false;
+      }
+      
       // Search filter
       const matchesSearch = searchQuery === "" || 
         site.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -131,33 +124,51 @@ export default function Crawl() {
   // 🕷️ Crawl operation handlers
   const handleAddSite = async (siteData: CrawlSiteData) => {
     try {
-      await addSite(siteData);
+      // Use addSiteAsync to properly await the mutation and handle errors
+      await addSiteAsync(siteData);
       toast({
         title: "Site Added",
         description: `Successfully added ${siteData.name}`,
       });
       setShowAddSourceForm(false);
-    } catch (error) {
+      // Note: The sites list will automatically refresh via query invalidation
+      // React Query will refetch, but we use placeholderData to prevent undefined
+    } catch (error: any) {
+      console.error('❌ Add site error:', error);
+      
+      // Check if it's an authentication error
+      if (error?.message?.includes('Authentication failed') || error?.response?.status === 401) {
+        toast({
+          title: "Authentication Error",
+          description: "Your session has expired. Please log in again.",
+          variant: "destructive",
+        });
+        // The API interceptor will handle the redirect
+        return;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to add site. Please try again.",
+        description: error?.message || "Failed to add site. Please try again.",
         variant: "destructive",
       });
+      // Don't close the form on error so user can retry
     }
   };
 
   const handleUpdateSite = async (id: string, siteData: CrawlSiteData) => {
     try {
-      await updateSite({ id, siteData });
+      await updateSiteAsync({ id, siteData });
       toast({
         title: "Site Updated",
         description: "Site configuration updated successfully",
       });
       setEditingSite(null);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Update site error:', error);
       toast({
         title: "Error",
-        description: "Failed to update site. Please try again.",
+        description: error?.message || "Failed to update site. Please try again.",
         variant: "destructive",
       });
     }
@@ -165,15 +176,16 @@ export default function Crawl() {
 
   const handleDeleteSite = async (id: string) => {
     try {
-      await deleteSite(id);
+      await deleteSiteAsync(id);
       toast({
         title: "Site Deleted",
         description: "Site removed successfully",
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Delete site error:', error);
       toast({
         title: "Error",
-        description: "Failed to delete site. Please try again.",
+        description: error?.message || "Failed to delete site. Please try again.",
         variant: "destructive",
       });
     }
@@ -361,7 +373,7 @@ export default function Crawl() {
           </div>
           <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
             <CrawlJobs 
-              sites={sites} 
+              sites={sites || []} 
               statusFilter={jobStatusFilter}
               dateFilter={dateFilter}
           />
@@ -387,7 +399,7 @@ export default function Crawl() {
               if (!open) setEditingSite(null);
             }}
           onSubmit={(data) => handleUpdateSite(editingSite, data)}
-          editData={sites.find((s: any) => s.id === editingSite)}
+          editData={sites && Array.isArray(sites) ? (sites.find((s: any) => s?.id === editingSite) as any) : undefined}
         />
         </Suspense>
       )}

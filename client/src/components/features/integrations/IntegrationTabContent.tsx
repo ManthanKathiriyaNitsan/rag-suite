@@ -222,7 +222,7 @@ export function IntegrationTabContent({ tabId, formData, onUpdate, users }: TabC
 
   return (
     <TabsContent value={tabId} className="mt-0">
-      <TabComponent {...getTabProps()} />
+      <TabComponent {...(getTabProps() as any)} />
     </TabsContent>
   );
 }

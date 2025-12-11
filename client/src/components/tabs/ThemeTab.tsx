@@ -294,8 +294,7 @@ export default function ThemeTab({ data, onChange }: ThemeTabProps) {
     if (setTypography) {
       setTypography({
         fontFamily: theme.fontFamily,
-        baseFontSize: theme.fontSize.base,
-        lineHeight: theme.lineHeight.normal,
+        baseFontSize: theme.fontSize?.base,
       });
     }
   }, [theme.fontFamily, theme.fontSize.base, theme.lineHeight.normal, setTypography]);
@@ -304,10 +303,10 @@ export default function ThemeTab({ data, onChange }: ThemeTabProps) {
   useEffect(() => {
     if (setLayout) {
       setLayout({
-        sidebarWidth: theme.layout.sidebarWidth,
-        headerHeight: theme.layout.headerHeight,
-        containerMaxWidth: theme.layout.containerMaxWidth,
-      });
+        sidebarWidth: theme.layout?.sidebarWidth,
+        headerHeight: theme.layout?.headerHeight,
+        containerMaxWidth: theme.layout?.containerMaxWidth,
+      } as any);
     }
   }, [theme.layout.sidebarWidth, theme.layout.headerHeight, theme.layout.containerMaxWidth, setLayout]);
 
@@ -468,25 +467,15 @@ export default function ThemeTab({ data, onChange }: ThemeTabProps) {
         </TabsContent>
 
         <TabsContent value="typography" className="space-y-4">
-          <ThemeTypographySection
-            theme={theme}
-            onUpdateTheme={updateTheme}
-          />
+          <ThemeTypographySection />
         </TabsContent>
 
         <TabsContent value="layout" className="space-y-4">
-          <ThemeLayoutSection
-            theme={theme}
-            onUpdateTheme={updateTheme}
-          />
+          <ThemeLayoutSection />
         </TabsContent>
 
         <TabsContent value="advanced" className="space-y-4">
-          <ThemeAdvancedSection
-            theme={theme}
-            onUpdateTheme={updateTheme}
-            onExportTheme={exportTheme}
-          />
+          <ThemeAdvancedSection />
         </TabsContent>
       </Tabs>
     </div>

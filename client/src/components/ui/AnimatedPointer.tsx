@@ -192,7 +192,7 @@ export function AnimatedPointer({
     const matchesPrimaryColor = primaryRgb && backgroundColor === primaryRgb
     
     // Only return true if we have a clear indication of primary color
-    return hasPrimaryClass || matchesPrimaryColor
+    return hasPrimaryClass || (matchesPrimaryColor === true)
   }
 
   // Function to get contrasting color

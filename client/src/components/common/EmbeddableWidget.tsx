@@ -320,19 +320,13 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
       console.log("🔍 First 5 sources:", sources.slice(0, 5));
       console.log("🔍 All sources structure:", sources.map((s, i) => ({ index: i, title: s.title, url: s.url, snippet: s.snippet?.substring(0, 50) + "..." })));
 
-      // 🔧 Fallback: If no sources from API, create mock sources based on TopK
-      let finalSources = sources;
-      if (sources.length === 0 && actualTopK > 0) {
-        console.log("🔧 No sources from API, creating mock sources for TopK:", actualTopK);
-        finalSources = Array.from({ length: actualTopK }, (_, i) => ({
-          title: `Search Result ${i + 1}`,
-          url: "#",
-          snippet: `This is search result ${i + 1} based on your query: "${query}"`
-        }));
+      // Use only real API sources - no mock data fallback
+      if (sources.length === 0) {
+        console.log("⚠️ No sources returned from API for this query");
       }
 
-      // Create final assistant message with RAG settings
-      const mappedSources = finalSources.map((source: any) => ({
+      // Create final assistant message with RAG settings using only real API data
+      const mappedSources = sources.map((source: any) => ({
         title: source.title || "Unknown Source",
         url: source.url || "#",
         snippet: source.snippet || "No snippet available",

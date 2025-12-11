@@ -132,7 +132,7 @@ export default function ConfigTab({ data, onChange }: ConfigTabProps) {
   const handleNestedConfigChange = (path: string, value: any) => {
     const keys = path.split('.');
     const updated = { ...config };
-    let current = updated;
+    let current: any = updated;
     
     for (let i = 0; i < keys.length - 1; i++) {
       current = current[keys[i]];

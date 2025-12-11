@@ -4,6 +4,7 @@
  */
 
 import { ReactNode } from 'react';
+import { AuthUser } from './contexts';
 
 // Search Hook Types
 export interface SearchParams {

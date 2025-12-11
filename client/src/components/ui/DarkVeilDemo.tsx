@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Button } from './Button';
-import { Card, CardContent, CardHeader, CardTitle } from './Card';
-import { Slider } from './Slider';
+import { Button } from './button';
+import { Card, CardContent, CardHeader, CardTitle } from './card';
+import { Slider } from './slider';
 import ResponsiveDarkVeil from './ResponsiveDarkVeil';
 
 export function DarkVeilDemo() {

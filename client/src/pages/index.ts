@@ -6,7 +6,7 @@
 export { default as Analytics } from './Analytics';
 export { default as Crawl } from './Crawl';
 export { default as Documents } from './Documents';
-export { default as ErrorPages, NotFound } from './ErrorPages';
+export { NotFound, PermissionDenied, ServerError, EmptyQueries, EmptyDocuments, EmptyFeedback } from './ErrorPages';
 export { default as Feedback } from './Feedback';
 export { default as Integrations } from './Integrations';
 export { default as Login } from './Login';

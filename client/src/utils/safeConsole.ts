@@ -53,7 +53,13 @@ export function safeLog(message: string, data?: unknown): void {
  */
 export function safeLogError(message: string, error: unknown): void {
   try {
-    console.error(message, error?.message || error?.toString() || error);
+    if (error instanceof Error) {
+      console.error(message, error.message, error);
+    } else if (error && typeof error === 'object' && 'message' in error) {
+      console.error(message, String((error as { message: unknown }).message), error);
+    } else {
+      console.error(message, error?.toString() || error);
+    }
   } catch (logError) {
     console.error(message, '[Unable to log error]');
   }

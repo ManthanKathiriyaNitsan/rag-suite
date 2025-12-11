@@ -16,9 +16,9 @@ export { default as NotificationInbox } from './NotificationInbox';
 export { default as SearchBar } from './SearchBar';
 
 // Interactive Components
-export { default as EmbeddableWidget } from './EmbeddableWidget';
+export { EmbeddableWidget } from './EmbeddableWidget';
 export { default as OnboardingTour } from './OnboardingTour';
 export { default as HelpSystem } from './HelpSystem';
 
 // Utility Components
-export { default as AuditLog } from './AuditLog';
+export { AuditLog } from './AuditLog';

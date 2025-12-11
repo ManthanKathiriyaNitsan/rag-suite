@@ -139,7 +139,7 @@ export interface AnalyticsTabProps {
 }
 
 // Permissions Tab
-export interface User {
+export interface PermissionUser {
   id: string;
   name: string;
   email: string;
@@ -161,7 +161,7 @@ export interface Role {
 }
 
 export interface PermissionsTabProps {
-  users: User[];
+  users: PermissionUser[];
   roles: Role[];
   onInviteUser: (email: string, role: string) => void;
   onUpdateUserRole: (userId: string, role: string) => void;

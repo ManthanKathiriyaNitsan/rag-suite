@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Button, ButtonProps } from "./button"
-import { PointerTypes } from "./animated-pointer"
+import { PointerTypes } from "./AnimatedPointer"
 import { cn } from "@/utils"
 
 export interface EnhancedButtonProps extends ButtonProps {

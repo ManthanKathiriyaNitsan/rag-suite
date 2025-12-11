@@ -170,7 +170,7 @@ export default function OverviewTab({ data, users = [], onChange }: OverviewTabP
                     {selectedOwner ? (
                       <div className="flex items-center gap-2">
                         <UserIcon className="h-4 w-4" />
-                        <span>{selectedOwner.name}</span>
+                        <span>{selectedOwner.firstName} {selectedOwner.lastName}</span>
                       </div>
                     ) : (
                       "Select owner..."
@@ -203,7 +203,7 @@ export default function OverviewTab({ data, users = [], onChange }: OverviewTabP
                             <div className="flex items-center gap-2">
                               <UserIcon className="h-4 w-4" />
                               <div>
-                                <div className="font-medium">{user.name}</div>
+                                <div className="font-medium">{user.firstName} {user.lastName}</div>
                                 <div className="text-sm text-muted-foreground">{user.email}</div>
                               </div>
                             </div>

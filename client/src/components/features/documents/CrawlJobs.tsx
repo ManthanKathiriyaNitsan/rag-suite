@@ -14,7 +14,15 @@ interface CrawlJobsProps {
 const CrawlJobs = React.memo(function CrawlJobs({ sites, statusFilter = "all", dateFilter = "today" }: CrawlJobsProps) {
   // 📊 Memoized filtered sites based on status and date
   const filteredSites = useMemo(() => {
+    // Ensure sites is an array before filtering
+    if (!sites || !Array.isArray(sites)) {
+      return [];
+    }
     return sites.filter((site) => {
+      // Ensure site is valid
+      if (!site || !site.id) {
+        return false;
+      }
       // For now, we'll filter based on the site's basic properties
       // The actual status filtering will be done in CrawlJobRow based on the badge status
       return true; // We'll do the actual filtering in CrawlJobRow
@@ -31,27 +39,31 @@ const CrawlJobs = React.memo(function CrawlJobs({ sites, statusFilter = "all", d
     statusFilter?: string; 
     dateFilter?: string; 
   }) {
-    const { startCrawl, status } = useCrawlOperations();
+    const { startCrawl } = useCrawlOperations();
     
-    // Mock status based on site properties for now
-    const mockStatus = {
-      isRunning: site.status === "crawling",
+    // Determine status based on site properties
+    if (!site) {
+      return null;
+    }
+    
+    const jobStatus = {
+      isRunning: site.status === "crawling" || site.status === "running",
       completedAt: site.lastCrawled ? new Date(site.lastCrawled) : null,
-      error: site.status === "failed" ? "Crawl failed" : null
+      error: site.status === "error" || site.status === "failed" ? "Crawl failed" : null
     };
 
     return (
       <div className="flex items-center justify-between p-4 border rounded-lg hover-elevate" data-testid={`job-row-${site.id}`}>
         <div className="flex items-center space-x-4">
           <div className="flex-1 min-w-0">
-            <h4 className="font-medium truncate">{site.name}</h4>
-            <p className="text-sm text-muted-foreground truncate">{site.url}</p>
+            <h4 className="font-medium truncate">{site.name || 'Unnamed Site'}</h4>
+            <p className="text-sm text-muted-foreground truncate">{site.url || 'No URL'}</p>
           </div>
           <div className="flex items-center space-x-2">
-            <Badge variant={mockStatus.isRunning ? "default" : "secondary"}>
-              {mockStatus.isRunning ? "Running" : "Idle"}
+            <Badge variant={jobStatus.isRunning ? "default" : "secondary"}>
+              {jobStatus.isRunning ? "Running" : "Idle"}
             </Badge>
-            {mockStatus.isRunning && <Loader2 className="h-4 w-4 animate-spin" />}
+            {jobStatus.isRunning && <Loader2 className="h-4 w-4 animate-spin" />}
           </div>
         </div>
         <div className="text-right">
@@ -59,8 +71,8 @@ const CrawlJobs = React.memo(function CrawlJobs({ sites, statusFilter = "all", d
             {site.pagesCrawled || 0} pages
           </p>
           <p className="text-xs text-muted-foreground">
-            {mockStatus.completedAt ? `Finished ${mockStatus.completedAt.toLocaleTimeString()}` : "In progress"}
-            {mockStatus.error ? ` • Error: ${mockStatus.error}` : ""}
+            {jobStatus.completedAt ? `Finished ${jobStatus.completedAt.toLocaleTimeString()}` : "In progress"}
+            {jobStatus.error ? ` • Error: ${jobStatus.error}` : ""}
           </p>
         </div>
       </div>
@@ -73,16 +85,22 @@ const CrawlJobs = React.memo(function CrawlJobs({ sites, statusFilter = "all", d
         <CardTitle>Crawl Jobs</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          {filteredSites.map((site) => (
-            <CrawlJobRow 
-              key={site.id} 
-              site={site} 
-              statusFilter={statusFilter}
-              dateFilter={dateFilter}
-            />
-          ))}
-        </div>
+        {filteredSites.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            No crawl jobs found. Start a crawl to see jobs here.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredSites.map((site) => (
+              <CrawlJobRow 
+                key={site.id} 
+                site={site} 
+                statusFilter={statusFilter}
+                dateFilter={dateFilter}
+              />
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
