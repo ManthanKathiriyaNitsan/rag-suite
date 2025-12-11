@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 🌐 API Configuration - Unified API base URL for all endpoints
-const API_BASE_URL = 'http://192.168.0.112:8000/api/v1';
+const API_BASE_URL = 'http://18.159.60.199:8000/api/v1';
 
 // 📡 Create axios instance - This is your unified API client
 export const apiClient = axios.create({
@@ -516,20 +516,52 @@ export const authAPI = {
         password: credentials.password,
       });
       
-      console.log('✅ Login successful:', response.data);
+      console.log('✅ Login successful - Full response:', JSON.stringify(response.data, null, 2));
       
       // Transform response to match expected format
-      return {
-        token: response.data.access_token,
+      // Handle different token field names: access_token, token, or auth_token
+      const token = response.data.access_token || 
+                   response.data.token || 
+                   response.data.auth_token ||
+                   response.data.accessToken ||
+                   response.data.access_token_value;
+      
+      console.log('🔑 Extracted token:', token ? 'Token found' : 'No token found', {
+        hasAccessToken: !!response.data.access_token,
+        hasToken: !!response.data.token,
+        hasAuthToken: !!response.data.auth_token,
+        hasAccessTokenValue: !!response.data.access_token_value,
+        responseKeys: Object.keys(response.data || {})
+      });
+      
+      // Handle different user object structures
+      const userData = response.data.user || response.data;
+      
+      const transformedResponse = {
+        token: token || '',
         user: {
-          id: response.data.user?.id || '1',
-          username: response.data.user?.username || credentials.username,
-          email: response.data.user?.email || '',
-          role: 'admin',
-          permissions: ['read', 'write', 'admin']
+          id: userData?.id || userData?.user_id || '1',
+          username: userData?.username || credentials.username,
+          email: userData?.email || userData?.email_address || '',
+          role: userData?.role || 'admin',
+          permissions: userData?.permissions || ['read', 'write', 'admin']
         },
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutes from now
+        expiresAt: response.data.expiresAt || 
+                   response.data.expires_at || 
+                   (response.data.expires_in ? 
+                     new Date(Date.now() + (response.data.expires_in * 1000)).toISOString() :
+                     new Date(Date.now() + 30 * 60 * 1000).toISOString()) // Default: 30 minutes from now
       };
+      
+      console.log('🔄 Transformed login response:', transformedResponse);
+      
+      // Validate that we have a token
+      if (!transformedResponse.token) {
+        console.error('❌ No token found in response! Response data:', response.data);
+        throw new Error('Login successful but no token received from server');
+      }
+      
+      return transformedResponse;
     } catch (error) {
       console.error('❌ Login failed:', error);
       throw error;

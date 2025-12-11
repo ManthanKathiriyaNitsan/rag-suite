@@ -34,14 +34,14 @@ interface RowProps<T> {
 }
 
 function VirtualizedRow<T>({ index, style, data }: RowProps<T>) {
-  // Defensive checks for data structure
-  if (!data || !data.items || !data.columns) {
+  // Validate data structure
+  if (!data || typeof data !== 'object') {
     console.error('VirtualizedRow: Invalid data prop', data);
     return (
       <div style={style}>
         <TableRow>
           <TableCell colSpan={1} className="p-2 text-center text-muted-foreground">
-            Invalid row data
+            Invalid data structure
           </TableCell>
         </TableRow>
       </div>
@@ -50,14 +50,14 @@ function VirtualizedRow<T>({ index, style, data }: RowProps<T>) {
 
   const { items, columns, onRowClick } = data;
   
-  // Ensure items and columns are arrays
+  // Validate items and columns
   if (!Array.isArray(items) || !Array.isArray(columns)) {
-    console.error('VirtualizedRow: items or columns is not an array', { items, columns });
+    console.error('VirtualizedRow: Invalid items or columns', { items, columns });
     return (
       <div style={style}>
         <TableRow>
           <TableCell colSpan={1} className="p-2 text-center text-muted-foreground">
-            Invalid data structure
+            Invalid data format
           </TableCell>
         </TableRow>
       </div>
@@ -71,7 +71,7 @@ function VirtualizedRow<T>({ index, style, data }: RowProps<T>) {
     return (
       <div style={style}>
         <TableRow>
-          <TableCell colSpan={columns.length} className="p-2 text-center text-muted-foreground">
+          <TableCell colSpan={columns.length || 1} className="p-2 text-center text-muted-foreground">
             Invalid data
           </TableCell>
         </TableRow>
@@ -85,6 +85,9 @@ function VirtualizedRow<T>({ index, style, data }: RowProps<T>) {
     }
   }, [item, index, onRowClick]);
 
+  // Ensure columns is an array before mapping
+  const validColumns = Array.isArray(columns) ? columns.filter(col => col && col.key) : [];
+
   return (
     <div style={style}>
       <TableRow 
@@ -92,8 +95,7 @@ function VirtualizedRow<T>({ index, style, data }: RowProps<T>) {
         onClick={handleClick}
         data-testid={`row-virtual-${index}`}
       >
-        {columns.map((column) => {
-          // Ensure column is valid
+        {validColumns.map((column) => {
           if (!column || !column.key) {
             return null;
           }
@@ -135,62 +137,60 @@ export function VirtualizedTable<T>({
       console.warn('VirtualizedTable: columns is not an array, returning empty array');
       return [];
     }
-    return columns.filter((col) => col != null);
+    return columns.filter((col) => col != null && col.key);
   }, [columns]);
 
-  // Create stable itemData object - ensure it's never undefined
   const itemData = useMemo(() => {
-    const dataObj = {
+    // Ensure itemData is always a valid object
+    const data = {
       items: safeData,
       columns: safeColumns,
       onRowClick: onRowClick || undefined,
     };
-    // Ensure the object is properly structured
-    if (!dataObj.items || !dataObj.columns) {
-      console.warn('VirtualizedTable: itemData has invalid structure', dataObj);
+    
+    // Validate the structure before returning
+    if (!Array.isArray(data.items) || !Array.isArray(data.columns)) {
+      console.error('VirtualizedTable: Invalid itemData structure', data);
       return {
         items: [],
         columns: [],
         onRowClick: undefined,
       };
     }
-    return dataObj;
+    
+    return data;
   }, [safeData, safeColumns, onRowClick]);
 
-  // Early return if no data or no columns
-  if (safeData.length === 0 || safeColumns.length === 0) {
+  // Don't render if no columns
+  if (safeColumns.length === 0) {
+    return (
+      <div className={`w-full ${className}`}>
+        <div className="text-center py-8 text-muted-foreground">
+          No columns defined
+        </div>
+      </div>
+    );
+  }
+
+  if (safeData.length === 0) {
     return (
       <div className={`w-full ${className}`}>
         <Table>
           <TableHeader>
             <TableRow>
-              {safeColumns.length > 0 ? safeColumns.map((column) => (
+              {safeColumns.map((column) => (
                 <TableHead 
                   key={column.key}
                   style={{ width: column.width }}
                 >
                   {column.label}
                 </TableHead>
-              )) : (
-                <TableHead>No columns defined</TableHead>
-              )}
+              ))}
             </TableRow>
           </TableHeader>
         </Table>
         <div className="text-center py-8 text-muted-foreground">
-          {safeData.length === 0 ? 'No data available' : 'No columns available'}
-        </div>
-      </div>
-    );
-  }
-
-  // Ensure itemData is valid before rendering List
-  if (!itemData || !itemData.items || !itemData.columns) {
-    console.error('VirtualizedTable: Invalid itemData, cannot render List', itemData);
-    return (
-      <div className={`w-full ${className}`}>
-        <div className="text-center py-8 text-muted-foreground">
-          Error: Invalid table data
+          No data available
         </div>
       </div>
     );
@@ -218,7 +218,7 @@ export function VirtualizedTable<T>({
           width: "100%",
           itemCount: safeData.length,
           itemSize: itemHeight,
-          itemData: itemData, // Explicitly pass the validated itemData
+          itemData,
           overscanCount: 5,
           children: VirtualizedRow as any,
         })}

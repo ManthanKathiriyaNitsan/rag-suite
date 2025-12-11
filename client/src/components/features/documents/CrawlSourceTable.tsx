@@ -128,8 +128,18 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
     );
   }
 
-  // Memoize columns to prevent recreation on every render
-  const tableColumns = useMemo(() => [
+  return (
+    <Card className="w-full overflow-hidden">
+      <CardHeader>
+        <CardTitle>Crawl Sources</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-xs text-muted-foreground mb-2 p-2">
+          🚀 Virtualized table for optimal performance with large datasets
+        </div>
+        <VirtualizedTable
+        data={safeSites}
+        columns={[
           {
             key: 'url',
             label: 'URL',
@@ -259,25 +269,12 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
               </DropdownMenu>
             ),
           },
-        ], [isStarting, isDeleting]);
-
-  return (
-    <Card className="w-full overflow-hidden">
-      <CardHeader>
-        <CardTitle>Crawl Sources</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-xs text-muted-foreground mb-2 p-2">
-          🚀 Virtualized table for optimal performance with large datasets
-        </div>
-        <VirtualizedTable
-          data={safeSites}
-          columns={tableColumns}
-          height={400}
-          itemHeight={60}
-          className="min-w-[800px]"
-          onRowClick={(site: CrawlSite) => handleAction("edit", site.id)}
-        />
+        ]}
+        height={400}
+        itemHeight={60}
+        className="min-w-[800px]"
+        onRowClick={(site: CrawlSite) => handleAction("edit", site.id)}
+      />
       </CardContent>
     </Card>
   );

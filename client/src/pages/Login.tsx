@@ -10,13 +10,22 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { BackgroundWrapper } from "@/components/common/BackgroundWrapper";
 import { GlassCard } from "@/components/ui/GlassCard";
 
-const Login = React.memo(function Login() {
+function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, setLocation] = useLocation();
   const { login, isLoading, isAuthenticated, error: authError } = useAuthContext();
+  
+  // Debug: Log when isAuthenticated changes
+  useEffect(() => {
+    console.log('🔍 Login component - Auth state:', {
+      isAuthenticated,
+      isLoading,
+      shouldRedirect: isAuthenticated && !isLoading
+    });
+  }, [isAuthenticated, isLoading]);
 
   // Sync error from auth context
   useEffect(() => {
@@ -27,11 +36,36 @@ const Login = React.memo(function Login() {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      console.log('✅ User already authenticated, redirecting to dashboard');
-      setLocation("/");
+    console.log('🔍 Login useEffect - Checking auth state:', {
+      isAuthenticated,
+      isLoading,
+      willRedirect: isAuthenticated && !isLoading
+    });
+    
+    if (isAuthenticated && !isLoading) {
+      console.log('✅ User authenticated and not loading, redirecting to dashboard');
+      // Use setTimeout to ensure state is fully updated before redirect
+      const redirectTimer = setTimeout(() => {
+        console.log('🔄 Executing redirect to dashboard via setLocation');
+        try {
+          setLocation("/");
+          // Fallback: if setLocation doesn't work, use window.location
+          setTimeout(() => {
+            if (window.location.pathname === '/login') {
+              console.log('⚠️ Still on login page, using window.location as fallback');
+              window.location.href = '/';
+            }
+          }, 200);
+        } catch (error) {
+          console.error('❌ Redirect error:', error);
+          // Fallback to window.location
+          window.location.href = '/';
+        }
+      }, 150);
+      
+      return () => clearTimeout(redirectTimer);
     }
-  }, [isAuthenticated, setLocation]);
+  }, [isAuthenticated, isLoading, setLocation]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,12 +74,28 @@ const Login = React.memo(function Login() {
     if (username && password) {
       // Use the unified auth system from AuthContext
       // The login function will handle storing tokens and updating state
-      // Navigation will happen automatically via the useEffect above
       login({ username, password });
+      
+      // Backup redirect: Check after a delay if redirect didn't happen via useEffect
+      setTimeout(() => {
+        const token = localStorage.getItem('auth_token');
+        const user = localStorage.getItem('user_data');
+        if (token && user && window.location.pathname === '/login') {
+          console.log('🔄 Backup redirect triggered - still on login page');
+          setLocation("/");
+          // Final fallback
+          setTimeout(() => {
+            if (window.location.pathname === '/login') {
+              console.log('🔄 Final fallback redirect using window.location');
+              window.location.href = '/';
+            }
+          }, 100);
+        }
+      }, 500);
     } else {
       setError('Please enter both username and password');
     }
-  }, [username, password, login]);
+  }, [username, password, login, setLocation]);
 
   return (
     <div className="relative min-h-screen flex">
@@ -246,6 +296,6 @@ const Login = React.memo(function Login() {
       </div>
     </div>
   );
-});
+}
 
 export default Login;
