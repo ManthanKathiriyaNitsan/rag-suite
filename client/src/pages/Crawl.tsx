@@ -80,38 +80,25 @@ export default function Crawl() {
     isLoading: statsLoading,
   } = useCrawlStats();
 
-  // Filter and search logic
-  // CRITICAL: Always return an array, never undefined/null
   const filteredSites = useMemo(() => {
-    // Ensure sites is an array before filtering
-    if (!sites) {
-      return [];
-    }
-    if (!Array.isArray(sites)) {
-      console.warn('Crawl: sites is not an array, got:', typeof sites);
-      return [];
-    }
-    
-    return sites.filter((site: any) => {
-      // Ensure site is valid
-      if (!site || !site.id) {
-        return false;
-      }
-      
-      // Search filter
-      const matchesSearch = searchQuery === "" || 
+    const list = Array.isArray(sites) ? sites : [];
+    return list.filter(site => {
+      if (!site || !site.id) return false;
+
+      const matchesSearch =
+        searchQuery === "" ||
         site.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         site.url?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         site.description?.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      // Status filter
-      const matchesStatus = statusFilter === "all" || 
+
+      const matchesStatus =
+        statusFilter === "all" ||
         site.status?.toLowerCase() === statusFilter.toLowerCase();
-      
-      // Cadence filter
-      const matchesCadence = cadenceFilter === "all" || 
+
+      const matchesCadence =
+        cadenceFilter === "all" ||
         site.cadence?.toLowerCase() === cadenceFilter.toLowerCase();
-      
+
       return matchesSearch && matchesStatus && matchesCadence;
     });
   }, [sites, searchQuery, statusFilter, cadenceFilter]);

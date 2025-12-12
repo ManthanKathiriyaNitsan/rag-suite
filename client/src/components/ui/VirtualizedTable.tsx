@@ -112,72 +112,34 @@ export function VirtualizedTable<T>({
     return columns.filter((col) => col != null);
   }, [columns]);
 
-  // Track previous itemData structure to detect transitions
-  const previousItemDataRef = useRef<{ itemsLength: number; columnsLength: number } | null>(null);
-  
-  // Ensure itemData is always a valid object with all required properties
-  // This must be a stable reference to prevent react-window errors
-  // CRITICAL: react-window's useMemoizedObject will crash if any property is undefined
+  // CRITICAL: Ensure itemData is ALWAYS a valid object with all required properties
+  // react-window's useMemoizedObject will crash if any property is undefined
   const itemData = useMemo(() => {
-    // Ensure safeData and safeColumns are always arrays (never undefined/null)
-    const validItems: T[] = Array.isArray(safeData) 
-      ? safeData.filter((item) => item != null && typeof item === 'object') 
-      : [];
+    // Ensure we always have valid arrays
+    const validItems = Array.isArray(safeData) ? safeData.filter(item => item != null && typeof item === 'object') : [];
+    const validColumns = Array.isArray(safeColumns) ? safeColumns.filter(col => col != null && typeof col === 'object') : [];
     
-    const validColumns: VirtualizedTableProps<T>['columns'] = Array.isArray(safeColumns)
-      ? safeColumns.filter((col) => col != null && typeof col === 'object')
-      : [];
-    
-    // CRITICAL: If we have no valid items or columns, return a minimal valid structure
-    // This prevents react-window from receiving undefined properties
-    if (validItems.length === 0 || validColumns.length === 0) {
-      return {
-        items: [],
-        columns: validColumns.length > 0 ? validColumns : [],
-      };
-    }
-    
-    // Create a completely valid object with NO undefined values
-    // All properties must be explicitly defined to prevent useMemoizedObject crashes
-    const dataObj: {
-      items: T[];
-      columns: VirtualizedTableProps<T>['columns'];
-      onRowClick?: (item: T, index: number) => void;
-    } = {
-      items: validItems, // Always an array, never undefined
-      columns: validColumns, // Always an array, never undefined
+    // Return a guaranteed valid object structure
+    return {
+      items: validItems,
+      columns: validColumns,
+      onRowClick: typeof onRowClick === "function" ? onRowClick : undefined,
     };
-    
-    // Only add onRowClick if it's a valid function (optional property)
-    if (onRowClick && typeof onRowClick === 'function') {
-      dataObj.onRowClick = onRowClick;
-    }
-    
-    // Track structure for transition detection
-    previousItemDataRef.current = {
-      itemsLength: validItems.length,
-      columnsLength: validColumns.length,
-    };
-    
-    // Return the object directly without freezing
-    // This avoids potential issues with some libraries that might try to mutate or add properties
-    return dataObj;
   }, [safeData, safeColumns, onRowClick]);
-  
-  // Track if we're in a transition state (data structure is changing)
-  const isTransitioning = useMemo(() => {
-    if (!previousItemDataRef.current) return false;
-    const current = {
-      itemsLength: itemData.items.length,
-      columnsLength: itemData.columns.length,
-    };
-    const previous = previousItemDataRef.current;
-    // Detect if structure changed significantly (more than just adding/removing one item)
-    return Math.abs(current.itemsLength - previous.itemsLength) > 1 ||
-           current.columnsLength !== previous.columnsLength;
+
+  // CRITICAL: Validate itemData structure before using it
+  // This prevents react-window from receiving invalid data
+  const isValidItemData = useMemo(() => {
+    return itemData != null &&
+           typeof itemData === 'object' &&
+           !Array.isArray(itemData) &&
+           Array.isArray(itemData.items) &&
+           Array.isArray(itemData.columns) &&
+           itemData.items.every((item: any) => item != null && typeof item === 'object') &&
+           itemData.columns.every((col: any) => col != null && typeof col === 'object');
   }, [itemData]);
 
-  if (safeData.length === 0) {
+  if (safeData.length === 0 || !isValidItemData) {
     return (
       <div className={`w-full ${className}`}>
         <Table>
@@ -210,25 +172,11 @@ export function VirtualizedTable<T>({
     return `list-${safeData.length}-${ids}`;
   }, [safeData]);
 
-  // Only render List if we have valid data and itemData is properly structured
-  // CRITICAL: Ensure itemData is a valid object before passing to react-window
-  // Double-check all conditions to prevent useMemoizedObject crashes
-  // Add extra validation to ensure itemData is completely valid
-  // CRITICAL: Don't render during transitions to prevent undefined errors
-  const shouldRenderList = !isTransitioning && // Don't render during transitions
-                          safeData.length > 0 && 
-                          itemData != null &&
-                          typeof itemData === 'object' &&
-                          !Array.isArray(itemData) && // Ensure it's an object, not an array
-                          Object.keys(itemData).length > 0 && // Ensure object has properties
-                          'items' in itemData &&
-                          'columns' in itemData &&
-                          Array.isArray(itemData.items) &&
-                          Array.isArray(itemData.columns) &&
-                          itemData.items.length > 0 && 
-                          itemData.columns.length > 0 &&
-                          itemData.items.every((item: any) => item != null && typeof item === 'object') && // Ensure no null items and all are objects
-                          itemData.columns.every((col: any) => col != null && typeof col === 'object'); // Ensure no null columns and all are objects
+  // CRITICAL: Only render if itemData is completely valid
+  const shouldRenderList =
+    isValidItemData &&
+    itemData.items.length > 0 &&
+    itemData.columns.length > 0;
 
   // Use a ref to get the actual width of the container
   const containerRef = useRef<HTMLDivElement>(null);
@@ -277,7 +225,7 @@ export function VirtualizedTable<T>({
         </TableHeader>
       </Table>
       <div style={{ height: validHeight }}>
-        {shouldRenderList && itemData != null && validItemCount > 0 && !isTransitioning ? (
+        {shouldRenderList && isValidItemData && itemData != null ? (
           React.createElement(List, {
             key: listKey,
             height: validHeight,
@@ -313,7 +261,7 @@ export function VirtualizedTable<T>({
           } as any)
         ) : (
           <div className="text-center py-8 text-muted-foreground">
-            {isTransitioning ? 'Updating...' : 'No data available'}
+            No data available
           </div>
         )}
       </div>

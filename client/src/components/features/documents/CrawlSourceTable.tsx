@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
-import { MoreHorizontal, Eye, Edit, Play, Pause, Trash2, Loader2 } from "lucide-react";
+import React, { useState, useMemo, useRef } from "react";
+import { MoreHorizontal, Eye, Edit, Play, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import {
   Table,
@@ -9,7 +9,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { VirtualizedTable } from "@/components/ui/VirtualizedTable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -105,97 +104,46 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
     }
   };
 
-  // Ensure sites is an array and filter out any invalid entries
-  // CRITICAL: Always return an array, never undefined/null
   const safeSites = useMemo(() => {
-    console.log('🔍 CrawlSourceTable - Processing sites:', {
-      sites,
-      sitesType: typeof sites,
-      isArray: Array.isArray(sites),
-      length: Array.isArray(sites) ? sites.length : 'N/A',
-      isFetching,
-      isLoading,
-      hasHadData: hasHadDataRef.current
-    });
-    
-    if (!sites) {
-      console.warn('⚠️ CrawlSourceTable: sites is falsy, returning empty array');
-      return [];
-    }
-    if (!Array.isArray(sites)) {
-      console.warn('⚠️ CrawlSourceTable: sites is not an array, got:', typeof sites);
-      return [];
-    }
-    // Filter out null/undefined and ensure each site has an id
-    const filtered = sites.filter((site) => site != null && site.id);
-    console.log('✅ CrawlSourceTable - Filtered sites:', {
-      originalLength: sites.length,
-      filteredLength: filtered.length
-    });
-    return filtered;
-  }, [sites, isFetching, isLoading]);
+    return Array.isArray(sites) ? sites.filter(s => s != null) : [];
+  }, [sites]);
 
   // CRITICAL: Prevent rendering VirtualizedTable during ANY refetch operation
-  // Check isFetching FIRST - if we're fetching and we've had data, it's a refetch
-  // This prevents react-window from receiving undefined data during refetch transitions
-  // The key is checking isFetching BEFORE processing the data
-  // Also check if safeSites is empty during refetch - this indicates a transition state
-  const isRefetchingTransition = isFetching && hasHadDataRef.current;
-  const isEmptyDuringRefetch = isRefetchingTransition && (!safeSites || safeSites.length === 0);
-  
-  if (isRefetchingTransition || isEmptyDuringRefetch) {
-    // We're refetching (we've had data before) - don't render table
-    // This prevents the brief moment when data becomes undefined during refetch
-    console.log('🔄 Refetch detected - showing loading state to prevent undefined error', {
-      isRefetching,
-      isFetching,
-      isLoading,
-      hasHadData: hasHadDataRef.current,
-      sitesLength: sites?.length || 0,
-      safeSitesLength: safeSites?.length || 0,
-      isRefetchingTransition,
-      isEmptyDuringRefetch
-    });
-    return (
-      <Card className="w-full overflow-hidden">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Crawl Sources
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground text-sm">
-            Refreshing data...
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-  
-  // ADDITIONAL SAFETY: If sites is undefined/null but we've had data, we're in a transition
-  // Don't render table during this transition
-  if ((!sites || (Array.isArray(sites) && sites.length === 0)) && hasHadDataRef.current && !isLoading) {
-    console.log('⚠️ Sites is empty but we had data before - transition state, showing loading', {
-      sites,
-      hasHadData: hasHadDataRef.current,
-      isLoading
-    });
-    return (
-      <Card className="w-full overflow-hidden">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Crawl Sources
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground text-sm">
-            Refreshing data...
-          </div>
-        </CardContent>
-      </Card>
-    );
+  // This prevents react-window from receiving undefined data during transitions
+  if (isFetching || isRefetching) {
+    // If we've had data before, show loading state
+    if (hasHadDataRef.current) {
+      return (
+        <Card className="w-full overflow-hidden">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Crawl Sources
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              Refreshing data...
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+    // If initial load, show loading state
+    if (isLoading) {
+      return (
+        <Card className="w-full overflow-hidden">
+          <CardContent>
+            <div className="text-center py-8">
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Loading sites...</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
   }
 
   // Show loading state if initial load and no data
@@ -214,9 +162,27 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
     );
   }
 
-  // Additional safety check: Don't render table if sites is invalid
+  // CRITICAL: Additional safety check - Don't render table if sites is invalid
   // This prevents the error during refetch transitions
-  if (!safeSites || !Array.isArray(safeSites) || safeSites.length === 0) {
+  // Also check if we're in a fetching state - don't render during any fetch operation
+  if (!safeSites || !Array.isArray(safeSites) || safeSites.length === 0 || isFetching || isRefetching) {
+    if (isFetching || isRefetching) {
+      return (
+        <Card className="w-full overflow-hidden">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Crawl Sources
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              Refreshing data...
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
     return (
       <Card className="w-full overflow-hidden">
         <CardContent>
@@ -236,147 +202,142 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
         <CardTitle>Crawl Sources</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-xs text-muted-foreground mb-2 p-2">
-          🚀 Virtualized table for optimal performance with large datasets
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[250px]">URL</TableHead>
+                <TableHead className="w-[80px]">Depth</TableHead>
+                <TableHead className="w-[100px]">Cadence</TableHead>
+                <TableHead className="w-[120px]">Headless Mode</TableHead>
+                <TableHead className="w-[100px]">Status</TableHead>
+                <TableHead className="w-[120px]">Last Crawl</TableHead>
+                <TableHead className="w-[100px]">Documents</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {safeSites.map((site: CrawlSite) => (
+                <TableRow 
+                  key={site.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={(e) => {
+                    // Only trigger edit if click is not on a button or dropdown
+                    const target = e.target as HTMLElement;
+                    if (!target.closest('button') && !target.closest('[role="menuitem"]')) {
+                      handleAction("edit", site.id);
+                    }
+                  }}
+                >
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{site?.name || 'Unnamed'}</span>
+                      <span className="text-xs text-muted-foreground truncate">
+                        {site?.url ? crawlAPI.normalizeUrl(site.url) : 'No URL'}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{site.crawlDepth || 'Auto'}</TableCell>
+                  <TableCell>{site.cadence ?? 'ONCE'}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">
+                      {site.headlessMode ?? 'AUTO'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const status = site?.status || 'unknown';
+                      const badge = getStatusBadge(status);
+                      return (
+                        <Badge variant={badge.variant} className={`text-xs ${badge.className}`}>
+                          {status}
+                        </Badge>
+                      );
+                    })()}
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm text-muted-foreground">
+                      {site.lastCrawled ? 
+                        new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
+                          Math.floor((new Date(site.lastCrawled).getTime() - Date.now()) / (1000 * 60 * 60)),
+                          "hour"
+                        ) : 'Never'
+                      }
+                    </div>
+                  </TableCell>
+                  <TableCell>{site.pagesCrawled || 0}</TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          data-testid={`button-actions-${site.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAction("preview", site.id);
+                          }}
+                          data-testid={`action-preview-${site.id}`}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Preview Render
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAction("edit", site.id);
+                          }}
+                          data-testid={`action-edit-${site.id}`}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAction("crawl", site.id);
+                          }}
+                          data-testid={`action-crawl-${site.id}`}
+                          disabled={isStarting}
+                        >
+                          {isStarting ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Play className="h-4 w-4 mr-2" />
+                          )}
+                          Start Crawl
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAction("delete", site.id);
+                          }}
+                          data-testid={`action-delete-${site.id}`}
+                          disabled={isDeleting}
+                          className="text-destructive"
+                        >
+                          {isDeleting ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 mr-2" />
+                          )}
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
-        <VirtualizedTable
-            data={safeSites}
-            columns={[
-          {
-            key: 'url',
-            label: 'URL',
-            width: 250,
-            render: (site: CrawlSite) => (
-              <div className="flex flex-col">
-                <span className="font-medium">{site?.name || 'Unnamed'}</span>
-                <span className="text-xs text-muted-foreground truncate">
-                  {site?.url ? crawlAPI.normalizeUrl(site.url) : 'No URL'}
-                </span>
-              </div>
-            ),
-          },
-          {
-            key: 'depth',
-            label: 'Depth',
-            width: 80,
-            render: (site: CrawlSite) => site.crawlDepth || 'Auto',
-          },
-          {
-            key: 'cadence',
-            label: 'Cadence',
-            width: 100,
-            render: (site: CrawlSite) => site.cadence ?? 'ONCE',
-          },
-          {
-            key: 'headless',
-            label: 'Headless Mode',
-            width: 120,
-            render: (site: CrawlSite) => (
-              <Badge variant="outline" className="text-xs">
-                {site.headlessMode ?? 'AUTO'}
-              </Badge>
-            ),
-          },
-          {
-            key: 'status',
-            label: 'Status',
-            width: 100,
-            render: (site: CrawlSite) => {
-              const status = site?.status || 'unknown';
-              const badge = getStatusBadge(status);
-              return (
-                <Badge variant={badge.variant} className={`text-xs ${badge.className}`}>
-                  {status}
-                </Badge>
-              );
-            },
-          },
-          {
-            key: 'lastCrawl',
-            label: 'Last Crawl',
-            width: 120,
-            render: (site: CrawlSite) => (
-              <div className="text-sm text-muted-foreground">
-                {site.lastCrawled ? 
-                  new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-                    Math.floor((new Date(site.lastCrawled).getTime() - Date.now()) / (1000 * 60 * 60)),
-                    "hour"
-                  ) : 'Never'
-                }
-              </div>
-            ),
-          },
-          {
-            key: 'documents',
-            label: 'Documents',
-            width: 100,
-            render: (site: CrawlSite) => site.pagesCrawled || 0,
-          },
-          {
-            key: 'actions',
-            label: '',
-            width: 50,
-            render: (site: CrawlSite) => (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    data-testid={`button-actions-${site.id}`}
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={() => handleAction("preview", site.id)}
-                    data-testid={`action-preview-${site.id}`}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Preview Render
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleAction("edit", site.id)}
-                    data-testid={`action-edit-${site.id}`}
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleAction("crawl", site.id)}
-                    data-testid={`action-crawl-${site.id}`}
-                    disabled={isStarting}
-                  >
-                    {isStarting ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Play className="h-4 w-4 mr-2" />
-                    )}
-                    Start Crawl
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleAction("delete", site.id)}
-                    data-testid={`action-delete-${site.id}`}
-                    disabled={isDeleting}
-                    className="text-destructive"
-                  >
-                    {isDeleting ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4 mr-2" />
-                    )}
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ),
-          },
-        ]}
-        height={400}
-        itemHeight={60}
-        className="min-w-[800px]"
-        onRowClick={(site: CrawlSite) => handleAction("edit", site.id)}
-      />
       </CardContent>
     </Card>
   );

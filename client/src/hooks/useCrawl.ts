@@ -8,45 +8,9 @@ export const useCrawlSites = () => {
 
   // Get all crawl sites
   const sitesQuery = useQuery({
-    queryKey: ['crawl-sites'],
-    queryFn: async () => {
-      try {
-        const result = await crawlAPI.getSites();
-        // Ensure we always return an array
-        return Array.isArray(result) ? result : [];
-      } catch (error) {
-        console.error('❌ Error in sitesQuery:', error);
-        // Return empty array on error to prevent crashes
-        return [];
-      }
-    },
-    // Disable automatic polling/refresh; fetch once unless manually invalidated
-    staleTime: Infinity,
-    refetchInterval: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    // Set initial data to empty array to prevent undefined
-    initialData: [],
-    // Keep previous data while refetching to prevent undefined during transitions
-    // CRITICAL: Use a function that ALWAYS returns a valid array
-    // This ensures data is NEVER undefined during refetch, even for a brief moment
-    placeholderData: (previousData) => {
-      // Always return previous data if it exists and is a valid array, otherwise return empty array
-      // This prevents the undefined error because placeholderData ensures data is never undefined
-      // CRITICAL: Filter out any invalid entries to ensure all items are valid objects
-      if (previousData && Array.isArray(previousData)) {
-        // Ensure all items are valid objects with required properties
-        const validData = previousData.filter((item: any) => 
-          item != null && 
-          typeof item === 'object' && 
-          item.id != null
-        );
-        return validData.length > 0 ? validData : [];
-      }
-      return [];
-    },
-    // Don't throw errors, just return empty array
-    throwOnError: false,
+    queryKey: ["crawl-sites"],
+    queryFn: crawlAPI.getSites,
+    placeholderData: (prev) => prev ?? [],
   });
 
   // Add a new site

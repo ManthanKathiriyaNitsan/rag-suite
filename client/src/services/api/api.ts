@@ -310,103 +310,46 @@ export const crawlAPI = {
 
   // Get all crawling targets
   getSites: async () => {
-    console.log('🕷️ Crawl API - Getting sites from:', `${API_BASE_URL}/crawl/sites`);
-    
-    try {
-      const response = await apiClient.get('/crawl/sites');
-      console.log('✅ Sites retrieved successfully:', {
-        hasData: !!response.data,
-        dataType: typeof response.data,
-        isArray: Array.isArray(response.data),
-        dataLength: Array.isArray(response.data) ? response.data.length : 'N/A',
-        rawData: response.data
-      });
-      
-      // Handle cases where response.data might be undefined, null, or not an array
-      if (!response.data) {
-        console.warn('⚠️ API returned no data, returning empty array');
-        return [];
-      }
-      
-      // Ensure response.data is an array
-      const sitesArray = Array.isArray(response.data) ? response.data : [];
-      
-      if (!Array.isArray(response.data)) {
-        console.warn('⚠️ API returned non-array data:', typeof response.data, response.data);
-        // If it's an object with a data property, try that
-        if (response.data && typeof response.data === 'object' && response.data !== null && 'data' in response.data) {
-          const nestedData = (response.data as any).data;
-          if (Array.isArray(nestedData)) {
-            console.log('✅ Found nested data array, using that');
-            sitesArray.push(...nestedData);
-          } else {
-            console.warn('⚠️ Nested data is not an array, returning empty array');
-            return [];
-          }
-        } else {
-          console.warn('⚠️ Response data is not an array or valid object, returning empty array');
-          return [];
-        }
-      }
-      
-      // Transform backend response to frontend format
-      const transformedSites = sitesArray
-        .filter((site: any) => site != null) // Filter out null/undefined first
-        .map((site: any) => {
-          // All sites here are guaranteed to be non-null
-          return {
-            id: site.id || '',
-            name: site.name || '',
-            url: crawlAPI.normalizeUrl(site.base_url || ''),
-            description: site.description || '',
-            status: (site.status === 'READY' ? 'active' : 
-                    site.status === 'PENDING' ? 'active' : // Map PENDING to active for display
-                    site.status === 'DISABLED' ? 'inactive' : 
-                    site.status === 'CRAWLING' || site.status === 'RUNNING' ? 'crawling' : 'error') as 'active' | 'inactive' | 'crawling' | 'error',
-            lastCrawled: site.last_crawl_at || null,
-            pagesFound: 0, // Will be updated from crawl status
-            pagesCrawled: site.documents_count || 0,
-            createdAt: site.created_at || new Date().toISOString(),
-            updatedAt: site.updated_at || new Date().toISOString(),
-            crawlDepth: site.depth || 2,
-            maxPages: site.max_pages || null,
-            includePatterns: Array.isArray(site.allowlist) ? site.allowlist : [],
-            excludePatterns: Array.isArray(site.denylist) ? site.denylist : [],
-            crawlDelay: site.delay_seconds || null,
-            cadence: site.cadence || 'ONCE',
-            headlessMode: site.headless_mode || 'AUTO',
-            respectRobotsTxt: true,
-            followRedirects: true,
-            customHeaders: {}
-          };
-        });
-      
-      return transformedSites;
-    } catch (error) {
-      console.error('❌ Get sites failed:', error);
-      
-      // Handle authentication errors
-      if ((error as any).response?.status === 401) {
-        console.error('🔐 Authentication failed - please log in again');
-        // Clear auth data and redirect to login (clear both token storage keys for compatibility)
-        localStorage.removeItem('auth-token');
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth-user');
-        localStorage.removeItem('user_data');
-        localStorage.removeItem('token_expires');
-        window.location.href = '/login';
-        return [];
-      }
-      
-      if ((error as any).response?.status === 403) {
-        console.error('🔐 Access forbidden - insufficient permissions');
-        throw new Error('Access forbidden. Please check your permissions.');
-      }
-      
-      // Return empty array instead of throwing to prevent error page
-      console.warn('⚠️ Error fetching sites, returning empty array');
-      return [];
+    console.log('🕷️ Crawl API - Getting sites');
+
+    const response = await apiClient.get('/crawl/sites');
+    const raw = response.data;
+
+    // Always normalize into an array
+    let list: any[] = [];
+
+    if (Array.isArray(raw)) {
+      list = raw;
+    } else if (raw && typeof raw === "object" && Array.isArray(raw.data)) {
+      list = raw.data;
+    } else {
+      list = [];
     }
+
+    return list.map((site: any) => ({
+      id: site.id ?? "",
+      name: site.name ?? "",
+      url: crawlAPI.normalizeUrl(site.base_url ?? ""),
+      description: site.description ?? "",
+      status: (
+        site.status === "READY" || site.status === "PENDING"
+          ? "active"
+          : site.status === "DISABLED"
+          ? "inactive"
+          : site.status === "CRAWLING" || site.status === "RUNNING"
+          ? "crawling"
+          : "error"
+      ) as "active" | "inactive" | "crawling" | "error",
+      lastCrawled: site.last_crawl_at ?? null,
+      pagesCrawled: site.documents_count ?? 0,
+      createdAt: site.created_at ?? new Date().toISOString(),
+      updatedAt: site.updated_at ?? new Date().toISOString(),
+      crawlDepth: site.depth ?? 2,
+      cadence: site.cadence ?? "ONCE",
+      headlessMode: site.headless_mode ?? "AUTO",
+      includePatterns: site.allowlist ?? [],
+      excludePatterns: site.denylist ?? [],
+    }));
   },
 
   // Update crawl configuration
