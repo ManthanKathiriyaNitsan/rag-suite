@@ -1,0 +1,12 @@
+# Ignore server code - Vercel should only deploy the frontend
+server/
+dist/index.js
+*.ts
+!client/**/*.ts
+!client/**/*.tsx
+
+# Ignore build artifacts that aren't needed
+node_modules/
+.git/
+*.log
+
