@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
+import os from "os";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -64,7 +65,33 @@ async function maybeLoadRuntimeErrorOverlay() {
   }
 }
 
+/**
+ * Gets the local network IP address (non-localhost)
+ * Returns the first IPv4 address found on network interfaces
+ */
+function getNetworkIP(): string {
+  const interfaces = os.networkInterfaces();
+  
+  for (const name of Object.keys(interfaces)) {
+    const networkInterface = interfaces[name];
+    if (!networkInterface) continue;
+    
+    for (const iface of networkInterface) {
+      // Skip internal (loopback) and non-IPv4 addresses
+      if (iface.family === "IPv4" && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  
+  // Fallback to localhost if no network IP found
+  return "127.0.0.1";
+}
+
 export default defineConfig(async () => {
+  // Get network IP for HMR
+  const networkIP = getNetworkIP();
+
   // Load plugins conditionally
   const plugins: any[] = [
     react(),
@@ -154,7 +181,7 @@ export default defineConfig(async () => {
       host: '0.0.0.0',
       hmr: {
         port: 5000,
-        host: '192.168.0.128'
+        host: networkIP
       },
       fs: {
         strict: true,

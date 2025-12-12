@@ -2,12 +2,26 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import cors from "cors";
+import { getNetworkIP } from "./utils";
 
 const app = express();
 
+// Get network IP for CORS and logging
+const networkIP = getNetworkIP();
+const port = parseInt(process.env.PORT || '5000', 10);
+
 // Enable CORS for all routes
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5000', 'http://192.168.0.117:8000', 'http://192.168.0.136:8000', 'http://192.168.0.128:5000'],
+  origin: [
+    'http://localhost:3000', 
+    'http://localhost:5000', 
+    `http://${networkIP}:${port}`,
+    `http://${networkIP}:3000`,
+    `http://${networkIP}:8000`,
+    'http://192.168.0.117:8000', 
+    'http://192.168.0.136:8000', 
+    'http://192.168.0.128:5000'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
@@ -57,9 +71,8 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
   app.listen(port, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${port}`);
-    console.log(`Network access available at http://192.168.0.128:${port}`);
+    console.log(`Network access available at http://${networkIP}:${port}`);
   });
 })();
