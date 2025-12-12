@@ -30,6 +30,45 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    // Increase chunk size warning limit (gzipped size is 527 kB which is acceptable)
+    // The main bundle is 1.6MB uncompressed but 527KB gzipped, which is reasonable
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        // Manual chunk splitting to reduce main bundle size and improve caching
+        manualChunks: (id) => {
+          // Split node_modules into vendor chunks
+          if (id.includes('node_modules')) {
+            // React and core dependencies
+            if (id.includes('react') || id.includes('react-dom') || id.includes('wouter')) {
+              return 'react-vendor';
+            }
+            // UI component libraries
+            if (id.includes('@radix-ui')) {
+              return 'ui-vendor';
+            }
+            // Chart library
+            if (id.includes('recharts')) {
+              return 'chart-vendor';
+            }
+            // Query library
+            if (id.includes('@tanstack/react-query')) {
+              return 'query-vendor';
+            }
+            // Animation library
+            if (id.includes('framer-motion')) {
+              return 'motion-vendor';
+            }
+            // Form libraries
+            if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('/zod')) {
+              return 'form-vendor';
+            }
+            // Other vendor dependencies
+            return 'vendor';
+          }
+        },
+      },
+    },
   },
   server: {
     port: 5000,
