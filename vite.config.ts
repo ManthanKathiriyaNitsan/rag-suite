@@ -84,8 +84,9 @@ export default defineConfig(async () => {
     // Using relative path from config file location (project root)
     root: "client",
     build: {
-      // Output to dist/public (absolute path from project root to ensure correct location)
-      // Using absolute path ensures it's always relative to project root, not the root directory
+      // Output to dist/public (absolute path from project root)
+      // IMPORTANT: When root is set, outDir is resolved relative to root, not project root
+      // So we must use an absolute path to ensure output goes to project root/dist/public
       outDir: path.resolve(projectRoot, "dist", "public"),
       emptyOutDir: true,
       // Ensure proper module resolution and prevent duplicate React instances
