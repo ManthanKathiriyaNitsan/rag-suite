@@ -212,7 +212,7 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
                 <TableHead className="w-[120px]">Headless Mode</TableHead>
                 <TableHead className="w-[100px]">Status</TableHead>
                 <TableHead className="w-[120px]">Last Crawl</TableHead>
-                <TableHead className="w-[100px]">Documents</TableHead>
+                <TableHead className="w-[100px]">Links</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
