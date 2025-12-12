@@ -1,12 +1,16 @@
-# Ignore server code - Vercel should only deploy the frontend
-server/
+# Ignore server runtime files (but keep config files)
+server/**/*.js
 dist/index.js
-*.ts
-!client/**/*.ts
-!client/**/*.tsx
 
-# Ignore build artifacts that aren't needed
+# Ignore build artifacts
 node_modules/
 .git/
 *.log
+.env
+.env.local
 
+# Keep these important files
+!vite.config.ts
+!tsconfig.json
+!package.json
+!vercel.json
