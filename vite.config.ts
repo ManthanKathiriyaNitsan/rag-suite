@@ -2,20 +2,31 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { fileURLToPath } from "url";
+import fs from "fs";
 
-// Get the directory of this config file
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// In Vercel/CI: process.cwd() is reliable and points to repo root
-// In local dev: __dirname is the config location (also repo root)
-// Use process.cwd() first (for CI), fallback to __dirname
-const repoRoot = process.cwd();
-const clientRoot = path.resolve(repoRoot, "client");
+// Try multiple strategies to find the correct paths
+const repoRoot = __dirname; // vite.config.ts is at repo root
+const clientRoot = path.join(repoRoot, "client");
+const indexHtmlPath = path.join(clientRoot, "index.html");
 
-console.log("Vite Config - Repo Root:", repoRoot);
-console.log("Vite Config - Client Root:", clientRoot);
-console.log("Vite Config - Index.html path:", path.resolve(clientRoot, "index.html"));
+// Debug logging
+console.log("=== VITE CONFIG DEBUG ===");
+console.log("__dirname:", __dirname);
+console.log("process.cwd():", process.cwd());
+console.log("repoRoot:", repoRoot);
+console.log("clientRoot:", clientRoot);
+console.log("indexHtmlPath:", indexHtmlPath);
+console.log("index.html exists:", fs.existsSync(indexHtmlPath));
+console.log("client dir exists:", fs.existsSync(clientRoot));
+
+// List files in client directory if it exists
+if (fs.existsSync(clientRoot)) {
+  console.log("Files in client dir:", fs.readdirSync(clientRoot));
+}
+console.log("========================");
 
 /**
  * Safely loads the Replit Cartographer plugin only in development environments
@@ -78,9 +89,9 @@ export default defineConfig(async () => {
     },
     resolve: {
       alias: {
-        "@": path.resolve(clientRoot, "src"),
-        "@shared": path.resolve(repoRoot, "shared"),
-        "@assets": path.resolve(repoRoot, "attached_assets"),
+        "@": path.join(clientRoot, "src"),
+        "@shared": path.join(repoRoot, "shared"),
+        "@assets": path.join(repoRoot, "attached_assets"),
       },
       // Ensure React is properly deduplicated - prevent multiple React instances
       dedupe: ['react', 'react-dom'],
@@ -94,8 +105,7 @@ export default defineConfig(async () => {
     root: clientRoot,
     build: {
       // Explicitly resolve outDir relative to the repository root.
-      // This creates: <repoRoot>/dist/public which matches deployment platforms' resolved publish path.
-      outDir: path.resolve(repoRoot, "dist", "public"),
+      outDir: path.join(repoRoot, "dist", "public"),
       emptyOutDir: true,
       // Ensure proper module resolution and prevent duplicate React instances
       commonjsOptions: {
@@ -103,12 +113,10 @@ export default defineConfig(async () => {
         transformMixedEsModules: true,
       },
       rollupOptions: {
-        // Explicitly set input to ensure CI can find index.html
-        // Use absolute path for maximum compatibility across CI environments
-        input: path.resolve(clientRoot, "index.html"),
+        // Explicitly set input - use relative path since root is set to clientRoot
+        input: "index.html",
         output: {
           // Simplified chunk splitting to prevent React "useState is undefined" errors
-          // Strategy: Only split very large, independent libraries. Keep React and React-dependent code together.
           manualChunks: (id: string) => {
             // CRITICAL: Never split React or react-dom - they MUST stay in main bundle
             if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') ||
@@ -132,7 +140,6 @@ export default defineConfig(async () => {
               }
               
               // Keep everything else (including React-dependent libraries) in main bundle
-              // This prevents "useState is undefined" errors by ensuring React loads first
               return undefined;
             }
             
@@ -144,10 +151,10 @@ export default defineConfig(async () => {
     },
     server: {
       port: 5000,
-      host: '0.0.0.0', // Bind to all network interfaces
+      host: '0.0.0.0',
       hmr: {
         port: 5000,
-        host: '192.168.0.128' // Use your IP for HMR
+        host: '192.168.0.128'
       },
       fs: {
         strict: true,
