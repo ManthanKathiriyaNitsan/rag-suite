@@ -139,7 +139,11 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
   // Check isFetching FIRST - if we're fetching and we've had data, it's a refetch
   // This prevents react-window from receiving undefined data during refetch transitions
   // The key is checking isFetching BEFORE processing the data
-  if (isFetching && hasHadDataRef.current) {
+  // Also check if safeSites is empty during refetch - this indicates a transition state
+  const isRefetchingTransition = isFetching && hasHadDataRef.current;
+  const isEmptyDuringRefetch = isRefetchingTransition && (!safeSites || safeSites.length === 0);
+  
+  if (isRefetchingTransition || isEmptyDuringRefetch) {
     // We're refetching (we've had data before) - don't render table
     // This prevents the brief moment when data becomes undefined during refetch
     console.log('🔄 Refetch detected - showing loading state to prevent undefined error', {
@@ -148,7 +152,9 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
       isLoading,
       hasHadData: hasHadDataRef.current,
       sitesLength: sites?.length || 0,
-      safeSitesLength: safeSites?.length || 0
+      safeSitesLength: safeSites?.length || 0,
+      isRefetchingTransition,
+      isEmptyDuringRefetch
     });
     return (
       <Card className="w-full overflow-hidden">

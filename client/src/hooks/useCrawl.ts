@@ -33,8 +33,15 @@ export const useCrawlSites = () => {
     placeholderData: (previousData) => {
       // Always return previous data if it exists and is a valid array, otherwise return empty array
       // This prevents the undefined error because placeholderData ensures data is never undefined
+      // CRITICAL: Filter out any invalid entries to ensure all items are valid objects
       if (previousData && Array.isArray(previousData)) {
-        return previousData;
+        // Ensure all items are valid objects with required properties
+        const validData = previousData.filter((item: any) => 
+          item != null && 
+          typeof item === 'object' && 
+          item.id != null
+        );
+        return validData.length > 0 ? validData : [];
       }
       return [];
     },
@@ -149,8 +156,16 @@ export const useCrawlSites = () => {
       return [];
     }
     if (Array.isArray(data)) {
-      console.log('✅ useCrawl - Returning valid array with', data.length, 'items');
-      return data;
+      // CRITICAL: Filter out any invalid entries to ensure all items are valid objects
+      // This prevents react-window from receiving invalid data structures
+      const validData = data.filter((item: any) => 
+        item != null && 
+        typeof item === 'object' && 
+        item.id != null &&
+        typeof item.id === 'string'
+      );
+      console.log('✅ useCrawl - Returning valid array with', validData.length, 'items (filtered from', data.length, ')');
+      return validData;
     }
     // Fallback to empty array if data is not an array
     console.warn('⚠️ sitesQuery.data is not an array, got:', typeof data);

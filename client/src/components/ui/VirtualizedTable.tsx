@@ -112,18 +112,30 @@ export function VirtualizedTable<T>({
     return columns.filter((col) => col != null);
   }, [columns]);
 
+  // Track previous itemData structure to detect transitions
+  const previousItemDataRef = useRef<{ itemsLength: number; columnsLength: number } | null>(null);
+  
   // Ensure itemData is always a valid object with all required properties
   // This must be a stable reference to prevent react-window errors
   // CRITICAL: react-window's useMemoizedObject will crash if any property is undefined
   const itemData = useMemo(() => {
     // Ensure safeData and safeColumns are always arrays (never undefined/null)
     const validItems: T[] = Array.isArray(safeData) 
-      ? safeData.filter((item) => item != null) 
+      ? safeData.filter((item) => item != null && typeof item === 'object') 
       : [];
     
     const validColumns: VirtualizedTableProps<T>['columns'] = Array.isArray(safeColumns)
-      ? safeColumns.filter((col) => col != null)
+      ? safeColumns.filter((col) => col != null && typeof col === 'object')
       : [];
+    
+    // CRITICAL: If we have no valid items or columns, return a minimal valid structure
+    // This prevents react-window from receiving undefined properties
+    if (validItems.length === 0 || validColumns.length === 0) {
+      return {
+        items: [],
+        columns: validColumns.length > 0 ? validColumns : [],
+      };
+    }
     
     // Create a completely valid object with NO undefined values
     // All properties must be explicitly defined to prevent useMemoizedObject crashes
@@ -141,10 +153,29 @@ export function VirtualizedTable<T>({
       dataObj.onRowClick = onRowClick;
     }
     
+    // Track structure for transition detection
+    previousItemDataRef.current = {
+      itemsLength: validItems.length,
+      columnsLength: validColumns.length,
+    };
+    
     // Return the object directly without freezing
     // This avoids potential issues with some libraries that might try to mutate or add properties
     return dataObj;
   }, [safeData, safeColumns, onRowClick]);
+  
+  // Track if we're in a transition state (data structure is changing)
+  const isTransitioning = useMemo(() => {
+    if (!previousItemDataRef.current) return false;
+    const current = {
+      itemsLength: itemData.items.length,
+      columnsLength: itemData.columns.length,
+    };
+    const previous = previousItemDataRef.current;
+    // Detect if structure changed significantly (more than just adding/removing one item)
+    return Math.abs(current.itemsLength - previous.itemsLength) > 1 ||
+           current.columnsLength !== previous.columnsLength;
+  }, [itemData]);
 
   if (safeData.length === 0) {
     return (
@@ -183,7 +214,9 @@ export function VirtualizedTable<T>({
   // CRITICAL: Ensure itemData is a valid object before passing to react-window
   // Double-check all conditions to prevent useMemoizedObject crashes
   // Add extra validation to ensure itemData is completely valid
-  const shouldRenderList = safeData.length > 0 && 
+  // CRITICAL: Don't render during transitions to prevent undefined errors
+  const shouldRenderList = !isTransitioning && // Don't render during transitions
+                          safeData.length > 0 && 
                           itemData != null &&
                           typeof itemData === 'object' &&
                           !Array.isArray(itemData) && // Ensure it's an object, not an array
@@ -244,7 +277,7 @@ export function VirtualizedTable<T>({
         </TableHeader>
       </Table>
       <div style={{ height: validHeight }}>
-        {shouldRenderList && itemData != null && validItemCount > 0 ? (
+        {shouldRenderList && itemData != null && validItemCount > 0 && !isTransitioning ? (
           React.createElement(List, {
             key: listKey,
             height: validHeight,
@@ -258,15 +291,29 @@ export function VirtualizedTable<T>({
               // Handle both data (standard) and itemProps (custom/v2)
               const actualData = data || itemProps;
               
-              if (!actualData || !actualData.items || !actualData.columns || index < 0 || index >= actualData.items.length) {
+              // CRITICAL: Additional validation before rendering row
+              if (!actualData || 
+                  typeof actualData !== 'object' ||
+                  !actualData.items || 
+                  !Array.isArray(actualData.items) ||
+                  !actualData.columns || 
+                  !Array.isArray(actualData.columns) ||
+                  index < 0 || 
+                  index >= actualData.items.length) {
                 return null;
               }
+              
+              const item = actualData.items[index];
+              if (!item || typeof item !== 'object') {
+                return null;
+              }
+              
               return React.createElement(VirtualizedRow, { index, style, data: actualData });
             }) as any,
           } as any)
         ) : (
           <div className="text-center py-8 text-muted-foreground">
-            No data available
+            {isTransitioning ? 'Updating...' : 'No data available'}
           </div>
         )}
       </div>
