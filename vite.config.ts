@@ -3,14 +3,19 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// FIXED: Use __dirname (config file location) as the authoritative root
-// since vite.config.ts is at the repo root, this is more reliable than process.cwd()
+// Get the directory of this config file
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const repoRoot = __dirname;
 
-// Absolute path to client folder (Vite root)
+// In Vercel/CI: process.cwd() is reliable and points to repo root
+// In local dev: __dirname is the config location (also repo root)
+// Use process.cwd() first (for CI), fallback to __dirname
+const repoRoot = process.cwd();
 const clientRoot = path.resolve(repoRoot, "client");
+
+console.log("Vite Config - Repo Root:", repoRoot);
+console.log("Vite Config - Client Root:", clientRoot);
+console.log("Vite Config - Index.html path:", path.resolve(clientRoot, "index.html"));
 
 /**
  * Safely loads the Replit Cartographer plugin only in development environments

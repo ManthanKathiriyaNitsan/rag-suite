@@ -7,10 +7,10 @@ import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 import { fileURLToPath } from "url";
 
-// FIXED: repo root - use __dirname since server folder structure is known
+// Get repo root: use process.cwd() for consistency with vite.config.ts
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, "..");
+const repoRoot = process.cwd();
 
 const viteLogger = createLogger();
 
