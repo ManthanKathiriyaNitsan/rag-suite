@@ -70,7 +70,7 @@ export default defineConfig(async () => {
     },
     resolve: {
       alias: {
-        "@": path.resolve(repoRoot, "client", "src"),
+        "@": path.resolve(clientRoot, "src"),
         "@shared": path.resolve(repoRoot, "shared"),
         "@assets": path.resolve(repoRoot, "attached_assets"),
       },
