@@ -74,8 +74,13 @@ export default defineConfig(async () => {
         "@shared": path.resolve(repoRoot, "shared"),
         "@assets": path.resolve(repoRoot, "attached_assets"),
       },
-      // Ensure React is properly deduplicated
+      // Ensure React is properly deduplicated - prevent multiple React instances
       dedupe: ['react', 'react-dom'],
+    },
+    // Optimize dependencies to ensure React is pre-bundled correctly
+    optimizeDeps: {
+      include: ['react', 'react-dom'],
+      force: false, // Don't force re-optimization unless needed
     },
     // Make Vite root absolute so it reliably locates client/index.html in CI
     root: clientRoot,
@@ -93,51 +98,37 @@ export default defineConfig(async () => {
         // Don't set input explicitly - let Vite auto-detect from root
         // When root is set, Vite automatically looks for index.html in that directory
         output: {
-          // Manual chunk splitting to reduce main bundle size and improve caching
-          // IMPORTANT: React and react-dom must NOT be split - they must be in the main bundle
-          // to avoid "useState is undefined" errors in production
+          // Simplified chunk splitting to prevent React "useState is undefined" errors
+          // Strategy: Only split very large, independent libraries. Keep React and React-dependent code together.
           manualChunks: (id: string) => {
-            // Split node_modules into vendor chunks
-            if (id.includes('node_modules')) {
-              // DO NOT split React or react-dom - they must stay in main bundle
-              // This prevents "useState is undefined" errors
-              if (id.includes('react') || id.includes('react-dom')) {
+            // CRITICAL: Never split React or react-dom - they MUST stay in main bundle
+            if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') ||
+                id.includes('node_modules\\react\\') || id.includes('node_modules\\react-dom\\')) {
+              // Additional check: make sure it's not react-something (like react-hook-form)
+              if (!id.includes('react-') || id.includes('react-dom')) {
                 return undefined; // Keep in main bundle
               }
-              
-              // Router (can be split, but loads early)
-              if (id.includes('wouter')) {
-                return 'router-vendor';
-              }
-              
-              // UI component libraries
-              if (id.includes('@radix-ui')) {
-                return 'ui-vendor';
-              }
-              
-              // Chart library
+            }
+            
+            // Only split large, independent libraries that don't depend on React at runtime
+            if (id.includes('node_modules')) {
+              // Chart library (large, mostly independent)
               if (id.includes('recharts')) {
                 return 'chart-vendor';
               }
               
-              // Query library
-              if (id.includes('@tanstack/react-query')) {
-                return 'query-vendor';
-              }
-              
-              // Animation library
+              // Animation library (large, independent)
               if (id.includes('framer-motion')) {
                 return 'motion-vendor';
               }
               
-              // Form libraries
-              if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('/zod')) {
-                return 'form-vendor';
-              }
-              
-              // Other vendor dependencies
-              return 'vendor';
+              // Keep everything else (including React-dependent libraries) in main bundle
+              // This prevents "useState is undefined" errors by ensuring React loads first
+              return undefined;
             }
+            
+            // Application code stays in main bundle
+            return undefined;
           },
         },
       },
