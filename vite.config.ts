@@ -1,16 +1,13 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
-import { fileURLToPath } from "url";
 
-// Get __dirname equivalent in ES modules
-// This will be the directory where vite.config.ts is located (project root)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Use the process working directory (repo root) as the authoritative root in CI.
+// process.cwd() is the directory Netlify runs builds from (e.g. /opt/build/repo).
+const repoRoot = process.cwd();
 
-// Use __dirname as project root - it's the most reliable in all environments
-// In Vercel, the config file is in the project root, so __dirname will be correct
-const projectRoot = __dirname;
+// Absolute path to client folder (Vite root)
+const clientRoot = path.resolve(repoRoot, "client");
 
 /**
  * Safely loads the Replit Cartographer plugin only in development environments
@@ -73,21 +70,19 @@ export default defineConfig(async () => {
     },
     resolve: {
       alias: {
-        "@": path.resolve(projectRoot, "client", "src"),
-        "@shared": path.resolve(projectRoot, "shared"),
-        "@assets": path.resolve(projectRoot, "attached_assets"),
+        "@": path.resolve(repoRoot, "client", "src"),
+        "@shared": path.resolve(repoRoot, "shared"),
+        "@assets": path.resolve(repoRoot, "attached_assets"),
       },
       // Ensure React is properly deduplicated
       dedupe: ['react', 'react-dom'],
     },
-    // Set root to client directory - Vite will automatically find index.html here
-    // Using relative path from config file location (project root)
-    root: "client",
+    // Make Vite root absolute so it reliably locates client/index.html in CI
+    root: clientRoot,
     build: {
-      // Output to dist/public (absolute path from project root)
-      // IMPORTANT: When root is set, outDir is resolved relative to root, not project root
-      // So we must use an absolute path to ensure output goes to project root/dist/public
-      outDir: path.resolve(projectRoot, "dist", "public"),
+      // Explicitly resolve outDir relative to the repository root (process.cwd()).
+      // This creates: <repoRoot>/dist/public which matches Netlify's resolved publish path.
+      outDir: path.resolve(repoRoot, "dist", "public"),
       emptyOutDir: true,
       // Ensure proper module resolution and prevent duplicate React instances
       commonjsOptions: {
