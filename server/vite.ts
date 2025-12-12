@@ -5,6 +5,12 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
+import { fileURLToPath } from "url";
+
+// repo root: prefer process.cwd() (CI), fallback to config file location
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const repoRoot = process.cwd() || path.resolve(__dirname, "..");
 
 const viteLogger = createLogger();
 
@@ -28,7 +34,7 @@ export async function setupVite(app: Express, server: Server) {
 
   // viteConfig is an async function, so we need to call it to get the actual config
   const resolvedConfig = typeof viteConfig === 'function' 
-    ? await viteConfig() 
+    ? await (viteConfig as any)() 
     : viteConfig;
 
   const vite = await createViteServer({
@@ -51,8 +57,7 @@ export async function setupVite(app: Express, server: Server) {
 
     try {
       const clientTemplate = path.resolve(
-        import.meta.dirname,
-        "..",
+        repoRoot,
         "client",
         "index.html",
       );
@@ -73,7 +78,7 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "public");
+  const distPath = path.resolve(repoRoot, "dist", "public");
 
   if (!fs.existsSync(distPath)) {
     throw new Error(
