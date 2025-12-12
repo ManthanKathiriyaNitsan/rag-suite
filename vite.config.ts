@@ -1,10 +1,14 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { fileURLToPath } from "url";
 
 // Use the process working directory (repo root) as the authoritative root in CI.
-// process.cwd() is the directory Netlify runs builds from (e.g. /opt/build/repo).
-const repoRoot = process.cwd();
+// process.cwd() is the directory Netlify/Vercel runs builds from (e.g. /opt/build/repo, /vercel/path0).
+// Fallback to config file location if process.cwd() is unreliable (shouldn't happen, but safety first)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const repoRoot = process.cwd() || __dirname;
 
 // Absolute path to client folder (Vite root)
 const clientRoot = path.resolve(repoRoot, "client");
@@ -95,8 +99,9 @@ export default defineConfig(async () => {
         transformMixedEsModules: true,
       },
       rollupOptions: {
-        // Don't set input explicitly - let Vite auto-detect from root
-        // When root is set, Vite automatically looks for index.html in that directory
+        // Explicitly set input to ensure Vercel/CI can find index.html
+        // Use absolute path for maximum compatibility across CI environments
+        input: path.resolve(clientRoot, "index.html"),
         output: {
           // Simplified chunk splitting to prevent React "useState is undefined" errors
           // Strategy: Only split very large, independent libraries. Keep React and React-dependent code together.
