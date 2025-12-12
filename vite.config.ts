@@ -77,46 +77,68 @@ export default defineConfig(async () => {
         "@shared": path.resolve(projectRoot, "shared"),
         "@assets": path.resolve(projectRoot, "attached_assets"),
       },
+      // Ensure React is properly deduplicated
+      dedupe: ['react', 'react-dom'],
     },
     // Set root to client directory - Vite will automatically find index.html here
     // Using relative path from config file location (project root)
     root: "client",
     build: {
-      // Output to dist/public (relative to project root where vite.config.ts is)
-      outDir: "dist/public",
+      // Output to dist/public (absolute path from project root to ensure correct location)
+      // Using absolute path ensures it's always relative to project root, not the root directory
+      outDir: path.resolve(projectRoot, "dist", "public"),
       emptyOutDir: true,
+      // Ensure proper module resolution and prevent duplicate React instances
+      commonjsOptions: {
+        include: [/node_modules/],
+        transformMixedEsModules: true,
+      },
       rollupOptions: {
         // Don't set input explicitly - let Vite auto-detect from root
         // When root is set, Vite automatically looks for index.html in that directory
         output: {
           // Manual chunk splitting to reduce main bundle size and improve caching
+          // IMPORTANT: React and react-dom must NOT be split - they must be in the main bundle
+          // to avoid "useState is undefined" errors in production
           manualChunks: (id: string) => {
             // Split node_modules into vendor chunks
             if (id.includes('node_modules')) {
-              // React and core dependencies
-              if (id.includes('react') || id.includes('react-dom') || id.includes('wouter')) {
-                return 'react-vendor';
+              // DO NOT split React or react-dom - they must stay in main bundle
+              // This prevents "useState is undefined" errors
+              if (id.includes('react') || id.includes('react-dom')) {
+                return undefined; // Keep in main bundle
               }
+              
+              // Router (can be split, but loads early)
+              if (id.includes('wouter')) {
+                return 'router-vendor';
+              }
+              
               // UI component libraries
               if (id.includes('@radix-ui')) {
                 return 'ui-vendor';
               }
+              
               // Chart library
               if (id.includes('recharts')) {
                 return 'chart-vendor';
               }
+              
               // Query library
               if (id.includes('@tanstack/react-query')) {
                 return 'query-vendor';
               }
+              
               // Animation library
               if (id.includes('framer-motion')) {
                 return 'motion-vendor';
               }
+              
               // Form libraries
               if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('/zod')) {
                 return 'form-vendor';
               }
+              
               // Other vendor dependencies
               return 'vendor';
             }
