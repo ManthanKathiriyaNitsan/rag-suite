@@ -4,14 +4,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
-// Get __dirname equivalent in ES modules - works in both local and Vercel
+// Get __dirname equivalent in ES modules
+// __dirname will be the directory where vite.config.ts is located (project root)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Use process.cwd() as fallback for Vercel build environment
-const projectRoot = process.cwd();
-const clientDir = path.resolve(projectRoot, "client");
-const distDir = path.resolve(projectRoot, "dist", "public");
 
 export default defineConfig({
   plugins: [
@@ -31,18 +27,21 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": path.resolve(clientDir, "src"),
-      "@shared": path.resolve(projectRoot, "shared"),
-      "@assets": path.resolve(projectRoot, "attached_assets"),
+      "@": path.resolve(__dirname, "client", "src"),
+      "@shared": path.resolve(__dirname, "shared"),
+      "@assets": path.resolve(__dirname, "attached_assets"),
     },
   },
-  root: clientDir,
+  // Set root to client directory - Vite will automatically find index.html here
+  // Using __dirname ensures we're relative to the config file location (project root)
+  root: path.resolve(__dirname, "client"),
   build: {
-    outDir: distDir,
+    // Output to dist/public relative to project root
+    outDir: path.resolve(__dirname, "dist", "public"),
     emptyOutDir: true,
-    // Explicitly set the entry point to ensure Vite finds index.html
     rollupOptions: {
-      input: path.resolve(clientDir, "index.html"),
+      // Explicitly set input - use absolute path to ensure Rollup can find it
+      input: path.resolve(__dirname, "client", "index.html"),
       output: {
         // Manual chunk splitting to reduce main bundle size and improve caching
         manualChunks: (id) => {
