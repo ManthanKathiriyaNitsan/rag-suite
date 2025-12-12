@@ -1,7 +1,17 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { fileURLToPath } from "url";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+
+// Get __dirname equivalent in ES modules - works in both local and Vercel
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Use process.cwd() as fallback for Vercel build environment
+const projectRoot = process.cwd();
+const clientDir = path.resolve(projectRoot, "client");
+const distDir = path.resolve(projectRoot, "dist", "public");
 
 export default defineConfig({
   plugins: [
@@ -21,19 +31,18 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
-      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+      "@": path.resolve(clientDir, "src"),
+      "@shared": path.resolve(projectRoot, "shared"),
+      "@assets": path.resolve(projectRoot, "attached_assets"),
     },
   },
-  root: path.resolve(import.meta.dirname, "client"),
+  root: clientDir,
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    outDir: distDir,
     emptyOutDir: true,
-    // Increase chunk size warning limit (gzipped size is 527 kB which is acceptable)
-    // The main bundle is 1.6MB uncompressed but 527KB gzipped, which is reasonable
-    chunkSizeWarningLimit: 600,
+    // Explicitly set the entry point to ensure Vite finds index.html
     rollupOptions: {
+      input: path.resolve(clientDir, "index.html"),
       output: {
         // Manual chunk splitting to reduce main bundle size and improve caching
         manualChunks: (id) => {
