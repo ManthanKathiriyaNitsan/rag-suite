@@ -7,10 +7,10 @@ import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 import { fileURLToPath } from "url";
 
-// repo root: prefer process.cwd() (CI), fallback to config file location
+// FIXED: repo root - use __dirname since server folder structure is known
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const repoRoot = process.cwd() || path.resolve(__dirname, "..");
+const repoRoot = path.resolve(__dirname, "..");
 
 const viteLogger = createLogger();
 
@@ -21,7 +21,6 @@ export function log(message: string, source = "express") {
     second: "2-digit",
     hour12: true,
   });
-
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
@@ -52,9 +51,9 @@ export async function setupVite(app: Express, server: Server) {
   });
 
   app.use(vite.middlewares);
+
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
-
     try {
       const clientTemplate = path.resolve(
         repoRoot,
@@ -68,6 +67,7 @@ export async function setupVite(app: Express, server: Server) {
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
+
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {

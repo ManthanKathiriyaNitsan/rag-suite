@@ -3,12 +3,11 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// Use the process working directory (repo root) as the authoritative root in CI.
-// process.cwd() is the directory Netlify/Vercel runs builds from (e.g. /opt/build/repo, /vercel/path0).
-// Fallback to config file location if process.cwd() is unreliable (shouldn't happen, but safety first)
+// FIXED: Use __dirname (config file location) as the authoritative root
+// since vite.config.ts is at the repo root, this is more reliable than process.cwd()
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const repoRoot = process.cwd() || __dirname;
+const repoRoot = __dirname;
 
 // Absolute path to client folder (Vite root)
 const clientRoot = path.resolve(repoRoot, "client");
@@ -89,8 +88,8 @@ export default defineConfig(async () => {
     // Make Vite root absolute so it reliably locates client/index.html in CI
     root: clientRoot,
     build: {
-      // Explicitly resolve outDir relative to the repository root (process.cwd()).
-      // This creates: <repoRoot>/dist/public which matches Netlify's resolved publish path.
+      // Explicitly resolve outDir relative to the repository root.
+      // This creates: <repoRoot>/dist/public which matches deployment platforms' resolved publish path.
       outDir: path.resolve(repoRoot, "dist", "public"),
       emptyOutDir: true,
       // Ensure proper module resolution and prevent duplicate React instances
@@ -99,7 +98,7 @@ export default defineConfig(async () => {
         transformMixedEsModules: true,
       },
       rollupOptions: {
-        // Explicitly set input to ensure Vercel/CI can find index.html
+        // Explicitly set input to ensure CI can find index.html
         // Use absolute path for maximum compatibility across CI environments
         input: path.resolve(clientRoot, "index.html"),
         output: {
