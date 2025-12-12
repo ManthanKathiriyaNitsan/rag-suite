@@ -5,9 +5,13 @@ import { fileURLToPath } from "url";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 // Get __dirname equivalent in ES modules
-// __dirname will be the directory where vite.config.ts is located (project root)
+// This will be the directory where vite.config.ts is located (project root)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Use __dirname as project root - it's the most reliable in all environments
+// In Vercel, the config file is in the project root, so __dirname will be correct
+const projectRoot = __dirname;
 
 export default defineConfig({
   plugins: [
@@ -27,24 +31,24 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "client", "src"),
-      "@shared": path.resolve(__dirname, "shared"),
-      "@assets": path.resolve(__dirname, "attached_assets"),
+      "@": path.resolve(projectRoot, "client", "src"),
+      "@shared": path.resolve(projectRoot, "shared"),
+      "@assets": path.resolve(projectRoot, "attached_assets"),
     },
   },
   // Set root to client directory - Vite will automatically find index.html here
-  // Using __dirname ensures we're relative to the config file location (project root)
-  root: path.resolve(__dirname, "client"),
+  // Using relative path from config file location (project root)
+  root: "client",
   build: {
-    // Output to dist/public relative to project root
-    outDir: path.resolve(__dirname, "dist", "public"),
+    // Output to dist/public (relative to project root where vite.config.ts is)
+    outDir: "dist/public",
     emptyOutDir: true,
     rollupOptions: {
-      // Explicitly set input - use absolute path to ensure Rollup can find it
-      input: path.resolve(__dirname, "client", "index.html"),
+      // Don't set input explicitly - let Vite auto-detect from root
+      // When root is set, Vite automatically looks for index.html in that directory
       output: {
         // Manual chunk splitting to reduce main bundle size and improve caching
-        manualChunks: (id) => {
+        manualChunks: (id: string) => {
           // Split node_modules into vendor chunks
           if (id.includes('node_modules')) {
             // React and core dependencies
