@@ -139,42 +139,26 @@ export default defineConfig(async () => {
         include: [/node_modules/],
         transformMixedEsModules: true,
       },
-      rollupOptions: {
-        // Explicitly set input - use relative path since root is set to clientRoot
-        input: "index.html",
-        output: {
-          // Simplified chunk splitting to prevent React "useState is undefined" errors
-          manualChunks: (id: string) => {
-            // CRITICAL: Never split React or react-dom - they MUST stay in main bundle
-            if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') ||
-                id.includes('node_modules\\react\\') || id.includes('node_modules\\react-dom\\')) {
-              // Additional check: make sure it's not react-something (like react-hook-form)
-              if (!id.includes('react-') || id.includes('react-dom')) {
-                return undefined; // Keep in main bundle
-              }
-            }
-            
-            // Only split large, independent libraries that don't depend on React at runtime
-            if (id.includes('node_modules')) {
-              // Chart library (large, mostly independent)
-              if (id.includes('recharts')) {
-                return 'chart-vendor';
-              }
-              
-              // Animation library (large, independent)
-              if (id.includes('framer-motion')) {
-                return 'motion-vendor';
-              }
-              
-              // Keep everything else (including React-dependent libraries) in main bundle
-              return undefined;
-            }
-            
-            // Application code stays in main bundle
-            return undefined;
-          },
-        },
-      },
+   rollupOptions: {
+  output: {
+    manualChunks: (id: string) => {
+      if (
+        id.includes("node_modules/react") ||
+        id.includes("node_modules/react-dom")
+      ) {
+        return undefined;
+      }
+
+      if (id.includes("node_modules")) {
+        if (id.includes("recharts")) return "chart-vendor";
+        if (id.includes("framer-motion")) return "motion-vendor";
+      }
+
+      return undefined;
+    },
+  },
+},
+
     },
     server: {
       port: 5000,
