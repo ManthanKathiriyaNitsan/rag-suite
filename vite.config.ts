@@ -8,12 +8,12 @@ import os from "os";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Try multiple strategies to find the correct paths
-const repoRoot = __dirname; // vite.config.ts is at repo root
+// Project paths
+const repoRoot = __dirname;               // vite.config.ts is at repo root
 const clientRoot = path.join(repoRoot, "client");
 const indexHtmlPath = path.join(clientRoot, "index.html");
 
-// Debug logging
+// Debug logging (safe to keep)
 console.log("=== VITE CONFIG DEBUG ===");
 console.log("__dirname:", __dirname);
 console.log("process.cwd():", process.cwd());
@@ -22,150 +22,116 @@ console.log("clientRoot:", clientRoot);
 console.log("indexHtmlPath:", indexHtmlPath);
 console.log("index.html exists:", fs.existsSync(indexHtmlPath));
 console.log("client dir exists:", fs.existsSync(clientRoot));
-
-// List files in client directory if it exists
 if (fs.existsSync(clientRoot)) {
   console.log("Files in client dir:", fs.readdirSync(clientRoot));
 }
 console.log("========================");
 
-/**
- * Safely loads the Replit Cartographer plugin only in development environments
- * Returns null if the plugin should not be loaded or if it fails to load
- */
+// Optional Replit plugins (safe for Vercel)
 async function maybeLoadReplitPlugin() {
-  // Only load in non-production environments with REPL_ID
   if (process.env.NODE_ENV === "production" || process.env.REPL_ID === undefined) {
     return null;
   }
-
   try {
-    const cartographerModule = await import("@replit/vite-plugin-cartographer");
-    return cartographerModule.cartographer();
-  } catch (error) {
-    // Silently fail if plugin is not available (e.g., in production builds)
-    console.warn("Replit Cartographer plugin not available:", error);
+    const mod = await import("@replit/vite-plugin-cartographer");
+    return mod.cartographer();
+  } catch {
     return null;
   }
 }
 
-/**
- * Safely loads the runtime error overlay plugin
- * Returns null if the plugin is not available
- */
 async function maybeLoadRuntimeErrorOverlay() {
   try {
-    const runtimeErrorOverlayModule = await import("@replit/vite-plugin-runtime-error-modal");
-    // The module exports a default function
-    return runtimeErrorOverlayModule.default();
-  } catch (error) {
-    // Silently fail if plugin is not available
-    console.warn("Runtime error overlay plugin not available:", error);
+    const mod = await import("@replit/vite-plugin-runtime-error-modal");
+    return mod.default();
+  } catch {
     return null;
   }
 }
 
-/**
- * Gets the local network IP address (non-localhost)
- * Returns the first IPv4 address found on network interfaces
- */
+// Local IP helper (dev only)
 function getNetworkIP(): string {
   const interfaces = os.networkInterfaces();
-  
   for (const name of Object.keys(interfaces)) {
-    const networkInterface = interfaces[name];
-    if (!networkInterface) continue;
-    
-    for (const iface of networkInterface) {
-      // Skip internal (loopback) and non-IPv4 addresses
+    const ifaceList = interfaces[name];
+    if (!ifaceList) continue;
+    for (const iface of ifaceList) {
       if (iface.family === "IPv4" && !iface.internal) {
         return iface.address;
       }
     }
   }
-  
-  // Fallback to localhost if no network IP found
   return "127.0.0.1";
 }
 
 export default defineConfig(async () => {
-  // Get network IP for HMR
   const networkIP = getNetworkIP();
 
-  // Load plugins conditionally
-  const plugins: any[] = [
-    react(),
-  ];
+  const plugins: any[] = [react()];
 
-  // Conditionally load runtime error overlay (may not be available in production)
-  const runtimeErrorOverlay = await maybeLoadRuntimeErrorOverlay();
-  if (runtimeErrorOverlay) {
-    plugins.push(runtimeErrorOverlay);
-  }
+  const runtimeOverlay = await maybeLoadRuntimeErrorOverlay();
+  if (runtimeOverlay) plugins.push(runtimeOverlay);
 
-  // Conditionally load Replit Cartographer plugin (dev only)
   const replitPlugin = await maybeLoadReplitPlugin();
-  if (replitPlugin) {
-    plugins.push(replitPlugin);
-  }
+  if (replitPlugin) plugins.push(replitPlugin);
 
   return {
+    /** 🔴 THIS IS THE IMPORTANT FIX */
+    base: "/", // REQUIRED for Vercel asset loading
+
+    root: clientRoot,
+
     plugins,
+
     define: {
       __VUE_PROD_DEVTOOLS__: false,
     },
+
     resolve: {
       alias: {
         "@": path.join(clientRoot, "src"),
         "@shared": path.join(repoRoot, "shared"),
         "@assets": path.join(repoRoot, "attached_assets"),
       },
-      // Ensure React is properly deduplicated - prevent multiple React instances
-      dedupe: ['react', 'react-dom'],
+      dedupe: ["react", "react-dom"],
     },
-    // Optimize dependencies to ensure React is pre-bundled correctly
+
     optimizeDeps: {
-      include: ['react', 'react-dom'],
-      force: false, // Don't force re-optimization unless needed
+      include: ["react", "react-dom"],
     },
-    // Make Vite root absolute so it reliably locates client/index.html in CI
-    root: clientRoot,
+
     build: {
-      // Explicitly resolve outDir relative to the repository root.
       outDir: path.join(repoRoot, "dist", "public"),
       emptyOutDir: true,
-      // Ensure proper module resolution and prevent duplicate React instances
       commonjsOptions: {
         include: [/node_modules/],
         transformMixedEsModules: true,
       },
-   rollupOptions: {
-  output: {
-    manualChunks: (id: string) => {
-      if (
-        id.includes("node_modules/react") ||
-        id.includes("node_modules/react-dom")
-      ) {
-        return undefined;
-      }
-
-      if (id.includes("node_modules")) {
-        if (id.includes("recharts")) return "chart-vendor";
-        if (id.includes("framer-motion")) return "motion-vendor";
-      }
-
-      return undefined;
+      rollupOptions: {
+        output: {
+          manualChunks: (id: string) => {
+            if (
+              id.includes("node_modules/react") ||
+              id.includes("node_modules/react-dom")
+            ) {
+              return undefined;
+            }
+            if (id.includes("node_modules")) {
+              if (id.includes("recharts")) return "chart-vendor";
+              if (id.includes("framer-motion")) return "motion-vendor";
+            }
+            return undefined;
+          },
+        },
+      },
     },
-  },
-},
 
-    },
     server: {
       port: 5000,
-      host: '0.0.0.0',
+      host: "0.0.0.0",
       hmr: {
         port: 5000,
-        host: networkIP
+        host: networkIP,
       },
       fs: {
         strict: true,
