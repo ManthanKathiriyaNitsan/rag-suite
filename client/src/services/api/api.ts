@@ -772,6 +772,99 @@ export const testChatAPIConnection = async () => {
   }
 };
 
+export interface ApiKey {
+  id: string;
+  name: string;
+  description?: string;
+  key: string;
+  keyPreview?: string;
+  environment: string;
+  rateLimit: number;
+  expiresAt?: string | null;
+  isActive: boolean;
+  requestCount: number;
+  lastUsedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateApiKeyPayload {
+  name: string;
+  description?: string;
+  environment: string;
+  rate_limit: number;
+  expiration: string;
+}
+
+export const apiKeysAPI = {
+  create: async (payload: CreateApiKeyPayload): Promise<ApiKey> => {
+    const response = await apiClient.post('/api-keys', payload);
+    const raw = response.data;
+    const data = raw.data || raw;
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      key: data.key,
+      keyPreview: data.key_preview ?? (typeof data.key === 'string' ? `${data.key.slice(0, 4)}…${data.key.slice(-4)}` : undefined),
+      environment: data.environment,
+      rateLimit: data.rate_limit ?? 0,
+      expiresAt: data.expires_at ?? null,
+      isActive: data.is_active ?? true,
+      requestCount: data.request_count ?? 0,
+      lastUsedAt: data.last_used_at ?? null,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    };
+  },
+
+  list: async (): Promise<ApiKey[]> => {
+    const response = await apiClient.get('/api-keys');
+    const raw = response.data;
+    const list = Array.isArray(raw) ? raw : Array.isArray(raw.data) ? raw.data : [];
+    return list.map((data: any) => ({
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      key: data.key,
+      keyPreview: data.key_preview,
+      environment: data.environment,
+      rateLimit: data.rate_limit ?? 0,
+      expiresAt: data.expires_at ?? null,
+      isActive: data.is_active ?? true,
+      requestCount: data.request_count ?? 0,
+      lastUsedAt: data.last_used_at ?? null,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    }));
+  },
+
+  get: async (id: string): Promise<ApiKey> => {
+    const response = await apiClient.get(`/api-keys/${id}`);
+    const raw = response.data;
+    const data = raw.data || raw;
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      key: data.key,
+      keyPreview: data.key_preview,
+      environment: data.environment,
+      rateLimit: data.rate_limit ?? 0,
+      expiresAt: data.expires_at ?? null,
+      isActive: data.is_active ?? true,
+      requestCount: data.request_count ?? 0,
+      lastUsedAt: data.last_used_at ?? null,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    };
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await apiClient.delete(`/api-keys/${id}`);
+  },
+};
+
 // 📝 Type definitions - This tells TypeScript what your API returns
 export interface SearchResponse {
   success: boolean;
