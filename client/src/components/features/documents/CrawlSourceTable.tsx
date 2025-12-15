@@ -163,21 +163,18 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
   }
 
   // CRITICAL: Additional safety check - Don't render table if sites is invalid
-  // This prevents the error during refetch transitions
-  // Also check if we're in a fetching state - don't render during any fetch operation
-  if (!safeSites || !Array.isArray(safeSites) || safeSites.length === 0 || isFetching || isRefetching) {
-    if (isFetching || isRefetching) {
+  // Show table if we have data, even during refetch (just show loading indicator in header)
+  if (!safeSites || !Array.isArray(safeSites) || safeSites.length === 0) {
+    // Only show empty state if we're not fetching (initial load) or if we have no data after fetch
+    if (isLoading && !hasHadDataRef.current) {
       return (
         <Card className="w-full overflow-hidden">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Crawl Sources
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-            </CardTitle>
-          </CardHeader>
           <CardContent>
-            <div className="text-center py-8 text-muted-foreground text-sm">
-              Refreshing data...
+            <div className="text-center py-8">
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Loading sites...</span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -199,7 +196,12 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
   return (
     <Card className="w-full overflow-hidden">
       <CardHeader>
-        <CardTitle>Crawl Sources</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          Crawl Sources
+          {(isFetching || isRefetching) && (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          )}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">

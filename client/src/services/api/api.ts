@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 🌐 API Configuration - Unified API base URL for all endpoints
-const API_BASE_URL = 'http://18.184.188.165:8000/api/v1';
+const API_BASE_URL = 'http://192.168.0.112:8000/api/v1';
 
 // 📡 Create axios instance - This is your unified API client
 export const apiClient = axios.create({
@@ -15,10 +15,17 @@ export const apiClient = axios.create({
 // 🔧 Add request interceptor for debugging and authentication
 apiClient.interceptors.request.use(
   (config) => {
-    // Add authentication token if available (check both token storage keys for compatibility)
+    // Add authentication token if available and not expired (check both token storage keys for compatibility)
     const token = localStorage.getItem('auth-token') || localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const expiresAt = localStorage.getItem('token_expires');
+    
+    if (token && expiresAt) {
+      const expirationDate = new Date(expiresAt);
+      const currentDate = new Date();
+      
+      if (expirationDate > currentDate) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     
     console.log('🌐 API Request:', {

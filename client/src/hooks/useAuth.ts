@@ -2,6 +2,29 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { authAPI, LoginCredentials, LoginResponse, User } from '@/services/api/api';
 
+// 🔐 Helper function to check if token is expired (without clearing storage)
+const isTokenExpired = (): boolean => {
+  const expiresAt = localStorage.getItem('token_expires');
+  if (!expiresAt || expiresAt === 'null' || expiresAt === 'undefined') {
+    return true;
+  }
+  
+  const expirationDate = new Date(expiresAt);
+  const currentDate = new Date();
+  
+  // Calculate time difference in minutes
+  const timeDiffMinutes = Math.round((expirationDate.getTime() - currentDate.getTime()) / (1000 * 60));
+  
+  // If the time difference is negative but less than 6 hours, it's likely a timezone issue
+  const isLikelyTimezoneIssue = timeDiffMinutes < 0 && timeDiffMinutes > -360; // -6 hours
+  
+  // Add 30 minute buffer for normal cases, but be more lenient for timezone issues
+  const bufferTime = isLikelyTimezoneIssue ? 0 : 30 * 60 * 1000; // 30 minutes for normal, 0 for timezone issues
+  const isExpired = expirationDate <= new Date(currentDate.getTime() + bufferTime);
+  
+  return isExpired && !isLikelyTimezoneIssue;
+};
+
 // 🔐 Authentication hook for login functionality
 export const useAuth = () => {
   const queryClient = useQueryClient();
@@ -144,42 +167,6 @@ export const useAuth = () => {
         return null;
       }
       
-    // Check if token is expired with robust timezone handling
-    const expirationDate = new Date(expiresAt);
-    const currentDate = new Date();
-    
-    // Calculate time difference in minutes
-    const timeDiffMinutes = Math.round((expirationDate.getTime() - currentDate.getTime()) / (1000 * 60));
-    
-    // If the time difference is negative but less than 6 hours, it's likely a timezone issue
-    // In this case, we'll treat the token as valid if it's within 6 hours of expiration
-    const isLikelyTimezoneIssue = timeDiffMinutes < 0 && timeDiffMinutes > -360; // -6 hours
-    
-    // Add 30 minute buffer for normal cases, but be more lenient for timezone issues
-    const bufferTime = isLikelyTimezoneIssue ? 0 : 30 * 60 * 1000; // 30 minutes for normal, 0 for timezone issues
-    const isExpired = expirationDate <= new Date(currentDate.getTime() + bufferTime);
-    
-    console.log('🔐 Token expiration check:', {
-      expiresAt: expiresAt,
-      expirationDate: expirationDate.toISOString(),
-      currentDate: currentDate.toISOString(),
-      timeDiffMinutes: timeDiffMinutes,
-      isLikelyTimezoneIssue: isLikelyTimezoneIssue,
-      bufferTime: bufferTime,
-      isExpired: isExpired
-    });
-    
-    if (isExpired && !isLikelyTimezoneIssue) {
-      console.log('🔐 Token expired (with buffer), clearing data');
-      // Token expired, clear data
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_data');
-      localStorage.removeItem('token_expires');
-      return null;
-    } else if (isLikelyTimezoneIssue) {
-      console.log('🔐 Likely timezone issue detected, treating token as valid');
-    }
-      
       const user = JSON.parse(userData);
       console.log('🔐 Parsed user data:', user);
       return user;
@@ -201,42 +188,6 @@ export const useAuth = () => {
     // Check for null, undefined, or empty string
     if (!token || token === 'null' || token === 'undefined' || !expiresAt || expiresAt === 'null' || expiresAt === 'undefined') {
       return null;
-    }
-    
-    // Check if token is expired with robust timezone handling
-    const expirationDate = new Date(expiresAt);
-    const currentDate = new Date();
-    
-    // Calculate time difference in minutes
-    const timeDiffMinutes = Math.round((expirationDate.getTime() - currentDate.getTime()) / (1000 * 60));
-    
-    // If the time difference is negative but less than 6 hours, it's likely a timezone issue
-    // In this case, we'll treat the token as valid if it's within 6 hours of expiration
-    const isLikelyTimezoneIssue = timeDiffMinutes < 0 && timeDiffMinutes > -360; // -6 hours
-    
-    // Add 30 minute buffer for normal cases, but be more lenient for timezone issues
-    const bufferTime = isLikelyTimezoneIssue ? 0 : 30 * 60 * 1000; // 30 minutes for normal, 0 for timezone issues
-    const isExpired = expirationDate <= new Date(currentDate.getTime() + bufferTime);
-    
-    console.log('🔐 Token expiration check (getCurrentToken):', {
-      expiresAt: expiresAt,
-      expirationDate: expirationDate.toISOString(),
-      currentDate: currentDate.toISOString(),
-      timeDiffMinutes: timeDiffMinutes,
-      isLikelyTimezoneIssue: isLikelyTimezoneIssue,
-      bufferTime: bufferTime,
-      isExpired: isExpired
-    });
-    
-    if (isExpired && !isLikelyTimezoneIssue) {
-      console.log('🔐 Token expired (with buffer), clearing data (getCurrentToken)');
-      // Token expired, clear data
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_data');
-      localStorage.removeItem('token_expires');
-      return null;
-    } else if (isLikelyTimezoneIssue) {
-      console.log('🔐 Likely timezone issue detected, treating token as valid (getCurrentToken)');
     }
     
     return token;
