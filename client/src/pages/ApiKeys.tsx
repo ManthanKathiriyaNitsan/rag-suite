@@ -12,6 +12,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import { useI18n } from "@/contexts/I18nContext";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { apiKeysAPI, type ApiKey } from "@/services/api/api";
@@ -36,28 +48,218 @@ const ApiKeys = React.memo(function ApiKeys() {
   const { locale, t } = useI18n();
   const [showApiKey, setShowApiKey] = useState<string | null>(null);
   const [showCreateKeyForm, setShowCreateKeyForm] = useState(false);
+  const [createdApiKey, setCreatedApiKey] = useState<{
+    name: string;
+    key: string;
+    environment: string;
+    rateLimit: number;
+  } | null>(null);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const { toast } = useToast();
 
-  const handleCreateApiKey = useCallback((created: ApiKey) => {
-    setApiKeys((prev) => [
-      ...prev,
-      {
-        id: created.id,
-        name: created.name,
-        key: created.key,
-        keyPreview: created.keyPreview,
-        createdAt: new Date(created.createdAt),
-        lastUsed: created.lastUsedAt ? new Date(created.lastUsedAt) : null,
-        requests: created.requestCount,
-        rateLimit: created.rateLimit,
-        environment: created.environment,
-      },
-    ]);
-    toast({
-      title: "API Key Created",
-      description: `New API key "${created.name}" has been created successfully.`,
-    });
-    setShowCreateKeyForm(false);
+  const handleCreateApiKey = useCallback(async (formData: any) => {
+    console.log('🔑 ApiKeys component - handleCreateApiKey called with:', formData);
+    
+    // Check if formData is already an ApiKey (from form) or if we need to call the API
+    if (formData && formData.id && formData.key) {
+      // It's already a created ApiKey object, just add it to state
+      console.log('🔑 ApiKeys component - Received created API key, adding to state');
+      // Safely parse createdAt date
+      let createdAt: Date;
+      try {
+        createdAt = formData.createdAt ? new Date(formData.createdAt) : new Date();
+        if (isNaN(createdAt.getTime())) {
+          createdAt = new Date();
+        }
+      } catch {
+        createdAt = new Date();
+      }
+      
+      // Safely parse lastUsed date
+      let lastUsed: Date | null = null;
+      if (formData.lastUsedAt) {
+        try {
+          const parsed = new Date(formData.lastUsedAt);
+          if (!isNaN(parsed.getTime())) {
+            lastUsed = parsed;
+          }
+        } catch {
+          // Keep as null if parsing fails
+        }
+      }
+      
+      setApiKeys((prev) => [
+        ...prev,
+        {
+          id: formData.id,
+          name: formData.name ?? '',
+          key: formData.key ?? '',
+          keyPreview: formData.keyPreview ?? '',
+          createdAt,
+          lastUsed,
+          requests: typeof formData.requestCount === 'number' ? formData.requestCount : 0,
+          rateLimit: typeof formData.rateLimit === 'number' ? formData.rateLimit : 0,
+          environment: formData.environment ?? 'Development',
+        },
+      ]);
+      setCreatedApiKey({
+        name: formData.name ?? '',
+        key: formData.key ?? '',
+        environment: formData.environment ?? 'Development',
+        rateLimit: typeof formData.rateLimit === 'number' ? formData.rateLimit : 100,
+      });
+      setShowSuccessDialog(true);
+      setShowCreateKeyForm(false);
+    } else {
+      // It's form data, we need to call the API
+      console.log('🔑 ApiKeys component - Received form data, calling API');
+      console.log('🔑 ApiKeys component - Form data:', formData);
+      
+      try {
+        // Transform form data to API payload format
+        // Ensure values match backend enum requirements exactly
+        let environment = formData.environment || 'Development';
+        // Normalize environment
+        if (environment) {
+          const envLower = environment.toLowerCase();
+          if (envLower === 'production' || envLower === 'prod') {
+            environment = 'Production';
+          } else if (envLower === 'staging' || envLower === 'stage') {
+            environment = 'Staging';
+          } else if (envLower === 'development' || envLower === 'dev') {
+            environment = 'Development';
+          }
+        }
+        
+        let expiration = formData.expiration || "Never expires";
+        // Normalize expiration
+        if (expiration) {
+          const expLower = expiration.toLowerCase();
+          if (expLower.includes('never') || expLower === 'never expires') {
+            expiration = "Never expires";
+          } else if (expLower.includes('30') || expLower === '30 days') {
+            expiration = "30 days";
+          } else if (expLower.includes('90') || expLower === '90 days') {
+            expiration = "90 days";
+          } else if (expLower.includes('1') && (expLower.includes('year') || expLower.includes('365'))) {
+            expiration = "1 year";
+          }
+        }
+        
+        const payload = {
+          name: (formData.name || '').trim(),
+          description: formData.description ? formData.description.trim() : undefined,
+          environment: environment,
+          rate_limit: typeof formData.rate_limit === 'number' ? formData.rate_limit : (typeof formData.rateLimit === 'number' ? formData.rateLimit : 100),
+          expiration: expiration,
+        };
+        
+        console.log('🔑 ApiKeys component - Normalized payload:', payload);
+        
+        console.log('🔑 ApiKeys component - Calling apiKeysAPI.create with payload:', payload);
+        const created = await apiKeysAPI.create(payload);
+        console.log('✅ ApiKeys component - API key created successfully:', created);
+        
+        // Safely parse createdAt date
+        let createdAt: Date;
+        try {
+          createdAt = created.createdAt ? new Date(created.createdAt) : new Date();
+          if (isNaN(createdAt.getTime())) {
+            createdAt = new Date();
+          }
+        } catch {
+          createdAt = new Date();
+        }
+        
+        // Safely parse lastUsed date
+        let lastUsed: Date | null = null;
+        if (created.lastUsedAt) {
+          try {
+            const parsed = new Date(created.lastUsedAt);
+            if (!isNaN(parsed.getTime())) {
+              lastUsed = parsed;
+            }
+          } catch {
+            // Keep as null if parsing fails
+          }
+        }
+        
+        setApiKeys((prev) => [
+          ...prev,
+          {
+            id: created.id,
+            name: created.name ?? '',
+            key: created.key ?? '',
+            keyPreview: created.keyPreview ?? '',
+            createdAt,
+            lastUsed,
+            requests: typeof created.requestCount === 'number' ? created.requestCount : 0,
+            rateLimit: typeof created.rateLimit === 'number' ? created.rateLimit : 0,
+            environment: created.environment ?? 'Development',
+          },
+        ]);
+        setCreatedApiKey({
+          name: created.name ?? '',
+          key: created.key ?? '',
+          environment: created.environment ?? 'Development',
+          rateLimit: typeof created.rateLimit === 'number' ? created.rateLimit : 100,
+        });
+        setShowSuccessDialog(true);
+        setShowCreateKeyForm(false);
+      } catch (error: any) {
+        console.error('❌ ApiKeys component - Failed to create API key:', error);
+        
+        // Log detailed validation errors
+        if (error.response?.data?.detail) {
+          const detail = error.response.data.detail;
+          console.error('❌ ApiKeys component - Validation errors:', detail);
+          
+          // Handle Pydantic validation errors (array format)
+          if (Array.isArray(detail)) {
+            const errorMessages = detail.map((err: any) => {
+              const loc = err.loc ? err.loc.join('.') : 'unknown';
+              return `${loc}: ${err.msg || err.message || 'Invalid value'}`;
+            }).join(', ');
+            
+            toast({
+              title: "Validation Error",
+              description: `Please check the form: ${errorMessages}`,
+              variant: "destructive",
+            });
+          } else if (typeof detail === 'string') {
+            // Single error message
+            toast({
+              title: "Failed to Create API Key",
+              description: detail,
+              variant: "destructive",
+            });
+          } else if (typeof detail === 'object') {
+            // Object with field errors
+            const errorMessages = Object.entries(detail)
+              .map(([field, message]) => `${field}: ${message}`)
+              .join(', ');
+            
+            toast({
+              title: "Validation Error",
+              description: errorMessages,
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Failed to Create API Key",
+              description: error.message || "An error occurred while creating the API key.",
+              variant: "destructive",
+            });
+          }
+        } else {
+          toast({
+            title: "Failed to Create API Key",
+            description: error.message || "An error occurred while creating the API key.",
+            variant: "destructive",
+          });
+        }
+      }
+    }
   }, [toast]);
 
   const handleCopyKey = useCallback((key: string) => {
@@ -67,6 +269,21 @@ const ApiKeys = React.memo(function ApiKeys() {
       description: "API key has been copied to clipboard.",
     });
   }, [toast]);
+
+  const handleCloseSuccessDialog = useCallback(() => {
+    setShowSuccessDialog(false);
+    setCreatedApiKey(null);
+  }, []);
+
+  const handleCopyCreatedKey = useCallback(() => {
+    if (createdApiKey) {
+      navigator.clipboard.writeText(createdApiKey.key);
+      toast({
+        title: "Copied",
+        description: "API key has been copied to clipboard.",
+      });
+    }
+  }, [createdApiKey, toast]);
 
   const handleToggleKey = useCallback(async (id: string) => {
     const current = apiKeys.find(k => k.id === id);
@@ -107,29 +324,79 @@ const ApiKeys = React.memo(function ApiKeys() {
 
   useEffect(() => {
     let isMounted = true;
+    console.log('🔑 ApiKeys component - useEffect triggered, fetching API keys list');
     setLoading(true);
+    
     apiKeysAPI.list()
       .then((list) => {
-        if (!isMounted) return;
-        const mapped = list.map((item) => ({
-          id: item.id,
-          name: item.name,
-          key: item.key ?? '',
-          keyPreview: item.keyPreview,
-          createdAt: new Date(item.createdAt),
-          lastUsed: item.lastUsedAt ? new Date(item.lastUsedAt) : null,
-          requests: item.requestCount,
-          rateLimit: item.rateLimit,
-          environment: item.environment,
-        }));
+        console.log('✅ ApiKeys component - List received:', list);
+        if (!isMounted) {
+          console.log('⚠️ ApiKeys component - Component unmounted, ignoring response');
+          return;
+        }
+        const mapped = list.map((item) => {
+          // Safely parse createdAt date
+          let createdAt: Date;
+          try {
+            createdAt = item.createdAt ? new Date(item.createdAt) : new Date();
+            // Validate the date is not invalid
+            if (isNaN(createdAt.getTime())) {
+              createdAt = new Date();
+            }
+          } catch {
+            createdAt = new Date();
+          }
+          
+          // Safely parse lastUsed date
+          let lastUsed: Date | null = null;
+          if (item.lastUsedAt) {
+            try {
+              const parsed = new Date(item.lastUsedAt);
+              if (!isNaN(parsed.getTime())) {
+                lastUsed = parsed;
+              }
+            } catch {
+              // Keep as null if parsing fails
+            }
+          }
+          
+          return {
+            id: item.id,
+            name: item.name ?? '',
+            key: item.key ?? '',
+            keyPreview: item.keyPreview ?? '',
+            createdAt,
+            lastUsed,
+            requests: typeof item.requestCount === 'number' ? item.requestCount : 0,
+            rateLimit: typeof item.rateLimit === 'number' ? item.rateLimit : 0,
+            environment: item.environment ?? 'Development',
+          };
+        });
+        console.log('✅ ApiKeys component - Mapped API keys:', mapped);
         setApiKeys(mapped);
       })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .catch((error) => {
+        console.error('❌ ApiKeys component - Failed to fetch API keys list:', error);
+        console.error('❌ ApiKeys component - Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+        });
+        toast({
+          title: "Failed to Load API Keys",
+          description: error.response?.data?.detail || error.message || "An error occurred while loading API keys.",
+          variant: "destructive",
+        });
+      })
+      .finally(() => {
+        console.log('🔑 ApiKeys component - Loading complete');
+        setLoading(false);
+      });
     return () => {
+      console.log('🔑 ApiKeys component - Cleanup: component unmounting');
       isMounted = false;
     };
-  }, []);
+  }, [toast]);
 
   return (
     <div className="relative">
@@ -232,20 +499,30 @@ const ApiKeys = React.memo(function ApiKeys() {
                           <div className="grid grid-cols-2 gap-3 text-xs">
                             <div>
                               <label className="text-muted-foreground">Created</label>
-                              <p className="mt-1">{key.createdAt.toLocaleDateString(locale)}</p>
+                              <p className="mt-1">
+                                {key.createdAt && !isNaN(key.createdAt.getTime()) 
+                                  ? key.createdAt.toLocaleDateString(locale) 
+                                  : "–"}
+                              </p>
                             </div>
                             <div>
                               <label className="text-muted-foreground">Last Used</label>
                               <p className="mt-1">
-                                {key.lastUsed ? new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
-                                  Math.floor((key.lastUsed.getTime() - Date.now()) / (1000 * 60)),
-                                  "minute"
-                                ) : "–"}
+                                {key.lastUsed && !isNaN(key.lastUsed.getTime()) 
+                                  ? new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
+                                      Math.floor((key.lastUsed.getTime() - Date.now()) / (1000 * 60)),
+                                      "minute"
+                                    )
+                                  : "–"}
                               </p>
                             </div>
                             <div>
                               <label className="text-muted-foreground">Requests</label>
-                              <p className="mt-1">{key.requests.toLocaleString(locale)}</p>
+                              <p className="mt-1">
+                                {typeof key.requests === 'number' 
+                                  ? key.requests.toLocaleString(locale) 
+                                  : "0"}
+                              </p>
                             </div>
                             <div>
                               <label className="text-muted-foreground">Rate Limit</label>
@@ -309,15 +586,23 @@ const ApiKeys = React.memo(function ApiKeys() {
                               </div>
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {key.createdAt.toLocaleDateString(locale)}
+                              {key.createdAt && !isNaN(key.createdAt.getTime()) 
+                                ? key.createdAt.toLocaleDateString(locale) 
+                                : "–"}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {key.lastUsed ? new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
-                                Math.floor((key.lastUsed.getTime() - Date.now()) / (1000 * 60)),
-                                "minute"
-                              ) : "–"}
+                              {key.lastUsed && !isNaN(key.lastUsed.getTime()) 
+                                ? new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
+                                    Math.floor((key.lastUsed.getTime() - Date.now()) / (1000 * 60)),
+                                    "minute"
+                                  )
+                                : "–"}
                             </TableCell>
-                            <TableCell className="text-sm">{key.requests.toLocaleString(locale)}</TableCell>
+                            <TableCell className="text-sm">
+                              {typeof key.requests === 'number' 
+                                ? key.requests.toLocaleString(locale) 
+                                : "0"}
+                            </TableCell>
                             <TableCell className="text-sm">{key.rateLimit}/hour</TableCell>
                             <TableCell className="text-center">
                               <Button
@@ -340,6 +625,67 @@ const ApiKeys = React.memo(function ApiKeys() {
             )}
           </CardContent>
         </GlassCard>
+
+        {/* Success Dialog */}
+        <Dialog open={showSuccessDialog} onOpenChange={handleCloseSuccessDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5" />
+                API Key Created
+              </DialogTitle>
+              <DialogDescription>
+                Your new API key has been generated. Copy it now - you won't be able to see it again.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Store this key securely. For security reasons, you won't be able to view it again.
+                </AlertDescription>
+              </Alert>
+
+              {createdApiKey && (
+                <>
+                  <div>
+                    <Label>API Key</Label>
+                    <div className="mt-1 flex items-center gap-2">
+                      <Input
+                        value={createdApiKey.key}
+                        readOnly
+                        className="font-mono text-sm"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopyCreatedKey}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="text-sm text-muted-foreground">
+                    <p><strong>Name:</strong> {createdApiKey.name}</p>
+                    <p><strong>Environment:</strong> {createdApiKey.environment}</p>
+                    <p><strong>Rate Limit:</strong> {createdApiKey.rateLimit} requests/hour</p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button 
+                onClick={handleCloseSuccessDialog} 
+                className="sm:min-w-[140px]"
+              >
+                Done
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Create API Key Form */}
         <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}>

@@ -18,8 +18,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Key, Copy, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Key } from "lucide-react";
 
 interface CreateApiKeyFormProps {
   open: boolean;
@@ -28,21 +27,17 @@ interface CreateApiKeyFormProps {
 }
 
 function CreateApiKeyForm({ open, onOpenChange, onSubmit }: CreateApiKeyFormProps) {
-  const [step, setStep] = useState<"form" | "created">("form");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [rateLimit, setRateLimit] = useState(100);
   const [environment, setEnvironment] = useState("production");
   const [expiry, setExpiry] = useState("never");
-  const [generatedKey, setGeneratedKey] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Generate a mock API key
     const newKey = `rgs_${environment === "production" ? "live" : "test"}_${Math.random().toString(36).substr(2, 24)}`;
-    setGeneratedKey(newKey);
-    setStep("created");
     
     onSubmit({
       name,
@@ -52,86 +47,16 @@ function CreateApiKeyForm({ open, onOpenChange, onSubmit }: CreateApiKeyFormProp
       expiry,
       key: newKey,
     });
-  };
 
-  const handleCopyKey = () => {
-    navigator.clipboard.writeText(generatedKey);
-    console.log("API key copied to clipboard");
-  };
-
-  const handleClose = () => {
-    setStep("form");
+    // Reset form
     setName("");
     setDescription("");
     setRateLimit(100);
     setEnvironment("production");
     setExpiry("never");
-    setGeneratedKey("");
+
     onOpenChange(false);
   };
-
-  if (step === "created") {
-    return (
-      <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="max-w-md  ">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Key className="h-5 w-5" />
-              API Key Created
-            </DialogTitle>
-            <DialogDescription>
-              Your new API key has been generated. Copy it now - you won't be able to see it again.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Store this key securely. For security reasons, you won't be able to view it again.
-              </AlertDescription>
-            </Alert>
-
-            <div>
-              <Label>API Key</Label>
-              <div className="mt-1 flex items-center gap-2">
-                <Input
-                  value={generatedKey}
-                  readOnly
-                  className="font-mono text-sm"
-                  data-testid="input-generated-key"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyKey}
-                  data-testid="button-copy-key"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="text-sm text-muted-foreground">
-              <p><strong>Name:</strong> {name}</p>
-              <p><strong>Environment:</strong> {environment}</p>
-              <p><strong>Rate Limit:</strong> {rateLimit} requests/hour</p>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button 
-              onClick={handleClose} 
-              className="sm:min-w-[140px]"
-              data-testid="button-close-key-dialog"
-            >
-              Done
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

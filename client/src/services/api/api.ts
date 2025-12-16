@@ -791,77 +791,218 @@ export interface ApiKey {
 export interface CreateApiKeyPayload {
   name: string;
   description?: string;
-  environment: string;
-  rate_limit: number;
-  expiration: string;
+  environment: string; // "Production", "Staging", or "Development"
+  rate_limit?: number; // Optional, defaults to 100
+  rateLimit?: number; // Alternative field name
+  expiration?: string; // "Never expires", "30 days", "90 days", or "1 year"
 }
 
 export const apiKeysAPI = {
   create: async (payload: CreateApiKeyPayload): Promise<ApiKey> => {
-    const response = await apiClient.post('/api-keys', payload);
-    const raw = response.data;
-    const data = raw.data || raw;
-    return {
-      id: data.id,
-      name: data.name,
-      description: data.description,
-      key: data.key,
-      keyPreview: data.key_preview ?? (typeof data.key === 'string' ? `${data.key.slice(0, 4)}…${data.key.slice(-4)}` : undefined),
-      environment: data.environment,
-      rateLimit: data.rate_limit ?? 0,
-      expiresAt: data.expires_at ?? null,
-      isActive: data.is_active ?? true,
-      requestCount: data.request_count ?? 0,
-      lastUsedAt: data.last_used_at ?? null,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-    };
+    console.log('🔑 API Keys API - Creating API key with payload:', payload);
+    
+    try {
+      // Ensure payload structure matches backend expectations
+      // Backend expects:
+      // - environment: "Production", "Staging", or "Development" (exact match required)
+      // - expiration: "Never expires", "30 days", "90 days", or "1 year" (exact match required)
+      
+      // Normalize environment value
+      let environment = payload.environment;
+      if (environment) {
+        // Convert common variations to exact enum values
+        const envLower = environment.toLowerCase();
+        if (envLower === 'production' || envLower === 'prod') {
+          environment = 'Production';
+        } else if (envLower === 'staging' || envLower === 'stage') {
+          environment = 'Staging';
+        } else if (envLower === 'development' || envLower === 'dev') {
+          environment = 'Development';
+        }
+        // Ensure first letter is uppercase if it's already one of the values
+        if (environment && environment !== 'Production' && environment !== 'Staging' && environment !== 'Development') {
+          environment = environment.charAt(0).toUpperCase() + environment.slice(1).toLowerCase();
+        }
+      }
+      
+      // Normalize expiration value
+      let expiration = payload.expiration || "Never expires";
+      if (expiration) {
+        const expLower = expiration.toLowerCase();
+        if (expLower.includes('never') || expLower === 'never expires') {
+          expiration = "Never expires";
+        } else if (expLower.includes('30') || expLower === '30 days') {
+          expiration = "30 days";
+        } else if (expLower.includes('90') || expLower === '90 days') {
+          expiration = "90 days";
+        } else if (expLower.includes('1') && (expLower.includes('year') || expLower.includes('365'))) {
+          expiration = "1 year";
+        }
+      }
+      
+      // Validate required fields
+      if (!payload.name || !payload.name.trim()) {
+        throw new Error('API key name is required');
+      }
+      
+      const requestPayload = {
+        name: payload.name.trim(),
+        description: payload.description?.trim() || null,
+        environment: environment || 'Development', // Default to Development if not provided
+        rate_limit: typeof payload.rate_limit === 'number' ? payload.rate_limit : (typeof payload.rateLimit === 'number' ? payload.rateLimit : 100),
+        expiration: expiration || "Never expires", // Must match APIKeyExpirationOption enum exactly
+      };
+      
+      // Final validation to ensure enum values are correct
+      const validEnvironments = ['Production', 'Staging', 'Development'];
+      if (!validEnvironments.includes(requestPayload.environment)) {
+        console.warn(`⚠️ Invalid environment "${requestPayload.environment}", defaulting to "Development"`);
+        requestPayload.environment = 'Development';
+      }
+      
+      const validExpirations = ['Never expires', '30 days', '90 days', '1 year'];
+      if (!validExpirations.includes(requestPayload.expiration)) {
+        console.warn(`⚠️ Invalid expiration "${requestPayload.expiration}", defaulting to "Never expires"`);
+        requestPayload.expiration = 'Never expires';
+      }
+      
+      console.log('🔑 API Keys API - Final request payload:', JSON.stringify(requestPayload, null, 2));
+      console.log('🔑 API Keys API - Endpoint: POST /api-keys');
+      
+      const response = await apiClient.post('/api-keys', requestPayload);
+      
+      console.log('✅ API Keys API - Response received:', response);
+      console.log('✅ API Keys API - Response data:', response.data);
+      
+      const raw = response.data;
+      const data = raw.data || raw;
+      
+      const result = {
+        id: data.id,
+        name: data.name ?? '',
+        description: data.description,
+        key: data.key ?? '',
+        keyPreview: data.key_preview ?? (typeof data.key === 'string' ? `${data.key.slice(0, 4)}…${data.key.slice(-4)}` : ''),
+        environment: data.environment ?? 'Development',
+        rateLimit: data.rate_limit ?? 0,
+        expiresAt: data.expires_at ?? null,
+        isActive: data.is_active ?? true,
+        requestCount: data.request_count ?? 0,
+        lastUsedAt: data.last_used_at ?? null,
+        createdAt: data.created_at ?? new Date().toISOString(),
+        updatedAt: data.updated_at ?? new Date().toISOString(),
+      };
+      
+      console.log('✅ API Keys API - Mapped result:', result);
+      return result;
+    } catch (error: any) {
+      console.error('❌ API Keys API - Create failed:', error);
+      console.error('❌ API Keys API - Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: error.config,
+      });
+      
+      // Log the detailed validation errors if available
+      if (error.response?.data?.detail) {
+        console.error('❌ API Keys API - Validation errors:', JSON.stringify(error.response.data.detail, null, 2));
+      }
+      
+      throw error;
+    }
   },
 
   list: async (): Promise<ApiKey[]> => {
-    const response = await apiClient.get('/api-keys');
-    const raw = response.data;
-    const list = Array.isArray(raw) ? raw : Array.isArray(raw.data) ? raw.data : [];
-    return list.map((data: any) => ({
+    console.log('🔑 API Keys API - Listing API keys');
+    console.log('🔑 API Keys API - Endpoint: GET /api-keys');
+    
+    try {
+      const response = await apiClient.get('/api-keys');
+      console.log('✅ API Keys API - List response received:', response);
+      
+      const raw = response.data;
+      const list = Array.isArray(raw) ? raw : Array.isArray(raw.data) ? raw.data : [];
+      console.log('✅ API Keys API - Parsed list:', list);
+      
+      return list.map((data: any) => ({
       id: data.id,
-      name: data.name,
+      name: data.name ?? '',
       description: data.description,
-      key: data.key,
-      keyPreview: data.key_preview,
-      environment: data.environment,
+      key: data.key ?? '',
+      keyPreview: data.key_preview ?? '',
+      environment: data.environment ?? 'Development',
       rateLimit: data.rate_limit ?? 0,
       expiresAt: data.expires_at ?? null,
       isActive: data.is_active ?? true,
       requestCount: data.request_count ?? 0,
       lastUsedAt: data.last_used_at ?? null,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
+      createdAt: data.created_at ?? new Date().toISOString(),
+      updatedAt: data.updated_at ?? new Date().toISOString(),
     }));
+    } catch (error: any) {
+      console.error('❌ API Keys API - List failed:', error);
+      console.error('❌ API Keys API - Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      throw error;
+    }
   },
 
   get: async (id: string): Promise<ApiKey> => {
-    const response = await apiClient.get(`/api-keys/${id}`);
-    const raw = response.data;
-    const data = raw.data || raw;
-    return {
-      id: data.id,
-      name: data.name,
-      description: data.description,
-      key: data.key,
-      keyPreview: data.key_preview,
-      environment: data.environment,
-      rateLimit: data.rate_limit ?? 0,
-      expiresAt: data.expires_at ?? null,
-      isActive: data.is_active ?? true,
-      requestCount: data.request_count ?? 0,
-      lastUsedAt: data.last_used_at ?? null,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-    };
+    console.log('🔑 API Keys API - Getting API key:', id);
+    console.log('🔑 API Keys API - Endpoint: GET /api-keys/' + id);
+    
+    try {
+      const response = await apiClient.get(`/api-keys/${id}`);
+      console.log('✅ API Keys API - Get response received:', response);
+      
+      const raw = response.data;
+      const data = raw.data || raw;
+      return {
+        id: data.id,
+        name: data.name ?? '',
+        description: data.description,
+        key: data.key ?? '',
+        keyPreview: data.key_preview ?? '',
+        environment: data.environment ?? 'Development',
+        rateLimit: data.rate_limit ?? 0,
+        expiresAt: data.expires_at ?? null,
+        isActive: data.is_active ?? true,
+        requestCount: data.request_count ?? 0,
+        lastUsedAt: data.last_used_at ?? null,
+        createdAt: data.created_at ?? new Date().toISOString(),
+        updatedAt: data.updated_at ?? new Date().toISOString(),
+      };
+    } catch (error: any) {
+      console.error('❌ API Keys API - Get failed:', error);
+      console.error('❌ API Keys API - Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      throw error;
+    }
   },
 
   delete: async (id: string): Promise<void> => {
-    await apiClient.delete(`/api-keys/${id}`);
+    console.log('🔑 API Keys API - Deleting API key:', id);
+    console.log('🔑 API Keys API - Endpoint: DELETE /api-keys/' + id);
+    
+    try {
+      await apiClient.delete(`/api-keys/${id}`);
+      console.log('✅ API Keys API - Delete successful');
+    } catch (error: any) {
+      console.error('❌ API Keys API - Delete failed:', error);
+      console.error('❌ API Keys API - Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      throw error;
+    }
   },
 };
 
