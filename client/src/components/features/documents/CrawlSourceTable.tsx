@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -247,15 +248,26 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {(() => {
-                      const status = site?.status || 'unknown';
-                      const badge = getStatusBadge(status);
-                      return (
-                        <Badge variant={badge.variant} className={`text-xs ${badge.className}`}>
-                          {status}
-                        </Badge>
-                      );
-                    })()}
+                    <div className="space-y-1.5">
+                      {(() => {
+                        const status = site?.status || 'unknown';
+                        const badge = getStatusBadge(status);
+                        return (
+                          <Badge variant={badge.variant} className={`text-xs ${badge.className}`}>
+                            {status}
+                          </Badge>
+                        );
+                      })()}
+                      {/* Show progress if we have progress data (regardless of status badge) */}
+                      {site.progress !== undefined && site.progress !== null && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <Progress value={site.progress} className="h-1.5 w-20" />
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            {Math.round(site.progress)}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm text-muted-foreground">

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useEffect, useRef } from 'react';
 import { crawlAPI, CrawlSiteData, CrawlSite, CrawlStatus, UrlPreview } from '@/services/api/api';
 
 // 🕷️ Crawl sites hook - Get all crawling targets
@@ -13,16 +13,109 @@ export const useCrawlSites = () => {
       console.log('🔄 useCrawlSites - Fetching sites from API...');
       const result = await crawlAPI.getSites();
       console.log('✅ useCrawlSites - Received sites:', result?.length || 0);
-      return result;
+      
+      // Get cached sites to preserve currentJobId that we stored
+      // This is important because backend might not return job_id immediately
+      const cachedSites = queryClient.getQueryData<CrawlSite[]>(['crawl-sites']) || [];
+      console.log('🔍 Checking cache for job_ids. Cached sites count:', cachedSites.length);
+      const jobIdMap = new Map<string, string>();
+      cachedSites.forEach((site: CrawlSite) => {
+        if (site.currentJobId) {
+          jobIdMap.set(site.id, site.currentJobId);
+          console.log(`💾 Found cached job_id for site ${site.id}: ${site.currentJobId}`);
+        }
+      });
+      
+      console.log(`📊 Cached job_ids found: ${jobIdMap.size}`);
+      if (jobIdMap.size === 0 && cachedSites.length > 0) {
+        console.log('⚠️ No job_ids in cache, but sites exist. Cache might have been cleared.');
+        console.log('📋 Sample cached site:', cachedSites[0] ? { id: cachedSites[0].id, hasJobId: !!cachedSites[0].currentJobId } : 'none');
+      }
+      
+      // Merge backend data with cached job IDs
+      const sitesWithJobIds = result.map((site: CrawlSite) => {
+        const cachedJobId = jobIdMap.get(site.id);
+        // If backend doesn't provide job_id but we have it in cache, use it
+        // Also update status to crawling if we have a job_id
+        if (cachedJobId && !site.currentJobId) {
+          console.log(`🔗 Merging cached job_id ${cachedJobId} for site ${site.id}`);
+          return {
+            ...site,
+            currentJobId: cachedJobId,
+            status: (site.status === 'active' || site.status === 'inactive') ? 'crawling' as const : site.status,
+          };
+        }
+        return site;
+      });
+      
+      // For sites that are running/crawling or have a job ID, fetch their status to get progress
+      const sitesWithProgress = await Promise.all(
+        sitesWithJobIds.map(async (site: CrawlSite) => {
+          // If site already has progress from backend, use it
+          if (site.progress !== undefined && site.progress !== null) {
+            return site;
+          }
+          
+          // If site has a job ID (from cache or backend), fetch status
+          if (site.currentJobId) {
+            try {
+              console.log(`🔄 Fetching crawl status for site ${site.id} with job ${site.currentJobId}`);
+              const status = await crawlAPI.getCrawlStatus(site.currentJobId);
+              console.log(`✅ Got status for site ${site.id}:`, { 
+                progress: status.progress, 
+                backend_status: status.status,
+                pages_fetched: status.pagesCrawled,
+                progress_type: typeof status.progress,
+                progress_value: status.progress
+              });
+              
+              // Determine new status based on backend response
+              const newStatus = status.status === 'RUNNING' || status.status === 'running' ? 'crawling' as const : 
+                               status.status === 'COMPLETED' || status.status === 'completed' ? 'active' as const :
+                               status.status === 'FAILED' || status.status === 'failed' ? 'error' as const : site.status;
+              
+              console.log(`📊 Updating site ${site.id}: status=${newStatus}, progress=${status.progress}`);
+              
+              return {
+                ...site,
+                progress: status.progress, // Use progress from status (0-100)
+                status: newStatus,
+              };
+            } catch (error: any) {
+              console.warn(`⚠️ Failed to fetch status for site ${site.id} with job ${site.currentJobId}:`, error?.message || error);
+              // If job not found, the crawl might have completed or been cancelled
+              if (error?.response?.status === 404) {
+                console.log(`ℹ️ Job ${site.currentJobId} not found, crawl may have completed`);
+                // Remove job_id if job doesn't exist
+                return {
+                  ...site,
+                  currentJobId: undefined,
+                };
+              }
+              return site;
+            }
+          }
+          
+          // If site is running/crawling but no job ID and no progress, return as-is
+          return site;
+        })
+      );
+      
+      return sitesWithProgress;
     },
     placeholderData: (prev) => prev ?? [],
-    // Always refetch on mount to ensure fresh data when navigating to /crawl
+    // Refetch on mount to load initial data when page loads
     refetchOnMount: 'always',
     // Ensure query is enabled and will fetch
     enabled: true,
-    // Use a reasonable staleTime (5 minutes) instead of Infinity
-    // This allows refetch on mount while still caching data
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    // Use a reasonable staleTime to prevent unnecessary refetches during polling
+    staleTime: 5 * 60 * 1000, // 5 minutes - data is fresh for 5 minutes
+    // Don't refetch on window focus to avoid unnecessary refreshes
+    refetchOnWindowFocus: false,
+    // Don't refetch on reconnect to avoid unnecessary refreshes
+    refetchOnReconnect: false,
+    // Polling interval for smooth progress updates (no full refresh)
+    refetchInterval: false, // Disable automatic refetch - we'll update cache directly
   });
 
   // Add a new site
@@ -150,6 +243,84 @@ export const useCrawlSites = () => {
     },
   });
 
+  // Smooth polling for progress updates (no full refresh)
+  useEffect(() => {
+    // Get latest sites from cache (always up-to-date)
+    const getSitesWithJobs = () => {
+      const cachedSites = queryClient.getQueryData<CrawlSite[]>(['crawl-sites']) || [];
+      return cachedSites.filter(site => 
+        site.currentJobId && (site.progress === undefined || site.progress < 100)
+      );
+    };
+
+    // Poll every 0.5 seconds for very smooth progress updates (catches all intermediate values)
+    const intervalId = setInterval(() => {
+      const sitesWithJobs = getSitesWithJobs();
+      if (sitesWithJobs.length === 0) return;
+
+      sitesWithJobs.forEach((site) => {
+        if (site.currentJobId) {
+          crawlAPI.getCrawlStatus(site.currentJobId)
+            .then((status) => {
+              const newProgress = status.progress;
+              const isCompleted = status.status === 'COMPLETED' || status.status === 'completed' || newProgress >= 100;
+              
+              // Update only this site's progress in cache (smooth update, no full refresh)
+              queryClient.setQueryData<CrawlSite[]>(['crawl-sites'], (oldSites = []) => {
+                return oldSites.map((s: CrawlSite) => 
+                  s.id === site.id 
+                    ? { 
+                        ...s, 
+                        progress: newProgress,
+                        status: status.status === 'RUNNING' || status.status === 'running' ? 'crawling' as const : 
+                                status.status === 'COMPLETED' || status.status === 'completed' ? 'active' as const :
+                                status.status === 'FAILED' || status.status === 'failed' ? 'error' as const : s.status
+                      }
+                    : s
+                );
+              });
+
+              // If crawl completed (100%), refresh just this site's data from backend
+              if (isCompleted && site.progress !== 100) {
+                console.log(`✅ Crawl completed for site ${site.id}, refreshing site data...`);
+                // Fetch fresh site data for this specific site
+                crawlAPI.getSites()
+                  .then((allSites) => {
+                    const updatedSite = allSites.find((s: CrawlSite) => s.id === site.id);
+                    if (updatedSite) {
+                      // Update only this site in cache with fresh data
+                      queryClient.setQueryData<CrawlSite[]>(['crawl-sites'], (oldSites = []) => {
+                        return oldSites.map((s: CrawlSite) => 
+                          s.id === site.id ? updatedSite : s
+                        );
+                      });
+                    }
+                  })
+                  .catch((error) => {
+                    console.warn(`⚠️ Failed to refresh site data for ${site.id}:`, error);
+                  });
+              }
+            })
+            .catch((error) => {
+              // Silently handle errors during polling
+              if (error?.response?.status === 404) {
+                // Job completed or not found, remove job_id
+                queryClient.setQueryData<CrawlSite[]>(['crawl-sites'], (oldSites = []) => {
+                  return oldSites.map((s: CrawlSite) => 
+                    s.id === site.id 
+                      ? { ...s, currentJobId: undefined, status: 'active' as const }
+                      : s
+                  );
+                });
+              }
+            });
+        }
+      });
+    }, 500); // Poll every 0.5 seconds for very smooth progress updates
+
+    return () => clearInterval(intervalId);
+  }, [sitesQuery.data, queryClient]);
+
   // Get the current data, ensuring it's always an array
   // placeholderData in query config will automatically be used if data is undefined
   // CRITICAL: This ensures we NEVER return undefined, even during refetch transitions
@@ -225,12 +396,58 @@ export const useCrawlOperations = () => {
   const startCrawlMutation = useMutation({
     mutationFn: (id: string) => crawlAPI.startCrawl(id),
     
-    onSuccess: (data, id) => {
-      console.log('✅ Crawl started successfully for site:', id);
-      // Refresh sites list to update status
-      queryClient.invalidateQueries({ queryKey: ['crawl-sites'] });
-      // Invalidate status query for this specific site
-      queryClient.invalidateQueries({ queryKey: ['crawl-status', id] });
+    onSuccess: (data, siteId) => {
+      console.log('✅ Crawl started successfully for site:', siteId, 'Response:', data);
+      
+      // Extract job_id from response (could be data.job_id, data.id, or data.job_id)
+      const jobId = data?.job_id || data?.id || data?.jobId;
+      
+      // Optimistically update the site in cache with job_id and status
+      if (jobId) {
+        // Update cache first
+        queryClient.setQueryData<CrawlSite[]>(['crawl-sites'], (oldSites = []) => {
+          const updated = oldSites.map((site: CrawlSite) => 
+            site.id === siteId 
+              ? { ...site, currentJobId: jobId, status: 'crawling' as const }
+              : site
+          );
+          console.log('📝 Updated site cache with job_id:', jobId, 'for site:', siteId);
+          console.log('📋 Cache after update - sites with job_id:', updated.filter(s => s.currentJobId).length);
+          return updated;
+        });
+        
+        // Immediately fetch status for this job and update cache
+        // This ensures progress is available right away without full refresh
+        crawlAPI.getCrawlStatus(jobId)
+          .then((status) => {
+            console.log(`✅ Fetched initial status for job ${jobId}:`, { progress: status.progress, status: status.status });
+            // Update only the specific site in cache with progress (no full refresh)
+            queryClient.setQueryData<CrawlSite[]>(['crawl-sites'], (oldSites = []) => {
+              return oldSites.map((site: CrawlSite) => 
+                site.id === siteId 
+                  ? { 
+                      ...site, 
+                      currentJobId: jobId, 
+                      status: status.status === 'RUNNING' || status.status === 'running' ? 'crawling' as const : site.status,
+                      progress: status.progress 
+                    }
+                  : site
+              );
+            });
+          })
+          .catch((error) => {
+            console.warn(`⚠️ Failed to fetch initial status for job ${jobId}:`, error);
+          });
+        
+        // Don't trigger full refetch - we'll update progress via polling only
+      } else {
+        // If no job_id, just invalidate normally
+        queryClient.invalidateQueries({ queryKey: ['crawl-sites'] });
+      }
+      // Invalidate status query for this specific job
+      if (jobId) {
+        queryClient.invalidateQueries({ queryKey: ['crawl-status', jobId] });
+      }
     },
     
     onError: (error) => {
@@ -249,7 +466,7 @@ export const useCrawlOperations = () => {
       staleTime: Infinity,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
-    });
+    }); 
   };
 
   return {

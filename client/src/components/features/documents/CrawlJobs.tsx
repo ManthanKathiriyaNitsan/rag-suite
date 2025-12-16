@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useCrawlOperations } from "@/hooks/useCrawl";
 import { CrawlSite } from "@/services/api/api";
 
@@ -47,9 +48,9 @@ const CrawlJobs = React.memo(function CrawlJobs({ sites, statusFilter = "all", d
     }
     
     const jobStatus = {
-      isRunning: site.status === "crawling" || site.status === "running",
+      isRunning: site.status === "crawling",
       completedAt: site.lastCrawled ? new Date(site.lastCrawled) : null,
-      error: site.status === "error" || site.status === "failed" ? "Crawl failed" : null
+      error: site.status === "error" ? "Crawl failed" : null
     };
 
     return (
@@ -66,7 +67,18 @@ const CrawlJobs = React.memo(function CrawlJobs({ sites, statusFilter = "all", d
             {jobStatus.isRunning && <Loader2 className="h-4 w-4 animate-spin" />}
           </div>
         </div>
-        <div className="text-right">
+        <div className="text-right space-y-2 min-w-[140px]">
+          {/* Progress Bar - Show whenever progress data is available */}
+          {site.progress !== undefined && site.progress !== null && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-end gap-2">
+                <Progress value={site.progress} className="h-2 w-24" />
+                <span className="text-sm font-medium text-foreground whitespace-nowrap">
+                  {Math.round(site.progress)}%
+                </span>
+              </div>
+            </div>
+          )}
           <p className="text-sm font-medium">
             {site.pagesCrawled || 0} pages
           </p>

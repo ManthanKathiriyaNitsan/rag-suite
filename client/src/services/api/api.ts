@@ -349,6 +349,8 @@ export const crawlAPI = {
       ) as "active" | "inactive" | "crawling" | "error",
       lastCrawled: site.last_crawl_at ?? null,
       pagesCrawled: site.documents_count ?? 0,
+      progress: site.progress_percentage ?? site.progress ?? undefined, // Include progress if backend provides it
+      currentJobId: site.current_job_id ?? site.job_id ?? undefined, // Store job ID to fetch status if needed
       createdAt: site.created_at ?? new Date().toISOString(),
       updatedAt: site.updated_at ?? new Date().toISOString(),
       crawlDepth: site.depth ?? 2,
@@ -401,11 +403,16 @@ export const crawlAPI = {
 
   // Start crawling job
   startCrawl: async (id: string) => {
-    console.log('🕷️ Crawl API - Starting crawl:', id);
+    console.log('🕷️ Crawl API - Starting crawl for site:', id);
     
     try {
       const response = await apiClient.post(`/crawl/start/${id}`);
-      console.log('✅ Crawl started successfully:', response.data);
+      console.log('✅ Crawl started successfully. Response:', response.data);
+      // Log the response structure to help debug
+      if (response.data) {
+        console.log('📋 Response keys:', Object.keys(response.data));
+        console.log('📋 Response data:', JSON.stringify(response.data, null, 2));
+      }
       return response.data;
     } catch (error) {
       console.error('❌ Start crawl failed:', error);
@@ -428,7 +435,7 @@ export const crawlAPI = {
                 response.data.status === 'RUNNING' ? 'running' :
                 response.data.status === 'COMPLETED' ? 'completed' :
                 response.data.status === 'FAILED' ? 'failed' : 'cancelled',
-        progress: response.data.pages_fetched || 0,
+        progress: response.data.progress_percentage || 0, // Use percentage from backend (0-100)
         pagesFound: response.data.pages_fetched || 0,
         pagesCrawled: response.data.pages_fetched || 0,
         startedAt: response.data.started_at || response.data.queued_at,
@@ -1079,6 +1086,8 @@ export interface CrawlSite {
   lastCrawled?: string;
   pagesFound?: number;
   pagesCrawled?: number;
+  progress?: number; // Progress percentage (0-100) from backend
+  currentJobId?: string; // Current crawl job ID to fetch status
   createdAt: string;
   updatedAt: string;
   crawlDepth?: number;
