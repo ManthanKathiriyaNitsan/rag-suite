@@ -274,7 +274,6 @@ export default function Crawl() {
               <SelectContent>
                 <SelectItem value="all">All Cadence</SelectItem>
                 <SelectItem value="once">Once</SelectItem>
-                <SelectItem value="hourly">Hourly</SelectItem>
                 <SelectItem value="daily">Daily</SelectItem>
                 <SelectItem value="weekly">Weekly</SelectItem>
               </SelectContent>
@@ -327,25 +326,12 @@ export default function Crawl() {
               </SelectContent>
             </Select>
 
-            <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger className="w-40" data-testid="select-date-filter">
-                <SelectValue placeholder="Date Range" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="week">This Week</SelectItem>
-                <SelectItem value="month">This Month</SelectItem>
-                <SelectItem value="all">All Time</SelectItem>
-              </SelectContent>
-            </Select>
-
             {/* Clear Filters Button for Jobs */}
-            {(jobStatusFilter !== "all" || dateFilter !== "today") && (
+            {jobStatusFilter !== "all" && (
               <Button 
                 variant="outline" 
                 onClick={() => {
                   setJobStatusFilter("all");
-                  setDateFilter("today");
                 }}
                 className="flex items-center gap-2"
                 data-testid="button-clear-job-filters"
@@ -359,7 +345,6 @@ export default function Crawl() {
             <CrawlJobs 
               sites={sites || []} 
               statusFilter={jobStatusFilter}
-              dateFilter={dateFilter}
           />
           </Suspense>
         </TabsContent>

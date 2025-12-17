@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 🌐 API Configuration - Unified API base URL for all endpoints
-const API_BASE_URL = 'http://192.168.0.112:8000/api/v1';
+const API_BASE_URL = 'http://192.168.0.106:8000/api/v1';
 
 // 📡 Create axios instance - This is your unified API client
 export const apiClient = axios.create({
@@ -1013,6 +1013,129 @@ export const apiKeysAPI = {
   },
 };
 
+// 📊 Overview API functions - This handles overview dashboard data
+export const overviewAPI = {
+  // Get main overview dashboard data
+  getOverview: async (): Promise<OverviewData> => {
+    console.log('📊 Overview API - Getting overview data');
+    console.log('🌐 Using endpoint: GET /overview');
+    
+    try {
+      const response = await apiClient.get('/overview');
+      console.log('✅ Overview API - Response:', response.data);
+      
+      // Extract data from response (handle both wrapped and unwrapped responses)
+      const responseData = response.data.data || response.data;
+      return responseData;
+    } catch (error) {
+      console.error('❌ Overview API - Get overview failed:', error);
+      throw error;
+    }
+  },
+
+  // Get query statistics for all modules
+  getModuleQueries: async (): Promise<ModuleQueries[]> => {
+    console.log('📊 Overview API - Getting module queries');
+    console.log('🌐 Using endpoint: GET /overview/modules/queries');
+    
+    try {
+      const response = await apiClient.get('/overview/modules/queries');
+      console.log('✅ Overview API - Module queries response:', response.data);
+      
+      const responseData = response.data.data || response.data;
+      return Array.isArray(responseData) ? responseData : [];
+    } catch (error) {
+      console.error('❌ Overview API - Get module queries failed:', error);
+      throw error;
+    }
+  },
+
+  // Get queries over time for graphs
+  getQueriesOverTime: async (): Promise<QueryOverTime[]> => {
+    console.log('📊 Overview API - Getting queries over time');
+    console.log('🌐 Using endpoint: GET /overview/queries-over-time');
+    
+    try {
+      const response = await apiClient.get('/overview/queries-over-time');
+      console.log('✅ Overview API - Queries over time response:', response.data);
+      
+      const responseData = response.data.data || response.data;
+      return Array.isArray(responseData) ? responseData : [];
+    } catch (error) {
+      console.error('❌ Overview API - Get queries over time failed:', error);
+      throw error;
+    }
+  },
+
+  // Get latest feedback entries
+  getLatestFeedback: async (): Promise<LatestFeedback[]> => {
+    console.log('📊 Overview API - Getting latest feedback');
+    console.log('🌐 Using endpoint: GET /overview/feedback/latest');
+    
+    try {
+      const response = await apiClient.get('/overview/feedback/latest');
+      console.log('✅ Overview API - Latest feedback response:', response.data);
+      
+      const responseData = response.data.data || response.data;
+      return Array.isArray(responseData) ? responseData : [];
+    } catch (error) {
+      console.error('❌ Overview API - Get latest feedback failed:', error);
+      throw error;
+    }
+  },
+
+  // Get feedback statistics (thumbs-up rate)
+  getThumbsUpRate: async (): Promise<ThumbsUpRate> => {
+    console.log('📊 Overview API - Getting thumbs-up rate');
+    console.log('🌐 Using endpoint: GET /overview/feedback/thumbs-up-rate');
+    
+    try {
+      const response = await apiClient.get('/overview/feedback/thumbs-up-rate');
+      console.log('✅ Overview API - Thumbs-up rate response:', response.data);
+      
+      const responseData = response.data.data || response.data;
+      return responseData;
+    } catch (error) {
+      console.error('❌ Overview API - Get thumbs-up rate failed:', error);
+      throw error;
+    }
+  },
+
+  // Get P95 latency metrics
+  getP95Latency: async (): Promise<P95Latency> => {
+    console.log('📊 Overview API - Getting P95 latency');
+    console.log('🌐 Using endpoint: GET /overview/latency/p95-latency');
+    
+    try {
+      const response = await apiClient.get('/overview/latency/p95-latency');
+      console.log('✅ Overview API - P95 latency response:', response.data);
+      
+      const responseData = response.data.data || response.data;
+      return responseData;
+    } catch (error) {
+      console.error('❌ Overview API - Get P95 latency failed:', error);
+      throw error;
+    }
+  },
+
+  // Get crawl errors
+  getCrawlErrors: async (): Promise<CrawlError[]> => {
+    console.log('📊 Overview API - Getting crawl errors');
+    console.log('🌐 Using endpoint: GET /overview/crawl-errors');
+    
+    try {
+      const response = await apiClient.get('/overview/crawl-errors');
+      console.log('✅ Overview API - Crawl errors response:', response.data);
+      
+      const responseData = response.data.data || response.data;
+      return Array.isArray(responseData) ? responseData : [];
+    } catch (error) {
+      console.error('❌ Overview API - Get crawl errors failed:', error);
+      throw error;
+    }
+  },
+};
+
 // 📝 Type definitions - This tells TypeScript what your API returns
 export interface SearchResponse {
   success: boolean;
@@ -1210,4 +1333,63 @@ export interface UploadResponse {
   message: string;
   status: 'success' | 'processing' | 'failed';
   processingTime?: number;
+}
+
+// 📊 Overview API type definitions
+export interface OverviewData {
+  queriesToday?: number;
+  queriesYesterday?: number;
+  p95Latency?: number;
+  thumbsUpRate?: number;
+  crawlErrors?: number;
+  totalDocuments?: number;
+  totalSources?: number;
+  [key: string]: any; // Allow additional fields
+}
+
+export interface ModuleQueries {
+  module: string;
+  queries: number;
+  [key: string]: any;
+}
+
+export interface QueryOverTime {
+  date: string;
+  queries: number;
+  [key: string]: any;
+}
+
+export interface LatestFeedback {
+  id?: string;
+  query: string;
+  vote?: 'up' | 'down' | 'positive' | 'negative';
+  reason?: string;
+  time?: string;
+  timestamp?: string;
+  session_id?: string;
+  message_id?: string;
+  [key: string]: any;
+}
+
+export interface ThumbsUpRate {
+  rate: number;
+  total: number;
+  positive: number;
+  negative: number;
+  [key: string]: any;
+}
+
+export interface P95Latency {
+  latency: number;
+  unit?: string;
+  [key: string]: any;
+}
+
+export interface CrawlError {
+  id?: string;
+  url: string;
+  error: string;
+  timestamp?: string;
+  source?: string;
+  [key: string]: any;
 }

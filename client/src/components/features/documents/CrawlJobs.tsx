@@ -9,36 +9,60 @@ import { CrawlSite } from "@/services/api/api";
 interface CrawlJobsProps {
   sites: CrawlSite[];
   statusFilter?: string;
-  dateFilter?: string;
 }
 
-const CrawlJobs = React.memo(function CrawlJobs({ sites, statusFilter = "all", dateFilter = "today" }: CrawlJobsProps) {
+const CrawlJobs = React.memo(function CrawlJobs({ sites, statusFilter = "all" }: CrawlJobsProps) {
   // 📊 Memoized filtered sites based on status and date
   const filteredSites = useMemo(() => {
     // Ensure sites is an array before filtering
     if (!sites || !Array.isArray(sites)) {
       return [];
     }
+    
     return sites.filter((site) => {
       // Ensure site is valid
       if (!site || !site.id) {
         return false;
       }
-      // For now, we'll filter based on the site's basic properties
-      // The actual status filtering will be done in CrawlJobRow based on the badge status
-      return true; // We'll do the actual filtering in CrawlJobRow
+      
+      // Filter by status
+      if (statusFilter !== "all") {
+        const siteStatus = site.status?.toLowerCase() || "";
+        const filterStatus = statusFilter.toLowerCase();
+        
+        // Map filter values to site status values
+        let matchesStatus = false;
+        switch (filterStatus) {
+          case "running":
+            matchesStatus = siteStatus === "crawling" || siteStatus === "running";
+            break;
+          case "completed":
+            matchesStatus = siteStatus === "active" && (site.progress === 100 || site.progress === undefined);
+            break;
+          case "failed":
+            matchesStatus = siteStatus === "error" || siteStatus === "failed";
+            break;
+          case "pending":
+            matchesStatus = siteStatus === "pending" || (siteStatus === "active" && !site.lastCrawled);
+            break;
+          default:
+            matchesStatus = true;
+        }
+        
+        if (!matchesStatus) {
+          return false;
+        }
+      }
+      
+      return true;
     });
-  }, [sites, statusFilter, dateFilter]);
+  }, [sites, statusFilter]);
 
   // 📊 CrawlJobRow component
   function CrawlJobRow({ 
-    site, 
-    statusFilter = "all", 
-    dateFilter = "today" 
+    site
   }: { 
     site: CrawlSite; 
-    statusFilter?: string; 
-    dateFilter?: string; 
   }) {
     const { startCrawl } = useCrawlOperations();
     
@@ -106,9 +130,7 @@ const CrawlJobs = React.memo(function CrawlJobs({ sites, statusFilter = "all", d
             {filteredSites.map((site) => (
               <CrawlJobRow 
                 key={site.id} 
-                site={site} 
-                statusFilter={statusFilter}
-                dateFilter={dateFilter}
+                site={site}
               />
             ))}
           </div>

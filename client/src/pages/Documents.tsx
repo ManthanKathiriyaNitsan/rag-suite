@@ -34,6 +34,9 @@ const Documents = React.memo(function Documents() {
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sourceFilter, setSourceFilter] = useState("all-sources");
+  const [typeFilter, setTypeFilter] = useState("all-types");
+  const [statusFilter, setStatusFilter] = useState("all-status");
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
@@ -175,10 +178,75 @@ const Documents = React.memo(function Documents() {
     setSelectedDocs([]);
   };
 
-  // 📄 Memoized filtered documents
+  // 📄 Memoized filtered documents with all filters applied
   const filteredDocuments = useMemo(() => {
-    return searchQuery ? searchResults : documents;
-  }, [searchQuery, searchResults, documents]);
+    let filtered = documents;
+
+    // Apply search filter
+    if (searchQuery) {
+      filtered = filtered.filter(doc => 
+        doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        doc.source.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        doc.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        doc.type?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Apply source filter
+    if (sourceFilter !== "all-sources") {
+      filtered = filtered.filter(doc => {
+        const docSource = doc.source?.toLowerCase() || "";
+        switch (sourceFilter) {
+          case "docs":
+            return docSource.includes("docs.company.com") || docSource.includes("docs");
+          case "api":
+            return docSource.includes("api.company.com") || docSource.includes("api");
+          case "help":
+            return docSource.includes("help.company.com") || docSource.includes("help");
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Apply type filter
+    if (typeFilter !== "all-types") {
+      filtered = filtered.filter(doc => {
+        const docType = doc.type?.toLowerCase() || "";
+        switch (typeFilter) {
+          case "pdf":
+            return docType.includes("pdf");
+          case "doc":
+            return docType.includes("doc") || docType.includes("docx");
+          case "html":
+            return docType.includes("html") || docType.includes("htm");
+          case "txt":
+            return docType.includes("txt") || docType.includes("text");
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Apply status filter
+    if (statusFilter !== "all-status") {
+      filtered = filtered.filter(doc => {
+        const docStatus = doc.status?.toLowerCase() || "";
+        switch (statusFilter) {
+          case "indexed":
+            return docStatus.includes("indexed") || docStatus === "ready";
+          case "processing":
+            return docStatus.includes("processing") || docStatus === "pending";
+          case "error":
+            return docStatus.includes("error") || docStatus.includes("failed");
+          default:
+            return true;
+        }
+      });
+    }
+
+    return filtered;
+  }, [documents, searchQuery, sourceFilter, typeFilter, statusFilter]);
 
   return (
     <div className="relative">
@@ -217,7 +285,7 @@ const Documents = React.memo(function Documents() {
           </div>
 
           <div className="relative">
-            <Select defaultValue="all-sources">
+            <Select value={sourceFilter} onValueChange={setSourceFilter}>
               <SelectTrigger className="w-40" data-testid="select-source-filter">
                 <SelectValue placeholder="Source" />
               </SelectTrigger>
@@ -231,7 +299,7 @@ const Documents = React.memo(function Documents() {
           </div>
 
           <div className="relative">
-            <Select defaultValue="all-types">
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger className="w-32" data-testid="select-type-filter">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
@@ -245,7 +313,7 @@ const Documents = React.memo(function Documents() {
             </Select>
           </div>
 
-          <Select defaultValue="all-status">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-32" data-testid="select-status-filter">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
