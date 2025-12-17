@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 🌐 API Configuration - Unified API base URL for all endpoints
-const API_BASE_URL = 'http://192.168.0.106:8000/api/v1';
+const API_BASE_URL = 'http://192.168.0.112:8000/api/v1';
 
 // 📡 Create axios instance - This is your unified API client
 export const apiClient = axios.create({
