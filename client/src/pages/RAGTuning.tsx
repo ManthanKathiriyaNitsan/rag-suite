@@ -102,9 +102,9 @@ export default function RAGTuning() {
   };
 
   // 📜 Auto-scroll when messages change
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+  // useEffect(() => {
+  //   scrollToBottom();
+  // }, [messages, scrollToBottom]);
 
   // 🔍 Extract actual TopK from server message
   const extractTopKFromMessage = (message: string): { topK: number; reranker: boolean } => {

@@ -222,14 +222,7 @@ const Login = React.memo(function Login() {
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between">
-                  <Link href="/forgot-password">
-                    <Button variant="ghost" size="sm" className="text-sm p-0 h-auto" data-testid="link-forgot-password">
-                      Forgot password?
-                    </Button>
-                  </Link>
-                </div>
-                
+               
                 <Button
                   type="submit"
                   className="w-full h-11 group"
@@ -245,6 +238,14 @@ const Login = React.memo(function Login() {
                     'Sign in'
                   )}
                 </Button>
+                <div className="flex items-center justify-between">
+                  <Link href="/forgot-password">
+                    <Button variant="ghost" size="sm" className="text-sm p-0 h-auto" data-testid="link-forgot-password">
+                      Forgot password?
+                    </Button>
+                  </Link>
+                </div>
+                
               </form>
               
               <div className="pt-4 border-t">
