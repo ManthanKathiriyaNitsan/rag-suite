@@ -70,7 +70,7 @@ export function GlassStatsCard({
               className="text-xs"
             >
               {trend.isPositive ? "↑" : "↓"} {Math.abs(trend.value)}%
-              {trend.isPositive ? " from yesterday" : " avg response time"}
+              {trend.isPositive ? " from yesterday" : " avg response  "}
             </Badge>
           </div>
         )}

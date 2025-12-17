@@ -9,7 +9,7 @@ import { useTranslation } from "@/contexts/I18nContext";
 import { HeroSection } from "@/components/ui/HeroSection";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { GlassStatsCard } from "@/components/ui/GlassStatsCard";
-import { overviewAPI, OverviewData, QueryOverTime, LatestFeedback, ThumbsUpRate, P95Latency, CrawlError } from "@/services/api/api";
+import { overviewAPI, OverviewData, QueryOverTime, LatestFeedback, ThumbsUpRate, P95Latency, CrawlError, TopSource } from "@/services/api/api";
 
 const Overview = React.memo(function Overview() {
   const { t } = useTranslation();
@@ -150,8 +150,16 @@ const Overview = React.memo(function Overview() {
     return `${Math.round(latency)}ms`;
   };
 
-  // Top sources from crawl errors (grouped by source/url)
+  // Top sources from API - use overviewData.topSources if available, otherwise fallback to crawl errors
   const topSources = useMemo(() => {
+    // First, try to use topSources from the API response
+    if (overviewData?.topSources && Array.isArray(overviewData.topSources) && overviewData.topSources.length > 0) {
+      console.log('✅ Using topSources from API:', overviewData.topSources);
+      return overviewData.topSources;
+    }
+    
+    // Fallback: calculate from crawl errors if API data not available
+    console.log('⚠️ No topSources from API, calculating from crawl errors');
     const errorMap = new Map<string, number>();
     crawlErrors.forEach(error => {
       const url = error.source || error.url || 'Unknown';
@@ -166,7 +174,7 @@ const Overview = React.memo(function Overview() {
         lastCrawl: 'N/A', // We don't have this data from crawl errors
       }))
       .slice(0, 4); // Top 4 sources with errors
-  }, [crawlErrors]);
+  }, [overviewData, crawlErrors]);
   
   if (loading) {
     return (
@@ -224,7 +232,7 @@ const Overview = React.memo(function Overview() {
         <GlassStatsCard
           title="Queries Today"
           value={formatNumber(overviewData?.queriesToday)}
-          description={queriesTrend ? `from yesterday` : "today"}
+          description={queriesTrend ? `from yesterday` : "from today"}
           trend={queriesTrend || undefined}
           icon={<Search className="h-4 w-4" />}
         />
@@ -284,7 +292,7 @@ const Overview = React.memo(function Overview() {
         {/* Top Sources */}
         <GlassCard>
           <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Top Sources with Errors</h3>
+            <h3 className="text-lg font-semibold mb-4">Top Crawl Sources</h3>
             <div className="space-y-3">
               {topSources.length > 0 ? (
                 topSources.slice(0, 4).map((source, index) => (
@@ -294,14 +302,16 @@ const Overview = React.memo(function Overview() {
                     style={{ borderRadius: 'var(--component-cardRadius, 2px)' }}
                     data-testid={`source-${index}`}
                   >
-                    <div className="space-y-1">
+                    <div className="space-y-1 flex-1">
                       <p className="font-medium text-sm">{source.url}</p>
                       <p className="text-xs text-muted-foreground">
-                        {source.docs > 0 ? `${source.docs} docs • ` : ''}Errors: {source.errors}
+                        {source.docs > 0 ? `${source.docs.toLocaleString()} docs` : '0 docs'} • 
+                        {source.lastCrawl && source.lastCrawl !== 'N/A' ? ` Last crawl: ${source.lastCrawl}` : ' Never crawled'}
+                        {source.errors > 0 ? ` • ${source.errors} error${source.errors > 1 ? 's' : ''}` : ''}
                       </p>
                     </div>
                     {source.errors > 0 && (
-                      <Badge variant="destructive" className="text-xs">
+                      <Badge variant="destructive" className="text-xs ml-2">
                         {source.errors} error{source.errors > 1 ? 's' : ''}
                       </Badge>
                     )}
@@ -309,7 +319,7 @@ const Overview = React.memo(function Overview() {
                 ))
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  No crawl errors found
+                  No crawl sources found
                 </div>
               )}
             </div>
