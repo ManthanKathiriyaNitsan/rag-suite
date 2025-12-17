@@ -89,7 +89,7 @@ const Onboarding = lazy(() => import("@/pages/Onboarding"));
 const Profile = lazy(() => import("@/pages/Profile"));
 
 const Signup = lazy(() => import("./pages/Signup"));
-
+const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
 const NotFound = lazy(() => import("@/pages/ErrorPages").then(module => ({ default: module.NotFound })));
 
 
@@ -758,6 +758,14 @@ function Router() {
 
           </PageErrorBoundary>
 
+        </Route>
+
+        <Route path="/forgot-password">
+          <PageErrorBoundary pageName="Forgot Password">
+            <PageTransitionWrapper pageName="Forgot Password">
+              <ForgotPassword />
+            </PageTransitionWrapper>
+          </PageErrorBoundary>
         </Route>
 
         <Route path="/signup">

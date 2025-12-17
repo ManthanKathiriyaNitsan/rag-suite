@@ -55,6 +55,7 @@ import { useI18n } from "@/contexts/I18nContext";
 import { GlassCard } from "@/components/ui/GlassCard";
 
 import { apiKeysAPI, type ApiKey } from "@/services/api/api";
+import { copyToClipboardSafe } from "@/utils/helpers";
 
 
 
@@ -526,7 +527,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
 
 
-  const handleCopyKey = useCallback((key: string, keyId: string, isRevealed: boolean) => {
+  const handleCopyKey = useCallback(async (key: string, keyId: string, isRevealed: boolean) => {
 
     // Only copy if key exists and is revealed
 
@@ -562,15 +563,20 @@ const ApiKeys = React.memo(function ApiKeys() {
 
     }
 
-    navigator.clipboard.writeText(key);
+    const ok = await copyToClipboardSafe(key);
 
-    toast({
-
-      title: "Copied",
-
-      description: "API key has been copied to clipboard.",
-
-    });
+    if (ok) {
+      toast({
+        title: "Copied",
+        description: "API key has been copied to clipboard.",
+      });
+    } else {
+      toast({
+        title: "Clipboard not available",
+        description: "Your browser does not allow copying to the clipboard on this page. Please copy the key manually.",
+        variant: "destructive",
+      });
+    }
 
   }, [toast]);
 
@@ -586,20 +592,23 @@ const ApiKeys = React.memo(function ApiKeys() {
 
 
 
-  const handleCopyCreatedKey = useCallback(() => {
+  const handleCopyCreatedKey = useCallback(async () => {
 
     if (createdApiKey) {
+      const ok = await copyToClipboardSafe(createdApiKey.key);
 
-      navigator.clipboard.writeText(createdApiKey.key);
-
-      toast({
-
-        title: "Copied",
-
-        description: "API key has been copied to clipboard.",
-
-      });
-
+      if (ok) {
+        toast({
+          title: "Copied",
+          description: "API key has been copied to clipboard.",
+        });
+      } else {
+        toast({
+          title: "Clipboard not available",
+          description: "Your browser does not allow copying to the clipboard on this page. Please copy the key manually.",
+          variant: "destructive",
+        });
+      }
     }
 
   }, [createdApiKey, toast]);

@@ -13,6 +13,7 @@ interface SearchBarProps {
   showSendButton?: boolean;
   enableHistory?: boolean;
   className?: string;
+  enableSuggestions?: boolean;
 }
 
 // Add ref interface for clearing
@@ -27,6 +28,7 @@ export const SearchBar = React.forwardRef<SearchBarRef, SearchBarProps>(function
   showSendButton = false,
   enableHistory = true,
   className = "",
+  enableSuggestions = true,
 }, ref) {
   const [query, setQuery] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -323,13 +325,18 @@ export const SearchBar = React.forwardRef<SearchBarRef, SearchBarProps>(function
     const val = e.target.value;
     console.log("🔍 Input changed to:", val); 
     setQuery(val);
+    if (!enableSuggestions) {
+      // Suggestions completely disabled (used by embeddable widget)
+      setShowSuggestions(false);
+      return;
+    }
     // Only schedule suggestions if we have enough characters
     if (val.trim().length >= 2) {
       scheduleSuggestions(val);
     } else {
       setShowSuggestions(false);
     }
-  }, [scheduleSuggestions]);
+  }, [scheduleSuggestions, enableSuggestions]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     console.log("🔍 Key pressed:", e.key, "showHistory:", showHistory, "showSuggestions:", showSuggestions);
@@ -362,7 +369,7 @@ export const SearchBar = React.forwardRef<SearchBarRef, SearchBarProps>(function
     }
     
     // 🎯 Handle arrow keys and selection only when suggestions are showing
-    if (!showSuggestions || suggestions.length === 0) {
+    if (!enableSuggestions || !showSuggestions || suggestions.length === 0) {
       return;
     }
     
@@ -382,7 +389,7 @@ export const SearchBar = React.forwardRef<SearchBarRef, SearchBarProps>(function
         setShowSuggestions(false);
       }
     }
-  }, [showSuggestions, suggestions, highlightedIndex, onSearch, query, enableHistory, saveQueryToHistory]);
+  }, [showSuggestions, suggestions, highlightedIndex, onSearch, query, enableHistory, saveQueryToHistory, enableSuggestions]);
 
   const handleSuggestionClick = useCallback((text: string) => {
     setQuery(text);
@@ -541,7 +548,7 @@ export const SearchBar = React.forwardRef<SearchBarRef, SearchBarProps>(function
             </Button>
           )}
         </div>
-        {showSuggestions && suggestions.length > 0 && (
+        {enableSuggestions && showSuggestions && suggestions.length > 0 && (
           <div 
             className="absolute left-0 right-0 top-full mt-1 z-50 rounded-md border bg-popover shadow-md"
             role="listbox"
@@ -569,11 +576,6 @@ export const SearchBar = React.forwardRef<SearchBarRef, SearchBarProps>(function
                 <li className="px-3 py-2 text-muted-foreground">Loading suggestions...</li>
               )}
             </ul>
-            <div className="flex items-center justify-between px-3 py-2 border-t bg-popover text-xs text-muted-foreground" data-testid="suggestion-hints">
-              <span>Tab: accept suggestion</span>
-              <span>Enter: submit</span>
-              <span>Esc: close</span>
-            </div>
           </div>
         )}
         

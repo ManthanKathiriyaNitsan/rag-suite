@@ -664,12 +664,19 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
             aria-labelledby="tab-search"
             tabIndex={0}
           >
-            <div className="space-y-3 flex-1 overflow-y-auto">
+            <div 
+              className="space-y-3 flex-1 overflow-y-auto min-h-0 max-h-[400px]"
+              style={{
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#d1d5db transparent'
+              }}
+            >
               <SearchBar
                 placeholder="Search documentation..."
                 onSearch={handleSearch}
                 showSendButton
                 enableHistory={false}
+                enableSuggestions={false}
               />
               {/* 🔎 Recent Search History removed */}
               
@@ -773,6 +780,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                 onSearch={handleChat}
                 showSendButton
                 enableHistory={false}
+                enableSuggestions={false}
               />
               {/* 💬 Recent Chat History removed */}
               
@@ -855,6 +863,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                 showSendButton
                 showMicButton
                 enableHistory={false}
+                enableSuggestions={false}
               />
               
               {/* 💬 Enhanced loading indicator for auto */}

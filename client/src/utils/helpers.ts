@@ -167,6 +167,34 @@ export const slugify = (str: string): string => {
     .trim();
 };
 
+// Clipboard Helpers
+export const copyToClipboardSafe = async (text: string): Promise<boolean> => {
+  try {
+    if (typeof navigator !== 'undefined' && (navigator as any).clipboard && typeof (navigator as any).clipboard.writeText === 'function') {
+      await (navigator as any).clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // fall through to fallback
+  }
+
+  try {
+    if (typeof document === 'undefined') return false;
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    const successful = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    return successful;
+  } catch {
+    return false;
+  }
+};
+
 // Number Helpers
 export const clamp = (value: number, min: number, max: number): number => {
   return Math.min(Math.max(value, min), max);

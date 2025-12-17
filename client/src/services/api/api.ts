@@ -521,6 +521,30 @@ export const authAPI = {
     }
   },
 
+  // User registration
+  register: async (payload: { username: string; email: string; password: string }) => {
+    console.log('🔐 Auth API - Attempting registration:', {
+      username: payload.username,
+      email: payload.email,
+    });
+
+    try {
+      // Backend endpoint: POST /api/v1/crawl/auth/register
+      const response = await apiClient.post('/crawl/auth/register', {
+        username: payload.username,
+        email: payload.email,
+        password: payload.password,
+      });
+
+      console.log('✅ Registration successful:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Registration failed:', error);
+      // Re-throw so callers can surface proper error messages
+      throw error;
+    }
+  },
+
   // Logout (if needed)
   logout: async () => {
     console.log('🔐 Auth API - Logging out');

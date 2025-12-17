@@ -11,7 +11,7 @@ import { useTranslation } from "@/contexts/I18nContext";
 // 🚀 Lazy load heavy chat components
 const SearchBar = lazy(() => import("@/components/common/SearchBar"));
 const ChatMessage = lazy(() => import("@/components/common/ChatMessage"));
-import { TypingAnimation, StreamingResponse } from "@/components/common/TypingIndicator";
+import { TypingAnimation } from "@/components/common/TypingIndicator";
 import TypingIndicator from "@/components/common/TypingIndicator";
 import { SearchBarRef } from "@/components/common/SearchBar";
 import { useRAGSettings, usePerformanceMetrics } from "@/contexts/RAGSettingsContext";
@@ -403,19 +403,18 @@ export default function RAGTuning() {
                   </div>
                 )}
                 
-                 {/* 🌊 Streaming Response */}
-                 {isStreaming && streamingContent && (
-                   <div className="flex justify-start">
-                     <div className="max-w-[80%]">
-                       <div className="bg-muted/50 rounded-lg p-3">
-                         <StreamingResponse 
-                           content={streamingContent} 
-                           isStreaming={isStreaming}
-                         />
-                       </div>
-                     </div>
-                   </div>
-                 )}
+                {/* 🌊 Streaming Response (widget-style word streaming) */}
+                {isStreaming && streamingContent && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[80%]">
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <div className="text-sm">
+                          {streamingContent}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                  
                  {/* 📜 Scroll target for auto-scroll */}
                  <div ref={messagesEndRef} />

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { BackgroundWrapper } from "@/components/common/BackgroundWrapper";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { authAPI } from "@/services/api/api";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
@@ -38,34 +39,23 @@ export default function Signup() {
 
     try {
       console.log("🚀 Making signup request with:", { email, username, password: "***" });
-      
-      const response = await fetch("http://192.168.0.103:8000/api/v1/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ 
-          email, 
-          username, 
-          password 
-        }),
+
+      const data = await authAPI.register({
+        email,
+        username,
+        password,
       });
 
-      console.log("📡 Signup response status:", response.status);
-      const data = await response.json();
       console.log("📦 Signup response data:", data);
-
-      if (response.ok) {
-        console.log("✅ Signup successful, redirecting to login");
-        // Successful signup - redirect to login page
-        setLocation("/login");
-      } else {
-        console.log("❌ Signup failed:", data.detail || data.message);
-        setError(data.detail || data.message || "Signup failed");
-      }
-    } catch (error) {
-      console.error("🚨 Signup network error:", error);
-      setError("Network error. Please try again.");
+      console.log("✅ Signup successful, redirecting to login");
+      setLocation("/login");
+    } catch (error: any) {
+      console.error("🚨 Signup error:", error);
+      const backendMessage =
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        error?.message;
+      setError(backendMessage || "Signup failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -191,12 +181,7 @@ export default function Signup() {
                 </Button>
               </form>
               
-              <div className="pt-4 border-t">
-                <div className="bg-muted/30 rounded-lg p-3 text-center">
-                  <p className="text-xs text-muted-foreground mb-1">Demo Account</p>
-                  <p className="text-sm font-mono text-foreground">admin@ragsuite.com / demo123</p>
-                </div>
-              </div>
+           
             </CardContent>
           </GlassCard>
           
