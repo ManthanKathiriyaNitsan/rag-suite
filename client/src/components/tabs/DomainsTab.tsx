@@ -56,16 +56,20 @@ const DOMAIN_EXAMPLES = [
 ];
 
 export default function DomainsTab({ data, onChange }: DomainsTabProps) {
-  const [domains, setDomains] = useState<IntegrationDomain[]>(data.domains || []);
+ const [domains, setDomains] = useState<IntegrationDomain[]>(
+  Array.isArray(data?.domains) ? data.domains : []
+);
+
   const [addDomainOpen, setAddDomainOpen] = useState(false);
   const [newDomain, setNewDomain] = useState("");
   const [domainError, setDomainError] = useState("");
   const { toast } = useToast();
 
   // Update parent state when domains change
-  useEffect(() => {
-    onChange({ domains });
-  }, [domains, onChange]);
+useEffect(() => {
+  onChange({ domains: Array.isArray(domains) ? domains : [] });
+}, [domains, onChange]);
+
 
   const validateDomain = (domain: string): string | null => {
     if (!domain.trim()) {
@@ -259,7 +263,8 @@ export default function DomainsTab({ data, onChange }: DomainsTabProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                {domains.map((domain) => (
+               {Array.isArray(domains) && domains.map((domain) => (
+
                   <TableRow key={domain.id} data-testid={`row-domain-${domain.id}`}>
                     <TableCell>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
