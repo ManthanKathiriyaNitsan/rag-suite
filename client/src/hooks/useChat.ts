@@ -7,8 +7,8 @@ export const useChat = () => {
 
   // Send a chat message
   const sendMessageMutation = useMutation({
-    mutationFn: ({ message, sessionId, ragSettings }: { 
-      message: string; 
+    mutationFn: ({ message, sessionId, ragSettings }: {
+      message: string;
       sessionId?: string;
       ragSettings?: {
         topK?: number;
@@ -18,13 +18,13 @@ export const useChat = () => {
       };
     }) =>
       chatAPI.sendMessage(message, sessionId, ragSettings),
-    
+
     onSuccess: (data: ChatResponse) => {
       console.log('✅ Chat message sent successfully:', data);
       // Refresh sessions after sending message
       queryClient.invalidateQueries({ queryKey: ['chat-sessions'] });
     },
-    
+
     onError: (error) => {
       console.error('❌ Chat message failed:', error);
     },
@@ -51,13 +51,13 @@ export const useChatSessions = () => {
   // Delete a session
   const deleteSessionMutation = useMutation({
     mutationFn: (sessionId: string) => chatAPI.deleteSession(sessionId),
-    
+
     onSuccess: () => {
       console.log('✅ Session deleted successfully');
       // Refresh sessions after deletion
       sessionsQuery.refetch();
     },
-    
+
     onError: (error) => {
       console.error('❌ Delete session failed:', error);
     },
@@ -78,11 +78,11 @@ export const useChatFeedback = () => {
   const feedbackMutation = useMutation({
     mutationFn: ({ sessionId, messageId, feedback }: { sessionId: string; messageId: string; feedback: 'positive' | 'negative' }) =>
       chatAPI.submitFeedback(sessionId, messageId, feedback),
-    
+
     onSuccess: (data) => {
       console.log('✅ Feedback submitted successfully:', data);
     },
-    
+
     onError: (error) => {
       console.error('❌ Feedback submission failed:', error);
     },

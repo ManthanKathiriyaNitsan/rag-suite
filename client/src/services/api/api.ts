@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 🌐 API Configuration - Unified API base URL for all endpoints
-const API_BASE_URL = 'http://192.168.0.106:8000/api/v1';
+const API_BASE_URL = 'http://192.168.0.112:8000/api/v1';
 
 // 📡 Create axios instance - This is your unified API client
 export const apiClient = axios.create({
@@ -18,16 +18,16 @@ apiClient.interceptors.request.use(
     // Add authentication token if available and not expired (check both token storage keys for compatibility)
     const token = localStorage.getItem('auth-token') || localStorage.getItem('auth_token');
     const expiresAt = localStorage.getItem('token_expires');
-    
+
     if (token && expiresAt) {
       const expirationDate = new Date(expiresAt);
       const currentDate = new Date();
-      
+
       if (expirationDate > currentDate) {
         config.headers.Authorization = `Bearer ${token}`;
       }
     }
-    
+
     console.log('🌐 API Request:', {
       method: config.method?.toUpperCase(),
       url: config.url,
@@ -61,11 +61,11 @@ apiClient.interceptors.response.use(
       url: error.config?.url,
       fullURL: error.config ? `${error.config.baseURL}${error.config.url}` : 'unknown',
     });
-    
+
     if (error.code === 'ERR_NETWORK') {
       console.error('🌐 Network Error: Cannot reach the server. Check if the API server is running at:', API_BASE_URL);
     }
-    
+
     // Check if it's a 401 Unauthorized error
     if (error.response?.status === 401) {
       console.warn('🔐 Authentication failed - redirecting to login');
@@ -77,7 +77,7 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('token_expires');
       window.location.href = '/login';
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -95,7 +95,7 @@ export const searchAPI = {
     console.log('🚀 API Call - Searching for:', query);
     console.log('⚙️ RAG Settings:', ragSettings);
     console.log('🌐 Using real API at:', `${API_BASE_URL}/search`);
-    
+
     try {
       // Send POST request to /search endpoint with RAG settings
       const response = await apiClient.post('/search', {
@@ -105,16 +105,16 @@ export const searchAPI = {
         useReranker: ragSettings?.useReranker || false,
         maxTokens: ragSettings?.maxTokens || 0,
       });
-      
+
       console.log('✅ API Response:', response.data);
       console.log('🔍 API Response structure:', response.data);
-      
+
       // Backend returns: { success, data: { answer, sources, ... }, message, timestamp, request_id }
       // Extract the nested data object
       const responseData = response.data.data || response.data;
       console.log('🔍 Extracted data:', responseData);
       console.log('🔍 API Sources:', responseData.sources);
-      
+
       // Map server response to expected format - use only real API data
       const mappedResponse = {
         success: response.data.success || true,
@@ -130,7 +130,7 @@ export const searchAPI = {
         message_id: responseData.message_id || '',
         session_id: responseData.session_id || ''
       };
-      
+
       console.log('🔄 Mapped Response:', mappedResponse);
       return mappedResponse;
     } catch (error) {
@@ -152,7 +152,7 @@ export const chatAPI = {
   }) => {
     console.log('💬 Chat API - Sending message:', message);
     console.log('⚙️ Chat RAG Settings:', ragSettings);
-    
+
     try {
       // Backend ChatMessageRequest only accepts session_id and message
       // RAG settings are ignored (backend uses hardcoded CHAT_TOP_K = 3)
@@ -160,15 +160,15 @@ export const chatAPI = {
         message: message,
         session_id: sessionId,  // Backend expects session_id
       });
-      
+
       console.log('✅ Chat Response:', response.data);
       console.log('🔍 Chat Response structure:', response.data);
-      
+
       // Backend returns: { success, data: { answer, sources, session_id, message_id }, message, ... }
       // Extract the nested data object
       const responseData = response.data.data || response.data;
       console.log('🔍 Extracted chat data:', responseData);
-      
+
       // Map server response to ChatResponse format - use only real API data
       const chatResponse: ChatResponse = {
         messageId: responseData.message_id || response.data.request_id || `msg-${Date.now()}`,
@@ -180,7 +180,7 @@ export const chatAPI = {
           snippet: source.snippet || 'No snippet available'
         })) : undefined
       };
-      
+
       console.log('🔄 Mapped Chat Response:', chatResponse);
       return chatResponse;
     } catch (error) {
@@ -192,7 +192,7 @@ export const chatAPI = {
   // Get all chat sessions
   getSessions: async () => {
     console.log('📋 Chat API - Getting sessions');
-    
+
     try {
       const response = await apiClient.get('/chat/sessions');
       console.log('✅ Sessions Response:', response.data);
@@ -208,7 +208,7 @@ export const chatAPI = {
   // Delete a chat session
   deleteSession: async (sessionId: string) => {
     console.log('🗑️ Chat API - Deleting session:', sessionId);
-    
+
     try {
       const response = await apiClient.delete(`/chat/sessions/${sessionId}`);
       console.log('✅ Delete Session Response:', response.data);
@@ -222,7 +222,7 @@ export const chatAPI = {
   // Submit feedback for a response
   submitFeedback: async (sessionId: string, messageId: string, feedback: 'positive' | 'negative') => {
     console.log('👍 Chat API - Submitting feedback:', { sessionId, messageId, feedback });
-    
+
     try {
       // Backend expects: { session_id: str, message_id: str, feedback: bool }
       const response = await apiClient.post('/chat/feedback', {
@@ -254,13 +254,13 @@ export const crawlAPI = {
   // Add a new crawling target
   addSite: async (siteData: CrawlSiteData) => {
     console.log('🕷️ Crawl API - Adding site:', siteData);
-    
+
     try {
       // Validate required fields
       if (!siteData.name || !siteData.url) {
         throw new Error('Name and URL are required');
       }
-      
+
       // Transform frontend data to backend schema
       const backendData = {
         name: siteData.name,
@@ -272,10 +272,10 @@ export const crawlAPI = {
         allowlist: Array.isArray(siteData.includePatterns) ? siteData.includePatterns : [],
         denylist: Array.isArray(siteData.excludePatterns) ? siteData.excludePatterns : []
       };
-      
+
       const response = await apiClient.post('/crawl/sites', backendData);
       console.log('✅ Site added successfully:', response.data);
-      
+
       // Ensure we return a valid response object
       if (!response || !response.data) {
         console.warn('⚠️ API returned invalid response, returning success object');
@@ -284,11 +284,11 @@ export const crawlAPI = {
           ...backendData
         };
       }
-      
+
       return response.data;
     } catch (error) {
       console.error('❌ Add site failed:', error);
-      
+
       // Handle authentication errors
       if ((error as any).response?.status === 401) {
         console.error('🔐 Authentication failed - please log in again');
@@ -301,16 +301,16 @@ export const crawlAPI = {
         window.location.href = '/login';
         throw new Error('Authentication failed. Please log in again.');
       }
-      
+
       if ((error as any).response?.status === 403) {
         console.error('🔐 Access forbidden - insufficient permissions');
         throw new Error('Access forbidden. Please check your permissions.');
       }
-      
+
       // Re-throw with a user-friendly message
-      const errorMessage = (error as any).response?.data?.detail || 
-                          (error as any).message || 
-                          'Failed to add site. Please try again.';
+      const errorMessage = (error as any).response?.data?.detail ||
+        (error as any).message ||
+        'Failed to add site. Please try again.';
       throw new Error(errorMessage);
     }
   },
@@ -342,10 +342,10 @@ export const crawlAPI = {
         site.status === "READY" || site.status === "PENDING"
           ? "active"
           : site.status === "DISABLED"
-          ? "inactive"
-          : site.status === "CRAWLING" || site.status === "RUNNING"
-          ? "crawling"
-          : "error"
+            ? "inactive"
+            : site.status === "CRAWLING" || site.status === "RUNNING"
+              ? "crawling"
+              : "error"
       ) as "active" | "inactive" | "crawling" | "error",
       lastCrawled: site.last_crawl_at ?? null,
       pagesCrawled: site.documents_count ?? 0,
@@ -364,7 +364,7 @@ export const crawlAPI = {
   // Update crawl configuration
   updateSite: async (id: string, siteData: CrawlSiteData) => {
     console.log('🕷️ Crawl API - Updating site:', id, siteData);
-    
+
     try {
       // Transform frontend data to backend schema
       const backendData = {
@@ -377,7 +377,7 @@ export const crawlAPI = {
         allowlist: siteData.includePatterns || [],
         denylist: siteData.excludePatterns || []
       };
-      
+
       const response = await apiClient.put(`/crawl/sites/${id}`, backendData);
       console.log('✅ Site updated successfully:', response.data);
       return response.data;
@@ -390,7 +390,7 @@ export const crawlAPI = {
   // Remove crawling target
   deleteSite: async (id: string) => {
     console.log('🕷️ Crawl API - Deleting site:', id);
-    
+
     try {
       const response = await apiClient.delete(`/crawl/sites/${id}`);
       console.log('✅ Site deleted successfully:', response.data);
@@ -404,7 +404,7 @@ export const crawlAPI = {
   // Start crawling job
   startCrawl: async (id: string) => {
     console.log('🕷️ Crawl API - Starting crawl for site:', id);
-    
+
     try {
       const response = await apiClient.post(`/crawl/start/${id}`);
       console.log('✅ Crawl started successfully. Response:', response.data);
@@ -423,18 +423,18 @@ export const crawlAPI = {
   // Check crawling status
   getCrawlStatus: async (id: string) => {
     console.log('🕷️ Crawl API - Getting crawl status:', id);
-    
+
     try {
       const response = await apiClient.get(`/crawl/status/${id}`);
       console.log('✅ Crawl status retrieved:', response.data);
-      
+
       // Transform backend response to frontend format
       return {
         id: response.data.job_id,
         status: response.data.status === 'PENDING' ? 'pending' :
-                response.data.status === 'RUNNING' ? 'running' :
-                response.data.status === 'COMPLETED' ? 'completed' :
-                response.data.status === 'FAILED' ? 'failed' : 'cancelled',
+          response.data.status === 'RUNNING' ? 'running' :
+            response.data.status === 'COMPLETED' ? 'completed' :
+              response.data.status === 'FAILED' ? 'failed' : 'cancelled',
         progress: response.data.progress_percentage || 0, // Use percentage from backend (0-100)
         pagesFound: response.data.pages_fetched || 0,
         pagesCrawled: response.data.pages_fetched || 0,
@@ -452,11 +452,11 @@ export const crawlAPI = {
   // Preview URL content
   previewUrl: async (url: string) => {
     console.log('🕷️ Crawl API - Previewing URL:', url);
-    
+
     try {
       const response = await apiClient.put('/crawl/preview', { url });
       console.log('✅ URL preview retrieved:', response.data);
-      
+
       // Transform backend response to frontend format
       return {
         url: response.data.url,
@@ -481,25 +481,25 @@ export const authAPI = {
   // Admin login
   login: async (credentials: LoginCredentials) => {
     console.log('🔐 Auth API - Attempting login:', credentials.username);
-    
+
     try {
       const response = await apiClient.post('/crawl/auth/login', {
         username: credentials.username,
         password: credentials.password,
       });
-      
+
       console.log('✅ Login successful:', response.data);
-      
+
       // Transform response to match expected format
       // Handle different token field names: access_token, token, or auth_token
-      const token = response.data.access_token || 
-                   response.data.token || 
-                   response.data.auth_token ||
-                   response.data.accessToken;
-      
+      const token = response.data.access_token ||
+        response.data.token ||
+        response.data.auth_token ||
+        response.data.accessToken;
+
       // Handle different user object structures
       const userData = response.data.user || response.data;
-      
+
       return {
         token: token || '',
         user: {
@@ -509,11 +509,11 @@ export const authAPI = {
           role: userData?.role || 'admin',
           permissions: userData?.permissions || ['read', 'write', 'admin']
         },
-        expiresAt: response.data.expiresAt || 
-                   response.data.expires_at || 
-                   response.data.expires_in ? 
-                     new Date(Date.now() + (response.data.expires_in * 1000)).toISOString() :
-                     new Date(Date.now() + 30 * 60 * 1000).toISOString() // Default: 30 minutes from now
+        expiresAt: response.data.expiresAt ||
+          response.data.expires_at ||
+          response.data.expires_in ?
+          new Date(Date.now() + (response.data.expires_in * 1000)).toISOString() :
+          new Date(Date.now() + 30 * 60 * 1000).toISOString() // Default: 30 minutes from now
       };
     } catch (error) {
       console.error('❌ Login failed:', error);
@@ -548,7 +548,7 @@ export const authAPI = {
   // Logout (if needed)
   logout: async () => {
     console.log('🔐 Auth API - Logging out');
-    
+
     try {
       const response = await apiClient.post('/crawl/auth/logout');
       console.log('✅ Logout successful:', response.data);
@@ -562,7 +562,7 @@ export const authAPI = {
   // Verify token (if needed)
   verifyToken: async (token: string) => {
     console.log('🔐 Auth API - Verifying token');
-    
+
     try {
       const response = await apiClient.get('/auth/verify', {
         headers: {
@@ -583,7 +583,7 @@ export const documentAPI = {
   // Get all documents
   getDocuments: async () => {
     console.log('📄 Document API - Getting documents');
-    
+
     try {
       const response = await apiClient.get('/documents');
       console.log('✅ Documents retrieved successfully:', response.data);
@@ -598,19 +598,19 @@ export const documentAPI = {
   uploadDocument: async (file: File, metadata?: DocumentMetadata) => {
     console.log('📄 Document API - Uploading document:', file.name);
     console.log('📄 Metadata:', metadata);
-    
+
     try {
       const formData = new FormData();
-      
+
       // Your server expects 'files' as a List[UploadFile] = File(...)
       // Try multiple approaches to ensure the file is sent correctly
-      
+
       // Method 1: Try with explicit filename
       formData.append('files', file, file.name);
-      
+
       // Method 2: Also try without filename (commented out for now)
       // formData.append('files', file);
-      
+
       // Add metadata fields as expected by your server
       if (metadata) {
         if (metadata.title) formData.append('title', metadata.title);
@@ -618,7 +618,7 @@ export const documentAPI = {
         if (metadata.language) formData.append('language', metadata.language);
         if (metadata.source) formData.append('source', metadata.source);
       }
-      
+
       // Log the FormData contents for debugging
       console.log('📄 FormData contents:');
       const entries = Array.from(formData.entries());
@@ -628,39 +628,39 @@ export const documentAPI = {
           console.log(`  File details: name=${value.name}, size=${value.size}, type=${value.type}`);
         }
       }
-      
+
       // Create a separate axios instance for file uploads without default headers
       const uploadClient = axios.create({
         baseURL: API_BASE_URL,
         timeout: 150000,
         // No default headers - let axios handle FormData automatically
       });
-      
+
       // Add authentication token to upload client
       const token = localStorage.getItem('auth-token') || localStorage.getItem('auth_token');
       if (token) {
         uploadClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       }
-      
+
       const response = await uploadClient.post('/documents/upload', formData);
-      
+
       console.log('✅ Document uploaded successfully:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('❌ Upload document failed:', error);
-      
+
       // Log the detailed error response
       if (error.response) {
         console.error('❌ Error response:', error.response.data);
         console.error('❌ Error status:', error.response.status);
         console.error('❌ Error headers:', error.response.headers);
-        
+
         // Show the specific validation errors
         if (error.response.data.detail) {
           console.error('❌ Validation errors:', error.response.data.detail);
         }
       }
-      
+
       throw error;
     }
   },
@@ -668,7 +668,7 @@ export const documentAPI = {
   // Update document metadata
   updateDocument: async (id: string, metadata: DocumentMetadata) => {
     console.log('📄 Document API - Updating document:', id);
-    
+
     try {
       const response = await apiClient.put(`/documents/${id}`, metadata);
       console.log('✅ Document updated successfully:', response.data);
@@ -682,7 +682,7 @@ export const documentAPI = {
   // Delete document
   deleteDocument: async (id: string) => {
     console.log('📄 Document API - Deleting document:', id);
-    
+
     try {
       const response = await apiClient.delete(`/documents/${id}`);
       console.log('✅ Document deleted successfully:', response.data);
@@ -696,7 +696,7 @@ export const documentAPI = {
   // Get document content
   getDocumentContent: async (id: string) => {
     console.log('📄 Document API - Getting document content:', id);
-    
+
     try {
       const response = await apiClient.get(`/documents/${id}/content`);
       console.log('✅ Document content retrieved successfully:', response.data);
@@ -711,19 +711,19 @@ export const documentAPI = {
 // 🔧 API Connection Test - Test if the API server is reachable
 export const testAPIConnection = async () => {
   console.log('🔧 Testing API connection to:', API_BASE_URL);
-  
+
   try {
     // Try to reach the server with a simple request
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
+
     const response = await fetch(`${API_BASE_URL}/health`, {
       method: 'GET',
       signal: controller.signal,
     });
-    
+
     clearTimeout(timeoutId);
-    
+
     if (response.ok) {
       console.log('✅ API server is reachable');
       return { success: true, message: 'API server is running' };
@@ -733,17 +733,17 @@ export const testAPIConnection = async () => {
     }
   } catch (error) {
     console.error('❌ API connection test failed:', error);
-    
+
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      return { 
-        success: false, 
-        message: `Cannot reach API server at ${API_BASE_URL}. Please check if the server is running.` 
+      return {
+        success: false,
+        message: `Cannot reach API server at ${API_BASE_URL}. Please check if the server is running.`
       };
     }
-    
-    return { 
-      success: false, 
-      message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+
+    return {
+      success: false,
+      message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
     };
   }
 };
@@ -751,11 +751,11 @@ export const testAPIConnection = async () => {
 // 🔧 Test Chat API connection specifically
 export const testChatAPIConnection = async () => {
   console.log('🔧 Testing Chat API connection to:', API_BASE_URL);
-  
+
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000); // Reduced timeout to 3 seconds
-    
+
     const response = await fetch(`${API_BASE_URL}/chat/message`, {
       method: 'POST',
       headers: {
@@ -770,35 +770,35 @@ export const testChatAPIConnection = async () => {
       }),
       signal: controller.signal,
     });
-    
+
     clearTimeout(timeoutId);
-    
+
     if (response.ok) {
       console.log('✅ Chat API connection successful');
-      return { 
-        success: true, 
-        message: 'Chat API is accessible and working' 
+      return {
+        success: true,
+        message: 'Chat API is accessible and working'
       };
     } else {
       console.log('❌ Chat API connection failed:', response.status);
-      return { 
-        success: false, 
-        message: `Chat API returned status ${response.status}` 
+      return {
+        success: false,
+        message: `Chat API returned status ${response.status}`
       };
     }
   } catch (error) {
     console.error('❌ Chat API connection error:', error);
-    
+
     if (error instanceof Error && error.name === 'AbortError') {
-      return { 
-        success: false, 
-        message: `Chat API timeout: Cannot reach server at ${API_BASE_URL}. Please check if the server is running.` 
+      return {
+        success: false,
+        message: `Chat API timeout: Cannot reach server at ${API_BASE_URL}. Please check if the server is running.`
       };
     }
-    
-    return { 
-      success: false, 
-      message: `Chat API connection failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+
+    return {
+      success: false,
+      message: `Chat API connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
     };
   }
 };
@@ -831,13 +831,13 @@ export interface CreateApiKeyPayload {
 export const apiKeysAPI = {
   create: async (payload: CreateApiKeyPayload): Promise<ApiKey> => {
     console.log('🔑 API Keys API - Creating API key with payload:', payload);
-    
+
     try {
       // Ensure payload structure matches backend expectations
       // Backend expects:
       // - environment: "Production", "Staging", or "Development" (exact match required)
       // - expiration: "Never expires", "30 days", "90 days", or "1 year" (exact match required)
-      
+
       // Normalize environment value
       let environment = payload.environment;
       if (environment) {
@@ -855,7 +855,7 @@ export const apiKeysAPI = {
           environment = environment.charAt(0).toUpperCase() + environment.slice(1).toLowerCase();
         }
       }
-      
+
       // Normalize expiration value
       let expiration = payload.expiration || "Never expires";
       if (expiration) {
@@ -870,12 +870,12 @@ export const apiKeysAPI = {
           expiration = "1 year";
         }
       }
-      
+
       // Validate required fields
       if (!payload.name || !payload.name.trim()) {
         throw new Error('API key name is required');
       }
-      
+
       const requestPayload = {
         name: payload.name.trim(),
         description: payload.description?.trim() || null,
@@ -883,31 +883,31 @@ export const apiKeysAPI = {
         rate_limit: typeof payload.rate_limit === 'number' ? payload.rate_limit : (typeof payload.rateLimit === 'number' ? payload.rateLimit : 100),
         expiration: expiration || "Never expires", // Must match APIKeyExpirationOption enum exactly
       };
-      
+
       // Final validation to ensure enum values are correct
       const validEnvironments = ['Production', 'Staging', 'Development'];
       if (!validEnvironments.includes(requestPayload.environment)) {
         console.warn(`⚠️ Invalid environment "${requestPayload.environment}", defaulting to "Development"`);
         requestPayload.environment = 'Development';
       }
-      
+
       const validExpirations = ['Never expires', '30 days', '90 days', '1 year'];
       if (!validExpirations.includes(requestPayload.expiration)) {
         console.warn(`⚠️ Invalid expiration "${requestPayload.expiration}", defaulting to "Never expires"`);
         requestPayload.expiration = 'Never expires';
       }
-      
+
       console.log('🔑 API Keys API - Final request payload:', JSON.stringify(requestPayload, null, 2));
       console.log('🔑 API Keys API - Endpoint: POST /api-keys');
-      
+
       const response = await apiClient.post('/api-keys', requestPayload);
-      
+
       console.log('✅ API Keys API - Response received:', response);
       console.log('✅ API Keys API - Response data:', response.data);
-      
+
       const raw = response.data;
       const data = raw.data || raw;
-      
+
       const result = {
         id: data.id,
         name: data.name ?? '',
@@ -923,7 +923,7 @@ export const apiKeysAPI = {
         createdAt: data.created_at ?? new Date().toISOString(),
         updatedAt: data.updated_at ?? new Date().toISOString(),
       };
-      
+
       console.log('✅ API Keys API - Mapped result:', result);
       return result;
     } catch (error: any) {
@@ -934,12 +934,12 @@ export const apiKeysAPI = {
         status: error.response?.status,
         config: error.config,
       });
-      
+
       // Log the detailed validation errors if available
       if (error.response?.data?.detail) {
         console.error('❌ API Keys API - Validation errors:', JSON.stringify(error.response.data.detail, null, 2));
       }
-      
+
       throw error;
     }
   },
@@ -947,30 +947,30 @@ export const apiKeysAPI = {
   list: async (): Promise<ApiKey[]> => {
     console.log('🔑 API Keys API - Listing API keys');
     console.log('🔑 API Keys API - Endpoint: GET /api-keys');
-    
+
     try {
       const response = await apiClient.get('/api-keys');
       console.log('✅ API Keys API - List response received:', response);
-      
+
       const raw = response.data;
       const list = Array.isArray(raw) ? raw : Array.isArray(raw.data) ? raw.data : [];
       console.log('✅ API Keys API - Parsed list:', list);
-      
+
       return list.map((data: any) => ({
-      id: data.id,
-      name: data.name ?? '',
-      description: data.description,
-      key: data.key ?? '',
-      keyPreview: data.key_preview ?? '',
-      environment: data.environment ?? 'Development',
-      rateLimit: data.rate_limit ?? 0,
-      expiresAt: data.expires_at ?? null,
-      isActive: data.is_active ?? true,
-      requestCount: data.request_count ?? 0,
-      lastUsedAt: data.last_used_at ?? null,
-      createdAt: data.created_at ?? new Date().toISOString(),
-      updatedAt: data.updated_at ?? new Date().toISOString(),
-    }));
+        id: data.id,
+        name: data.name ?? '',
+        description: data.description,
+        key: data.key ?? '',
+        keyPreview: data.key_preview ?? '',
+        environment: data.environment ?? 'Development',
+        rateLimit: data.rate_limit ?? 0,
+        expiresAt: data.expires_at ?? null,
+        isActive: data.is_active ?? true,
+        requestCount: data.request_count ?? 0,
+        lastUsedAt: data.last_used_at ?? null,
+        createdAt: data.created_at ?? new Date().toISOString(),
+        updatedAt: data.updated_at ?? new Date().toISOString(),
+      }));
     } catch (error: any) {
       console.error('❌ API Keys API - List failed:', error);
       console.error('❌ API Keys API - Error details:', {
@@ -985,11 +985,11 @@ export const apiKeysAPI = {
   get: async (id: string): Promise<ApiKey> => {
     console.log('🔑 API Keys API - Getting API key:', id);
     console.log('🔑 API Keys API - Endpoint: GET /api-keys/' + id);
-    
+
     try {
       const response = await apiClient.get(`/api-keys/${id}`);
       console.log('✅ API Keys API - Get response received:', response);
-      
+
       const raw = response.data;
       const data = raw.data || raw;
       return {
@@ -1021,7 +1021,7 @@ export const apiKeysAPI = {
   delete: async (id: string): Promise<void> => {
     console.log('🔑 API Keys API - Deleting API key:', id);
     console.log('🔑 API Keys API - Endpoint: DELETE /api-keys/' + id);
-    
+
     try {
       await apiClient.delete(`/api-keys/${id}`);
       console.log('✅ API Keys API - Delete successful');
@@ -1043,11 +1043,11 @@ export const overviewAPI = {
   getOverview: async (): Promise<OverviewData> => {
     console.log('📊 Overview API - Getting overview data');
     console.log('🌐 Using endpoint: GET /overview');
-    
+
     try {
       const response = await apiClient.get('/overview');
       console.log('✅ Overview API - Response:', response.data);
-      
+
       // Extract data from response (handle both wrapped and unwrapped responses)
       const responseData = response.data.data || response.data;
       return responseData;
@@ -1061,11 +1061,11 @@ export const overviewAPI = {
   getModuleQueries: async (): Promise<ModuleQueries[]> => {
     console.log('📊 Overview API - Getting module queries');
     console.log('🌐 Using endpoint: GET /overview/modules/queries');
-    
+
     try {
       const response = await apiClient.get('/overview/modules/queries');
       console.log('✅ Overview API - Module queries response:', response.data);
-      
+
       const responseData = response.data.data || response.data;
       return Array.isArray(responseData) ? responseData : [];
     } catch (error) {
@@ -1078,11 +1078,11 @@ export const overviewAPI = {
   getQueriesOverTime: async (): Promise<QueryOverTime[]> => {
     console.log('📊 Overview API - Getting queries over time');
     console.log('🌐 Using endpoint: GET /overview/queries-over-time');
-    
+
     try {
       const response = await apiClient.get('/overview/queries-over-time');
       console.log('✅ Overview API - Queries over time response:', response.data);
-      
+
       const responseData = response.data.data || response.data;
       return Array.isArray(responseData) ? responseData : [];
     } catch (error) {
@@ -1095,11 +1095,11 @@ export const overviewAPI = {
   getLatestFeedback: async (): Promise<LatestFeedback[]> => {
     console.log('📊 Overview API - Getting latest feedback');
     console.log('🌐 Using endpoint: GET /overview/feedback/latest');
-    
+
     try {
       const response = await apiClient.get('/overview/feedback/latest');
       console.log('✅ Overview API - Latest feedback response:', response.data);
-      
+
       const responseData = response.data.data || response.data;
       return Array.isArray(responseData) ? responseData : [];
     } catch (error) {
@@ -1112,11 +1112,11 @@ export const overviewAPI = {
   getThumbsUpRate: async (): Promise<ThumbsUpRate> => {
     console.log('📊 Overview API - Getting thumbs-up rate');
     console.log('🌐 Using endpoint: GET /overview/feedback/thumbs-up-rate');
-    
+
     try {
       const response = await apiClient.get('/overview/feedback/thumbs-up-rate');
       console.log('✅ Overview API - Thumbs-up rate response:', response.data);
-      
+
       const responseData = response.data.data || response.data;
       return responseData;
     } catch (error) {
@@ -1129,11 +1129,11 @@ export const overviewAPI = {
   getP95Latency: async (): Promise<P95Latency> => {
     console.log('📊 Overview API - Getting P95 latency');
     console.log('🌐 Using endpoint: GET /overview/latency/p95-latency');
-    
+
     try {
       const response = await apiClient.get('/overview/latency/p95-latency');
       console.log('✅ Overview API - P95 latency response:', response.data);
-      
+
       const responseData = response.data.data || response.data;
       return responseData;
     } catch (error) {
@@ -1146,11 +1146,11 @@ export const overviewAPI = {
   getCrawlErrors: async (): Promise<CrawlError[]> => {
     console.log('📊 Overview API - Getting crawl errors');
     console.log('🌐 Using endpoint: GET /overview/crawl-errors');
-    
+
     try {
       const response = await apiClient.get('/overview/crawl-errors');
       console.log('✅ Overview API - Crawl errors response:', response.data);
-      
+
       const responseData = response.data.data || response.data;
       return Array.isArray(responseData) ? responseData : [];
     } catch (error) {

@@ -31,7 +31,7 @@ export default function RAGTuning() {
 
   const { t } = useTranslation();
 
-  
+
 
   // 💬 Load messages from sessionStorage on mount
 
@@ -63,7 +63,7 @@ export default function RAGTuning() {
 
     }
 
-    
+
 
     // Default welcome message
 
@@ -107,7 +107,8 @@ export default function RAGTuning() {
 
   const { searchAsync, isSearching, searchData, searchError } = useSearch();
 
-  
+
+
 
   // 💬 Use our chat hooks
 
@@ -115,25 +116,25 @@ export default function RAGTuning() {
 
   const { sessions, deleteSession, isDeleting } = useChatSessions();
 
-  
+
 
   // 📋 Current session state
 
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>();
 
-  
+
 
   // 🧹 Ref for SearchBar to clear it after search
 
   // const searchBarRef = useRef<SearchBarRef>(null); // Removed - SearchBar is lazy loaded
 
-  
+
+
 
   // 📜 Ref for messages container to auto-scroll
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  
 
   // 🎭 Animation states
 
@@ -155,7 +156,7 @@ export default function RAGTuning() {
 
     let currentContent = '';
 
-    
+
 
     for (let i = 0; i < words.length; i++) {
 
@@ -172,28 +173,11 @@ export default function RAGTuning() {
 
 
   // 📜 Auto-scroll to bottom when messages, streaming content, or streaming state changes
-
   useEffect(() => {
-
-    const container = messagesContainerRef.current;
-
-    if (!container) return;
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, streamingContent, isStreaming, isTyping]);
 
 
-
-    // Use requestAnimationFrame twice to ensure DOM is fully updated and Suspense components are rendered
-
-    requestAnimationFrame(() => {
-
-      requestAnimationFrame(() => {
-
-        container.scrollTop = container.scrollHeight;
-
-      });
-
-    });
-
-  }, [messages, streamingContent, isStreaming]);
 
 
 
@@ -205,7 +189,7 @@ export default function RAGTuning() {
 
     const rerankerMatch = message.match(/reranker=(on|off)/);
 
-    
+
 
     return {
 
@@ -223,7 +207,7 @@ export default function RAGTuning() {
 
 
 
-// console.log(messages)
+  // console.log(messages)
 
 
 
@@ -253,7 +237,7 @@ export default function RAGTuning() {
 
     setMessages(prev => [...prev, userMessage]);
 
-    
+
 
     // 🎭 Start typing animation
 
@@ -325,7 +309,7 @@ export default function RAGTuning() {
 
       const responseContent = searchResponse.answer || "No answer from API";
 
-      
+
 
       // Simulate streaming response
 
@@ -383,13 +367,13 @@ export default function RAGTuning() {
 
       }));
 
-      
+
 
       console.log("🔍 Mapped RAG sources length:", mappedRagSources.length);
 
       console.log("🔍 Mapped RAG sources:", mappedRagSources);
 
-      
+
 
       const assistantMessage: Message = {
 
@@ -427,7 +411,7 @@ export default function RAGTuning() {
 
       console.log("✅ RAG Query processed successfully with search API only");
 
-      
+
 
       // 🧹 Clear search bar after successful search
 
@@ -439,7 +423,7 @@ export default function RAGTuning() {
 
       console.error("❌ Search API call failed:", error);
 
-      
+
 
       // Stop animations on error
 
@@ -449,7 +433,7 @@ export default function RAGTuning() {
 
       setPendingResponse(null);
 
-      
+
 
       // Add error message
 
@@ -531,283 +515,281 @@ export default function RAGTuning() {
 
   return (
 
-    <div className="relative">
+    <div className="relative lg:h-full lg:overflow-hidden">
 
       {/* Content */}
 
-      <div className="relative z-10 space-y-6 p-0 sm:p-6">
+      <div className="relative z-10 space-y-6 p-0">
 
-      <div className="flex flex-col md:flex-row gap-5 md:gap-0 justify-between items-start">
+        <div className="flex flex-col md:flex-row gap-5 md:gap-0 justify-between items-start">
 
-      <div>
+          <div>
 
-        <h1 className="text-3xl font-bold tracking-tight">{t('rag-tuning.title')}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{t('rag-tuning.title')}</h1>
 
-        <p className="text-muted-foreground">
+            <p className="text-muted-foreground">
 
-          {t('rag-tuning.description')}
+              {t('rag-tuning.description')}
 
-        </p>
-
-        </div>
-
-        
-
-        {/* 💬 Chat Session Management */}
-
-        <div className="flex gap-2">
-
-          <div className="relative">
-
-            <Button
-
-              variant="outline"
-
-              size="sm"
-
-              onClick={clearChat}
-
-              className="flex items-center gap-2"
-
-            >
-
-              <Trash2 className="h-4 w-4" />
-
-              Clear Chat
-
-            </Button>
+            </p>
 
           </div>
 
-          
 
-          
 
-          {sessions.length > 0 && (
+          {/* 💬 Chat Session Management */}
 
-            <div className="flex items-center gap-2">
+          <div className="flex gap-2">
 
-              <History className="h-4 w-4" />
+            <div className="relative">
 
-              <span className="text-sm text-muted-foreground">
+              <Button
 
-                {sessions.length} session{sessions.length !== 1 ? 's' : ''}
+                variant="outline"
 
-              </span>
+                size="sm"
+
+                onClick={clearChat}
+
+                className="flex items-center gap-2"
+
+              >
+
+                <Trash2 className="h-4 w-4" />
+
+                Clear Chat
+
+              </Button>
 
             </div>
 
-          )}
-
-        </div>
-
-      </div>
 
 
 
-      <div className="grid gap-6 lg:grid-cols-3">
 
-        {/* Query Interface */}
+            {sessions.length > 0 && (
 
-        <div className="lg:col-span-2 space-y-4">
+              <div className="flex items-center gap-2">
 
-          <GlassCard>
+                <History className="h-4 w-4" />
 
-            <CardHeader>
+                <span className="text-sm text-muted-foreground">
 
-              <CardTitle className="flex items-center gap-2">
+                  {sessions.length} session{sessions.length !== 1 ? 's' : ''}
 
-                <Zap className="h-5 w-5" />
-
-                Query Interface
-
-              </CardTitle>
-
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-
-              <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-5 w-5 animate-spin" /></div>}>
-
-                <SearchBar
-
-                  placeholder="Ask about policies, docs, or how-tos..."
-
-                  onSearch={handleQuery}
-
-                showSendButton
-
-                data-testid="rag-query-input"
-
-              />
-
-              </Suspense>
-
-              {/* 🧾 Recent Query History removed */}
-
-              
-
-              {/* 🔍 Enhanced loading indicator for search */}
-
-              {isSearching && (
-
-                <TypingIndicator 
-
-                  message="Searching documentation with RAG settings..." 
-
-                  variant="wave" 
-
-                  size="md" 
-
-                />
-
-              )}
-
-              
-
-              <div className="space-y-2">
-
-                <Label className="text-sm text-muted-foreground">Suggested Questions:</Label>
-
-                <div className="flex flex-wrap gap-2">
-
-                  {exampleQueries.map((query, index) => (
-
-                    <Button
-
-                      key={index}
-
-                      variant="outline"
-
-                      size="sm"
-
-                      onClick={() => handleQuery(query)}
-
-                      data-testid={`example-query-${index}`}
-
-                      className="text-xs"
-
-                      disabled={isSearching}
-
-                    >
-
-                      {query}
-
-                    </Button>
-
-                  ))}
-
-                </div>
+                </span>
 
               </div>
 
-            </CardContent>
+            )}
 
-          </GlassCard>
+          </div>
+
+        </div>
 
 
 
-          {/* Response Area */}
+        <div className="grid gap-6 lg:grid-cols-3 min-h-0">
 
-          <GlassCard className="flex-1">
 
-            <CardHeader>
+          {/* Query Interface */}
+          <div className="lg:col-span-2 space-y-4 min-h-0 flex flex-col">
 
-              <CardTitle>Response</CardTitle>
 
-            </CardHeader>
+            <GlassCard>
 
-            <CardContent>
+              <CardHeader>
 
-              <div 
+                <CardTitle className="flex items-center gap-2">
 
-                ref={messagesContainerRef}
+                  <Zap className="h-5 w-5" />
 
-                className="space-y-4 max-h-96  overflow-y-auto   [&::-webkit-scrollbar]:w-2
+                  Query Interface
 
-  [&::-webkit-scrollbar-track]:rounded-full
+                </CardTitle>
 
-  [&::-webkit-scrollbar-track]:bg-gray-100
+              </CardHeader>
 
-  [&::-webkit-scrollbar-thumb]:rounded-full
+              <CardContent className="space-y-4">
 
-  [&::-webkit-scrollbar-thumb]:bg-gray-300
+                <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-5 w-5 animate-spin" /></div>}>
 
-  dark:[&::-webkit-scrollbar-track]:bg-neutral-700
+                  <SearchBar
 
-  dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500">
+                    placeholder="Ask about policies, docs, or how-tos..."
 
-                {messages.map((message, index) => (
+                    onSearch={handleQuery}
 
-                  <Suspense key={index} fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-4 w-4 animate-spin" /></div>}>
+                    showSendButton
 
-                    <ChatMessage
-
-                      key={index}
-
-                      type={message.type}
-
-                      content={message.content}
-
-                    citations={message.citations}
-
-                    timestamp={message.timestamp}
-
-                    showFeedback={message.type === "assistant"}
-
-                    messageId={message.messageId}
-
-                    sessionId={message.sessionId || currentSessionId}
-
-                    ragSettings={message.ragSettings}
-
-                    queryString={message.queryString}
-
-                    serverMessage={message.serverMessage}
-
-                    actualTopK={message.actualTopK}
-
-                    actualReranker={message.actualReranker}
+                    data-testid="rag-query-input"
 
                   />
 
-                  </Suspense>
+                </Suspense>
 
-                ))}
+                {/* 🧾 Recent Query History removed */}
 
-                
 
-                {/* 🎭 Typing Animation */}
 
-                {isTyping && (
+                {/* 🔍 Enhanced loading indicator for search */}
 
-                  <div className="flex justify-start">
+                {isSearching && (
 
-                    <div className="max-w-[80%]">
+                  <TypingIndicator
 
-                      <TypingAnimation message={pendingResponse || "AI is thinking..."} />
+                    message="Searching documentation with RAG settings..."
 
-                    </div>
+                    variant="wave"
 
-                  </div>
+                    size="md"
+
+                  />
 
                 )}
 
-                
 
-                {/* 🌊 Streaming Response (widget-style word streaming) */}
 
-                {isStreaming && streamingContent && (
+                <div className="space-y-2">
 
-                  <div className="flex justify-start">
+                  <Label className="text-sm text-muted-foreground">Suggested Questions:</Label>
 
-                    <div className="max-w-[80%]">
+                  <div className="flex flex-wrap gap-2">
 
-                      <div className="bg-muted/50 rounded-lg p-3">
+                    {exampleQueries.map((query, index) => (
 
-                        <div className="text-sm">
+                      <Button
 
-                          {streamingContent}
+                        key={index}
+
+                        variant="outline"
+
+                        size="sm"
+
+                        onClick={() => handleQuery(query)}
+
+                        data-testid={`example-query-${index}`}
+
+                        className="text-xs"
+
+                        disabled={isSearching}
+
+                      >
+
+                        {query}
+
+                      </Button>
+
+                    ))}
+
+                  </div>
+
+                </div>
+
+              </CardContent>
+
+            </GlassCard>
+
+
+
+            {/* Response Area */}
+
+            <GlassCard className="h-[500px] flex flex-col overflow-hidden">
+
+              <CardHeader>
+
+                <CardTitle>Response</CardTitle>
+
+              </CardHeader>
+
+              <CardContent className="min-h-0 flex-1 flex flex-col p-0">
+
+
+                <div
+                  className={`space-y-4 flex-1 p-6 ${(isStreaming || isTyping) ? "overflow-hidden" : "overflow-y-auto"}
+    [&::-webkit-scrollbar]:w-2
+    [&::-webkit-scrollbar-track]:rounded-full
+    [&::-webkit-scrollbar-track]:bg-gray-100
+    [&::-webkit-scrollbar-thumb]:rounded-full
+    [&::-webkit-scrollbar-thumb]:bg-gray-300
+    dark:[&::-webkit-scrollbar-track]:bg-neutral-700
+    dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500`}
+                >
+
+
+                  {messages.map((message, index) => (
+
+                    <Suspense key={index} fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-4 w-4 animate-spin" /></div>}>
+
+                      <ChatMessage
+
+                        key={index}
+
+                        type={message.type}
+
+                        content={message.content}
+
+                        citations={message.citations}
+
+                        timestamp={message.timestamp}
+
+                        showFeedback={message.type === "assistant"}
+
+                        messageId={message.messageId}
+
+                        sessionId={message.sessionId || currentSessionId}
+
+                        ragSettings={message.ragSettings}
+
+                        queryString={message.queryString}
+
+                        serverMessage={message.serverMessage}
+
+                        actualTopK={message.actualTopK}
+
+                        actualReranker={message.actualReranker}
+
+                      />
+
+                    </Suspense>
+
+                  ))}
+
+
+
+                  {/* 🎭 Typing Animation */}
+
+                  {isTyping && (
+
+                    <div className="flex justify-start">
+
+                      <div className="max-w-[80%]">
+
+                        <TypingAnimation message={pendingResponse || "AI is thinking..."} />
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+
+
+                  {/* 🌊 Streaming Response (widget-style word streaming) */}
+
+                  {isStreaming && streamingContent && (
+
+                    <div className="flex justify-start">
+
+                      <div className="max-w-[80%]">
+
+                        <div className="bg-muted/50 rounded-lg p-3">
+
+                          <div className="text-sm">
+
+                            {streamingContent}
+
+                          </div>
 
                         </div>
 
@@ -815,265 +797,263 @@ export default function RAGTuning() {
 
                     </div>
 
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+              </CardContent>
+
+            </GlassCard>
+
+          </div>
+
+
+
+          {/* Settings Panel */}
+
+          <div className="space-y-4">
+
+            <GlassCard>
+
+              <CardHeader>
+
+                <CardTitle className="flex items-center gap-2">
+
+                  <Settings className="h-5 w-5" />
+
+                  RAG Settings
+
+                </CardTitle>
+
+              </CardHeader>
+
+              <CardContent className="space-y-6">
+
+                {/* Top-K Setting */}
+
+                <div className="space-y-2">
+
+                  <div className="flex items-center justify-between">
+
+                    <Label className="text-sm font-medium">Top-K Results</Label>
+
+                    <Badge variant="outline" className="text-xs">{settings.topK}</Badge>
+
                   </div>
 
-                )}
+                  <Slider
 
-               </div>
+                    value={[settings.topK]}
 
-            </CardContent>
+                    onValueChange={(value) => updateSettings({ topK: value[0] })}
 
-          </GlassCard>
+                    min={1}
 
-        </div>
+                    max={20}
 
+                    step={1}
 
+                    data-testid="slider-top-k"
 
-        {/* Settings Panel */}
-
-        <div className="space-y-4">
-
-          <GlassCard>
-
-            <CardHeader>
-
-              <CardTitle className="flex items-center gap-2">
-
-                <Settings className="h-5 w-5" />
-
-                RAG Settings
-
-              </CardTitle>
-
-            </CardHeader>
-
-            <CardContent className="space-y-6">
-
-              {/* Top-K Setting */}
-
-              <div className="space-y-2">
-
-                <div className="flex items-center justify-between">
-
-                  <Label className="text-sm font-medium">Top-K Results</Label>
-
-                  <Badge variant="outline" className="text-xs">{settings.topK}</Badge>
-
-                </div>
-
-                <Slider
-
-                  value={[settings.topK]}
-
-                  onValueChange={(value) => updateSettings({ topK: value[0] })}
-
-                  min={1}
-
-                  max={20}
-
-                  step={1}
-
-                  data-testid="slider-top-k"
-
-                />
-
-                <p className="text-xs text-muted-foreground">
-
-                  Number of documents to retrieve from the vector database
-
-                </p>
-
-              </div>
-
-
-
-              {/* Similarity Threshold */}
-
-              <div className="space-y-2">
-
-                <div className="flex items-center justify-between">
-
-                  <Label className="text-sm font-medium">Similarity Threshold</Label>
-
-                  <Badge variant="outline" className="text-xs">{settings.similarityThreshold}</Badge>
-
-                </div>
-
-                <Slider
-
-                  value={[settings.similarityThreshold]}
-
-                  onValueChange={(value) => updateSettings({ similarityThreshold: value[0] })}
-
-                  min={0.1}
-
-                  max={1.0}
-
-                  step={0.1}
-
-                  data-testid="slider-similarity"
-
-                />
-
-                <p className="text-xs text-muted-foreground">
-
-                  Minimum similarity score for document inclusion
-
-                </p>
-
-              </div>
-
-
-
-              {/* Max Answer Length */}
-
-              <div className="space-y-2">
-
-                <div className="flex items-center justify-between">
-
-                  <Label className="text-sm font-medium">Max Tokens</Label>
-
-                  <Badge variant="outline" className="text-xs">{settings.maxTokens === 0 ? "Unlimited" : settings.maxTokens}</Badge>
-
-                </div>
-
-                <Slider
-
-                  value={[settings.maxTokens]}
-
-                  onValueChange={(value) => updateSettings({ maxTokens: value[0] })}
-
-                  min={0}
-
-                  max={1000}
-
-                  step={50}
-
-                  data-testid="slider-max-tokens"
-
-                />
-
-                <p className="text-xs text-muted-foreground">
-
-                  Maximum length of generated responses (0 = unlimited, max 1000)
-
-                </p>
-
-              </div>
-
-
-
-              {/* Reranker Toggle */}
-
-              <div className="flex items-center justify-between">
-
-                <div className="space-y-0.5">
-
-                  <Label className="text-sm font-medium">Use Reranker</Label>
+                  />
 
                   <p className="text-xs text-muted-foreground">
 
-                    Improve result relevance with reranking
+                    Number of documents to retrieve from the vector database
 
                   </p>
 
                 </div>
 
-                <Switch
-
-                  checked={settings.useReranker}
-
-                  onCheckedChange={(checked) => updateSettings({ useReranker: checked })}
-
-                  data-testid="switch-reranker"
-
-                />
-
-              </div>
-
-            </CardContent>
-
-          </GlassCard>
 
 
+                {/* Similarity Threshold */}
 
-          {/* Performance Stats */}
+                <div className="space-y-2">
 
-          <GlassCard>
+                  <div className="flex items-center justify-between">
 
-            <CardHeader>
+                    <Label className="text-sm font-medium">Similarity Threshold</Label>
 
-              <CardTitle>Performance</CardTitle>
+                    <Badge variant="outline" className="text-xs">{settings.similarityThreshold}</Badge>
 
-            </CardHeader>
+                  </div>
 
-            <CardContent className="space-y-3">
+                  <Slider
 
-              <div className="flex justify-between text-sm">
+                    value={[settings.similarityThreshold]}
 
-                <span className="text-muted-foreground">Latency</span>
+                    onValueChange={(value) => updateSettings({ similarityThreshold: value[0] })}
 
-                <span className="font-medium">
+                    min={0.1}
 
-                  {metrics ? `${metrics.latency}ms` : "—"}
+                    max={1.0}
 
-                </span>
+                    step={0.1}
 
-              </div>
+                    data-testid="slider-similarity"
 
-              <div className="flex justify-between text-sm">
+                  />
 
-                <span className="text-muted-foreground">Tokens Used</span>
+                  <p className="text-xs text-muted-foreground">
 
-                <span className="font-medium">
+                    Minimum similarity score for document inclusion
 
-                  {metrics ? `${metrics.tokensUsed} / ${settings.maxTokens === 0 ? "∞" : settings.maxTokens}` : "—"}
-
-                </span>
-
-              </div>
-
-              <div className="flex justify-between text-sm">
-
-                <span className="text-muted-foreground">Documents Retrieved</span>
-
-                <span className="font-medium">
-
-                  {metrics ? metrics.documentsRetrieved : "—"}
-
-                </span>
-
-              </div>
-
-              <div className="flex justify-between text-sm">
-
-                <span className="text-muted-foreground">Relevance Score</span>
-
-                <span className="font-medium">
-
-                  {metrics ? metrics.relevanceScore.toFixed(2) : "—"}
-
-                </span>
-
-              </div>
-
-              {metrics && (
-
-                <div className="pt-2 border-t text-xs text-muted-foreground">
-
-                  Last updated: {metrics.timestamp.toLocaleTimeString()}
+                  </p>
 
                 </div>
 
-              )}
 
-            </CardContent>
 
-          </GlassCard>
+                {/* Max Answer Length */}
+
+                <div className="space-y-2">
+
+                  <div className="flex items-center justify-between">
+
+                    <Label className="text-sm font-medium">Max Tokens</Label>
+
+                    <Badge variant="outline" className="text-xs">{settings.maxTokens === 0 ? "Unlimited" : settings.maxTokens}</Badge>
+
+                  </div>
+
+                  <Slider
+
+                    value={[settings.maxTokens]}
+
+                    onValueChange={(value) => updateSettings({ maxTokens: value[0] })}
+
+                    min={0}
+
+                    max={1000}
+
+                    step={50}
+
+                    data-testid="slider-max-tokens"
+
+                  />
+
+                  <p className="text-xs text-muted-foreground">
+
+                    Maximum length of generated responses (0 = unlimited, max 1000)
+
+                  </p>
+
+                </div>
+
+
+
+                {/* Reranker Toggle */}
+
+                <div className="flex items-center justify-between">
+
+                  <div className="space-y-0.5">
+
+                    <Label className="text-sm font-medium">Use Reranker</Label>
+
+                    <p className="text-xs text-muted-foreground">
+
+                      Improve result relevance with reranking
+
+                    </p>
+
+                  </div>
+
+                  <Switch
+
+                    checked={settings.useReranker}
+
+                    onCheckedChange={(checked) => updateSettings({ useReranker: checked })}
+
+                    data-testid="switch-reranker"
+
+                  />
+
+                </div>
+
+              </CardContent>
+
+            </GlassCard>
+
+
+
+            {/* Performance Stats */}
+
+            <GlassCard>
+
+              <CardHeader>
+
+                <CardTitle>Performance</CardTitle>
+
+              </CardHeader>
+
+              <CardContent className="space-y-3">
+
+                <div className="flex justify-between text-sm">
+
+                  <span className="text-muted-foreground">Latency</span>
+
+                  <span className="font-medium">
+
+                    {metrics ? `${metrics.latency}ms` : "—"}
+
+                  </span>
+
+                </div>
+
+                <div className="flex justify-between text-sm">
+
+                  <span className="text-muted-foreground">Tokens Used</span>
+
+                  <span className="font-medium">
+
+                    {metrics ? `${metrics.tokensUsed} / ${settings.maxTokens === 0 ? "∞" : settings.maxTokens}` : "—"}
+
+                  </span>
+
+                </div>
+
+                <div className="flex justify-between text-sm">
+
+                  <span className="text-muted-foreground">Documents Retrieved</span>
+
+                  <span className="font-medium">
+
+                    {metrics ? metrics.documentsRetrieved : "—"}
+
+                  </span>
+
+                </div>
+
+                <div className="flex justify-between text-sm">
+
+                  <span className="text-muted-foreground">Relevance Score</span>
+
+                  <span className="font-medium">
+
+                    {metrics ? metrics.relevanceScore.toFixed(2) : "—"}
+
+                  </span>
+
+                </div>
+
+                {metrics && (
+
+                  <div className="pt-2 border-t text-xs text-muted-foreground">
+
+                    Last updated: {metrics.timestamp.toLocaleTimeString()}
+
+                  </div>
+
+                )}
+
+              </CardContent>
+
+            </GlassCard>
+
+          </div>
 
         </div>
-
-      </div>
 
       </div>
 
