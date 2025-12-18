@@ -31,12 +31,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { 
-  ArrowLeft, 
-  X, 
-  Plus, 
-  Check, 
-  ChevronsUpDown, 
+import {
+  ArrowLeft,
+  X,
+  Plus,
+  Check,
+  ChevronsUpDown,
   User as UserIcon,
   Settings,
   Key,
@@ -131,7 +131,7 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
     // Domains data
     domains: [] as any[],
     // Config data
-    ragModel: "gpt-3.5-turbo",
+    ragModel: "custom-llm",
     temperature: 0.7,
     maxTokens: 1000,
     topK: 5,
@@ -259,53 +259,53 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
     switch (activeTab) {
       case "overview":
         return (
-          <OverviewTab 
-            data={formData} 
+          <OverviewTab
+            data={formData}
             users={mockUsers}
-            onChange={handleDataChange} 
+            onChange={handleDataChange}
           />
         );
-      
+
       case "embed-keys":
         return (
-          <EmbedKeysTab 
+          <EmbedKeysTab
             data={{
               publicId: formData.slug || "new-integration",
               keys: formData.embedKeys || []
             }}
-            onChange={handleDataChange} 
+            onChange={handleDataChange}
           />
         );
-      
+
       case "domains":
         return (
-          <DomainsTab 
+          <DomainsTab
             data={{ domains: formData.domains || [] }}
             onChange={(domains) => handleDataChange({ domains })}
           />
         );
-      
+
       case "config":
         return (
-          <ConfigTab 
+          <ConfigTab
             data={{
-              ragModel: "gpt-3.5-turbo",
-              temperature: 0.7,
-              maxTokens: 1000,
-              topK: 5,
-              topP: 0.9,
-              contextWindow: 4000,
-              retrievalCount: 5,
-              similarityThreshold: 0.7,
-              enableChat: true,
-              enableSearch: true,
-              enableSuggestions: true,
-              enableCitations: true,
-              enableFollowUps: true,
-              responseMode: "balanced",
-              fallbackResponse: "I'm sorry, I couldn't find relevant information to answer your question.",
-              maxResponseLength: 500,
-              enableStreaming: true,
+              ragModel: formData.ragModel,
+              temperature: formData.temperature,
+              maxTokens: formData.maxTokens,
+              topK: formData.topK,
+              topP: formData.topP,
+              contextWindow: formData.contextWindow,
+              retrievalCount: formData.retrievalCount,
+              similarityThreshold: formData.similarityThreshold,
+              enableChat: formData.enableChat,
+              enableSearch: formData.enableSearch,
+              enableSuggestions: formData.enableSuggestions,
+              enableCitations: formData.enableCitations,
+              enableFollowUps: formData.enableFollowUps,
+              responseMode: formData.responseMode,
+              fallbackResponse: formData.fallbackResponse,
+              maxResponseLength: formData.maxResponseLength,
+              enableStreaming: formData.enableStreaming,
               customPrompts: {
                 system: "You are a helpful AI assistant that provides accurate and relevant information.",
                 user: "User question: {question}",
@@ -322,45 +322,45 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
                 maxSize: 1000,
               },
             }}
-            onChange={(config) => handleDataChange({ config })}
+            onChange={handleDataChange}
           />
         );
-      
+
       case "theme":
         return (
-          <ThemeTab 
+          <ThemeTab
             data={formData as any}
-            onChange={handleDataChange} 
+            onChange={handleDataChange}
           />
         );
-      
+
       case "environments":
         return (
-          <EnvironmentsTab 
+          <EnvironmentsTab
             data={formData.environments || []}
             onChange={(environments) => handleDataChange({ environments })}
           />
         );
-      
+
       case "webhooks":
         return (
-          <WebhooksTab 
+          <WebhooksTab
             data={formData.webhooks || []}
             onChange={(webhooks) => handleDataChange({ webhooks })}
           />
         );
-      
+
       case "versions":
         return (
-          <VersionsTab 
+          <VersionsTab
             data={formData.versions || []}
             onChange={(versions) => handleDataChange({ versions })}
           />
         );
-      
+
       case "analytics":
         return (
-          <AnalyticsTab 
+          <AnalyticsTab
             data={formData.analytics || {
               kpis: {
                 totalQueries: 0,
@@ -390,35 +390,35 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
             onChange={(analytics) => handleDataChange({ analytics })}
           />
         );
-      
+
       case "ab-testing":
         return (
-          <ABTestingTab 
+          <ABTestingTab
             data={formData.experiments || []}
             onChange={(experiments) => handleDataChange({ experiments })}
           />
         );
-      
+
       case "permissions":
         return (
-          <PermissionsTab 
+          <PermissionsTab
             data={formData.roles || []}
             users={mockUsers}
             onChange={(roles) => handleDataChange({ roles })}
           />
         );
-      
+
       case "audit":
         return (
-          <AuditLogsTab 
+          <AuditLogsTab
             data={formData.auditLogs || []}
             onChange={(auditLogs) => handleDataChange({ auditLogs })}
           />
         );
-      
+
       case "security":
         return (
-          <SecurityComplianceTab 
+          <SecurityComplianceTab
             data={(formData.security && Object.keys(formData.security).length > 0 ? formData.security : {
               securityScore: 87,
               complianceScore: 78,
@@ -438,7 +438,7 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
             onChange={(security) => handleDataChange({ security })}
           />
         );
-      
+
       default:
         return (
           <div className="text-center py-8 text-muted-foreground">
@@ -467,7 +467,7 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
                 Back
               </Button>
             </div>
-            
+
             <div className="space-y-1">
               <div className="text-sm font-medium text-muted-foreground mb-2">Integration Settings</div>
               {sidebarItems.map((item) => (
@@ -476,8 +476,8 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
                   variant="ghost"
                   className={cn(
                     "w-full justify-start border border-transparent transition-[background-color,border-color,color]",
-                    activeTab === item.id 
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]" 
+                    activeTab === item.id
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
                       : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
                   )}
                   onClick={() => handleTabChange(item.id)}
@@ -519,7 +519,7 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
                 </Button>
                 <div className="text-sm font-medium text-muted-foreground">Integration Settings</div>
               </div>
-              
+
               {/* Compact Tab Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {sidebarItems.map((item) => (
@@ -529,8 +529,8 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
                     size="sm"
                     className={cn(
                       "flex items-center gap-2 justify-start h-9 text-xs border border-transparent transition-[background-color,border-color,color]",
-                      activeTab === item.id 
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]" 
+                      activeTab === item.id
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
                         : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
                     )}
                     onClick={() => handleTabChange(item.id)}

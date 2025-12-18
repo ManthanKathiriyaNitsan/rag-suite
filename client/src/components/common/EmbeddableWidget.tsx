@@ -61,14 +61,14 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
 }: WidgetProps) {
   // 🎛️ Use global RAG settings
   const { settings } = useRAGSettings();
-  
+
   // 🎨 Use branding settings for widget positioning
   const { widgetZIndex, widgetPosition, widgetOffsetX, widgetOffsetY } = useBranding();
-  
+
   // 🎭 Animation states
   const [isAnimating, setIsAnimating] = useState(false);
   const [shouldShow, setShouldShow] = useState(isOpen);
-  
+
   // 🎬 Handle smooth open/close animations
   useEffect(() => {
     if (isOpen && !shouldShow) {
@@ -85,10 +85,10 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
       }, 300);
     }
   }, [isOpen, shouldShow, setShouldShow, setIsAnimating]);
-  
+
   // 🎯 Helper function to get position classes
   const getPositionClasses = (position: string) => {
-    switch(position) {
+    switch (position) {
       case 'bottom-right': return 'bottom-4 right-4 sm:bottom-6 sm:right-6';
       case 'bottom-left': return 'bottom-4 left-4 sm:bottom-6 sm:left-6';
       case 'top-right': return 'top-4 right-4 sm:top-6 sm:right-6';
@@ -99,7 +99,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
   };
 
   const getModalPositionClasses = (position: string) => {
-    switch(position) {
+    switch (position) {
       case 'bottom-right': return 'top-0 left-0 sm:bottom-6 sm:right-6 sm:top-auto sm:left-auto';
       case 'bottom-left': return 'top-0 left-0 sm:bottom-6 sm:left-6 sm:top-auto sm:right-auto';
       case 'top-right': return 'top-0 left-0 sm:top-6 sm:right-6 sm:bottom-auto sm:left-auto';
@@ -108,7 +108,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
       default: return 'top-0 left-0 sm:bottom-6 sm:right-6 sm:top-auto sm:left-auto';
     }
   };
-  
+
   // Get widget appearance settings from global context - make it reactive
   const [widgetAppearance, setWidgetAppearance] = useState({
     chatBubbleStyle: "rounded",
@@ -138,9 +138,9 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
         animationsEnabled: true,
       };
     };
-    
+
     setWidgetAppearance(getWidgetAppearance());
-    
+
     // Listen for storage changes
     const handleStorageChange = () => {
       const newAppearance = getWidgetAppearance();
@@ -150,62 +150,98 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
         setWidgetAppearance(newAppearance);
       }
     };
-    
+
     window.addEventListener('storage', handleStorageChange);
-    
+
     // Listen for custom theme change events
     const handleThemeChange = () => {
       console.log("🎨 Widget theme changed");
       setWidgetAppearance(getWidgetAppearance());
     };
-    
+
     window.addEventListener('theme-changed', handleThemeChange);
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('theme-changed', handleThemeChange);
     };
   }, []); // Empty dependency array - run only once
-  
+
   const [activeTab, setActiveTab] = useState("auto");
-  
-  // 💬 Load messages from sessionStorage on mount
-  const [messages, setMessages] = useState<Message[]>(() => {
-    try {
-      const savedMessages = sessionStorage.getItem('widget-messages');
-      if (savedMessages) {
-        const parsedMessages = JSON.parse(savedMessages);
-        // Convert timestamp strings back to Date objects
-        return parsedMessages.map((msg: any) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp)
-        }));
-      }
-    } catch (error) {
-      console.warn('Failed to load widget messages from sessionStorage:', error);
-    }
-    
-    // Default welcome message
-    return [
-      {
-        type: "assistant",
-        content: "Hello! I can help you search for information or answer questions about your documentation. What would you like to know?",
-        timestamp: new Date(),
-      },
-    ];
-  });
 
-  // 💬 Save messages to sessionStorage whenever messages change
+
+  // 💬 Load messages from API on mount
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      type: "assistant",
+      content: "Hello! I can help you search for information or answer questions about your documentation. What would you like to know?",
+      timestamp: new Date(),
+    },
+  ]);
+
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+
+  // 💬 Load chat history from API on mount
   useEffect(() => {
-    try {
-      sessionStorage.setItem('widget-messages', JSON.stringify(messages));
-    } catch (error) {
-      console.warn('Failed to save widget messages to sessionStorage:', error);
-    }
-  }, [messages]);
+    const loadChatHistory = async () => {
+      try {
+        setIsLoadingHistory(true);
+        const { chatAPI } = await import('@/services/api/api');
+        const history = await chatAPI.getChatHistory();
 
-  // 🗑️ Clear chat function
-  const clearChat = () => {
+        if (history && history.length > 0) {
+          const convertedMessages: Message[] = [];
+
+          [...history].reverse().forEach((item: any) => {
+            convertedMessages.push({
+              type: "user",
+              content: item.userMessage,
+              timestamp: new Date(item.createdAt),
+            });
+
+            convertedMessages.push({
+              type: "assistant",
+              content: item.assistantResponse,
+              timestamp: new Date(item.createdAt),
+              messageId: item.messageId,
+              sessionId: item.sessionId,
+              citations: item.sources && item.sources.length > 0 ? item.sources.map((source: any) => ({
+                title: source.title || 'Untitled',
+                url: source.url || '#',
+                snippet: source.snippet || ''
+              })) : undefined,
+            });
+          });
+
+          setMessages([
+            {
+              type: "assistant",
+              content: "Hello! I can help you search for information or answer questions about your documentation. What would you like to know?",
+              timestamp: new Date(),
+            },
+            ...convertedMessages
+          ]);
+        }
+      } catch (error) {
+        console.warn('Failed to load widget chat history from API:', error);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    loadChatHistory();
+  }, []);
+
+  // 🗑️ Clear chat function with API call
+  const clearChat = async () => {
+    try {
+      const { chatAPI } = await import('@/services/api/api');
+      await chatAPI.deleteAllMessages();
+      console.log('✅ All widget messages deleted from database');
+    } catch (error) {
+      console.error('❌ Failed to delete widget messages:', error);
+    }
+
     setMessages([
       {
         type: "assistant",
@@ -217,20 +253,20 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
 
   // 🌐 Use our global search hook - same as RAGTuning!
   const { searchAsync, isSearching, searchData, searchError } = useSearch();
-  
+
   // 💬 Use our chat hook for enhanced functionality
   const { sendMessageAsync, isSending } = useChat();
   // 🧾 Session history removed per request
-  
+
   // 📋 Current session state
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>();
-  
+
   // 🎭 Animation states
   const [isTyping, setIsTyping] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [pendingResponse, setPendingResponse] = useState<string | null>(null);
-  
+
   // 📜 Ref for messages container to auto-scroll
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -238,7 +274,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
   const simulateStreamingResponse = async (content: string, onUpdate: (content: string) => void) => {
     const words = content.split(' ');
     let currentContent = '';
-    
+
     for (let i = 0; i < words.length; i++) {
       currentContent += (i > 0 ? ' ' : '') + words[i];
       onUpdate(currentContent);
@@ -267,7 +303,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
   const extractTopKFromMessage = (message: string): { topK: number; reranker: boolean } => {
     const topKMatch = message.match(/topK=(\d+)/);
     const rerankerMatch = message.match(/reranker=(on|off)/);
-    
+
     return {
       topK: topKMatch ? parseInt(topKMatch[1]) : 5,
       reranker: rerankerMatch ? rerankerMatch[1] === 'on' : false
@@ -286,7 +322,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
     };
 
     setMessages(prev => [...prev, userMessage]);
-    
+
     // 🎭 Start typing animation
     setIsTyping(true);
     setPendingResponse("Searching through documentation...");
@@ -305,7 +341,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
       setPendingResponse(null);
 
       const responseContent = searchResponse.answer || "No answer from API";
-      
+
       // Simulate streaming response
       await simulateStreamingResponse(responseContent, (content) => {
         setStreamingContent(content);
@@ -334,10 +370,10 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
         url: source.url || "#",
         snippet: source.snippet || "No snippet available",
       }));
-      
+
       console.log("🔍 Mapped sources length:", mappedSources.length);
       console.log("🔍 Mapped sources:", mappedSources);
-      
+
       const assistantMessage: Message = {
         type: "assistant",
         content: responseContent,
@@ -356,7 +392,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
       setIsStreaming(false);
       setStreamingContent("");
       console.log("✅ Widget search completed with search API only");
-      
+
       // 🎯 onAnswer callback - trigger when AI responds successfully
       if (onAnswer) {
         onAnswer(responseContent, query);
@@ -364,29 +400,29 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
 
     } catch (error) {
       console.error("❌ Widget search failed:", error);
-      
+
       // Stop animations on error
       setIsTyping(false);
       setIsStreaming(false);
       setPendingResponse(null);
-      
+
       // 🎯 onError callback - trigger when search fails
       if (onError) {
         const errorMessage = error instanceof Error ? error.message : "Search failed";
         onError(errorMessage, "search");
       }
-      
+
       // Check if it's a CORS error
       const isCORSError = error && typeof error === 'object' && 'message' in error && (error.message as string).includes('CORS');
-      
+
       let errorMessage = "Sorry, I encountered an error while searching. Please try again.";
-      
+
       if (isCORSError) {
         errorMessage = "CORS Error: The server is blocking requests from localhost:5000. Please check server CORS configuration.";
       } else if (error instanceof Error) {
         errorMessage = `Search Error: ${error.message}`;
       }
-      
+
       // Add error message
       const errorMsg: Message = {
         type: "assistant",
@@ -410,17 +446,17 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
     };
 
     setMessages(prev => [...prev, userMessage]);
-    
+
     // 🎭 Start typing animation
     setIsTyping(true);
     setPendingResponse("AI is thinking...");
 
     try {
       // 🌐 Use ONLY chat API for chat functionality with global RAG settings
-      const chatResponse = await sendMessageAsync({ 
-        message: query, 
+      const chatResponse = await sendMessageAsync({
+        message: query,
         sessionId: currentSessionId,
-        ragSettings: settings 
+        ragSettings: settings
       });
       console.log("💬 Widget Chat Response:", chatResponse);
       console.log("🔍 Sources in chat response:", chatResponse?.sources);
@@ -438,7 +474,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
       setPendingResponse(null);
 
       const responseContent = chatResponse?.response || "No response from chat API";
-      
+
       // Simulate streaming response
       await simulateStreamingResponse(responseContent, (content) => {
         setStreamingContent(content);
@@ -462,10 +498,10 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
         url: source.url || "#",
         snippet: source.snippet || "No snippet available",
       }));
-      
+
       console.log("🔍 Mapped chat sources length:", mappedChatSources.length);
       console.log("🔍 Mapped chat sources:", mappedChatSources);
-      
+
       const assistantMessage: Message = {
         type: "assistant",
         content: responseContent,
@@ -484,7 +520,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
       setIsStreaming(false);
       setStreamingContent("");
       console.log("✅ Widget chat completed with chat API only");
-      
+
       // 🎯 onAnswer callback - trigger when AI responds successfully
       if (onAnswer) {
         onAnswer(responseContent, query);
@@ -492,27 +528,27 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
 
     } catch (error) {
       console.error("❌ Widget chat failed:", error);
-      
+
       // Stop animations on error
       setIsTyping(false);
       setIsStreaming(false);
       setPendingResponse(null);
-      
+
       // 🎯 onError callback - trigger when chat fails
       if (onError) {
         const errorMessage = error instanceof Error ? error.message : "Chat failed";
         onError(errorMessage, "chat");
       }
-      
+
       // Check if it's a network error
       const isNetworkError = error && typeof error === 'object' && 'code' in error && (error as any).code === 'ERR_NETWORK';
       const isServerError = error && typeof error === 'object' && 'response' in error && (error as any).response?.status >= 500;
       const isCORSError = error && typeof error === 'object' && 'message' in error && (error as any).message.includes('CORS');
       const isTimeoutError = error && typeof error === 'object' && 'message' in error && (error as any).message.includes('timeout');
       const isAbortError = error && typeof error === 'object' && 'name' in error && (error as any).name === 'AbortError';
-      
+
       let errorMessage = "Sorry, I encountered an error while chatting. Please try again.";
-      
+
       if (isAbortError || isTimeoutError) {
         errorMessage = "Connection Timeout: The chat server is not responding. Please check if the server is running at http://192.168.0.117:8000";
       } else if (isCORSError) {
@@ -524,7 +560,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
       } else if (error instanceof Error) {
         errorMessage = `Chat Error: ${error.message}`;
       }
-      
+
       // Add error message
       const errorMsg: Message = {
         type: "assistant",
@@ -538,7 +574,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
 
   if (!shouldShow) {
     return (
-      <div className={`fixed ${getPositionClasses(widgetPosition)}`} style={{ 
+      <div className={`fixed ${getPositionClasses(widgetPosition)}`} style={{
         zIndex: Math.max(widgetZIndex, 9990),
         transform: `translate(${widgetOffsetX}px, ${widgetOffsetY}px)`
       }}>
@@ -559,27 +595,24 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
   }
 
   return (
-    <Card 
-        className={`widget-container widget-container-elevated fixed ${getModalPositionClasses(widgetPosition)} w-full h-screen sm:w-96 sm:h-[600px] md:w-96 md:h-[600px] shadow-xl flex flex-col ${
-          widgetAppearance.chatBubbleStyle === "sharp" ? "rounded-none" :
-          widgetAppearance.chatBubbleStyle === "minimal" ? "rounded-sm" :
+    <Card
+      className={`widget-container widget-container-elevated fixed ${getModalPositionClasses(widgetPosition)} w-full h-screen sm:w-96 sm:h-[600px] md:w-96 md:h-[600px] shadow-xl flex flex-col ${widgetAppearance.chatBubbleStyle === "sharp" ? "rounded-none" :
+        widgetAppearance.chatBubbleStyle === "minimal" ? "rounded-sm" :
           "rounded-lg"
-        } ${
-          isAnimating ? (isOpen ? "animate-widget-enter" : "animate-widget-exit") : ""
-        } ${
-          widgetAppearance.animationsEnabled ? "widget-transition" : ""
+        } ${isAnimating ? (isOpen ? "animate-widget-enter" : "animate-widget-exit") : ""
+        } ${widgetAppearance.animationsEnabled ? "widget-transition" : ""
         }`}
-        style={{ 
-          wordBreak: 'break-word', 
-          overflowWrap: 'anywhere',
-          zIndex: Math.max(widgetZIndex, 9990),
-          transform: `translate(${widgetOffsetX}px, ${widgetOffsetY}px)`
-        }}
-        role="dialog"
-        aria-label="AI Assistant Chat"
-        aria-modal="true"
-        aria-live="polite"
-      >
+      style={{
+        wordBreak: 'break-word',
+        overflowWrap: 'anywhere',
+        zIndex: Math.max(widgetZIndex, 9990),
+        transform: `translate(${widgetOffsetX}px, ${widgetOffsetY}px)`
+      }}
+      role="dialog"
+      aria-label="AI Assistant Chat"
+      aria-modal="true"
+      aria-live="polite"
+    >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 animate-slide-down">
         <CardTitle className="text-base font-medium">{title}</CardTitle>
         <div className="flex items-center gap-1 animate-fade-in-scale">
@@ -617,8 +650,8 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col animate-slide-up">
           <div className="px-4 pb-3">
             <TabsList className="grid w-full grid-cols-3 animate-fade-in-scale h-10" role="tablist" aria-label="Widget navigation">
-              <TabsTrigger 
-                value="search" 
+              <TabsTrigger
+                value="search"
                 data-testid="tab-search"
                 role="tab"
                 aria-selected={activeTab === "search"}
@@ -629,8 +662,8 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                 <Search className="h-4 w-4" aria-hidden="true" />
                 Search
               </TabsTrigger>
-              <TabsTrigger 
-                value="chat" 
+              <TabsTrigger
+                value="chat"
                 data-testid="tab-chat"
                 role="tab"
                 aria-selected={activeTab === "chat"}
@@ -641,8 +674,8 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                 <MessageSquare className="h-4 w-4" aria-hidden="true" />
                 Chat
               </TabsTrigger>
-              <TabsTrigger 
-                value="auto" 
+              <TabsTrigger
+                value="auto"
                 data-testid="tab-auto"
                 role="tab"
                 aria-selected={activeTab === "auto"}
@@ -656,15 +689,15 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
             </TabsList>
           </div>
 
-          <TabsContent 
-            value="search" 
+          <TabsContent
+            value="search"
             className="flex-1 flex flex-col px-4 mt-0"
             role="tabpanel"
             id="search-panel"
             aria-labelledby="tab-search"
             tabIndex={0}
           >
-            <div 
+            <div
               className="space-y-3 flex-1 overflow-y-auto min-h-0 max-h-[400px]"
               style={{
                 scrollbarWidth: 'thin',
@@ -679,16 +712,16 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                 enableSuggestions={false}
               />
               {/* 🔎 Recent Search History removed */}
-              
+
               {/* 🔍 Enhanced loading indicator for search */}
               {isSearching && (
-                <TypingIndicator 
-                  message="Searching through documentation..." 
-                  variant="wave" 
-                  size="md" 
+                <TypingIndicator
+                  message="Searching through documentation..."
+                  variant="wave"
+                  size="md"
                 />
               )}
-              
+
               {/* 🎭 Typing Animation for Search */}
               {isTyping && !isSearching && (
                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -696,7 +729,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                   <span>{pendingResponse || "Preparing search..."}</span>
                 </div>
               )}
-              
+
               {/* 🌊 Streaming Response for Search */}
               {isStreaming && streamingContent && (
                 <div className="bg-muted/50 rounded-lg p-3">
@@ -705,22 +738,22 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                   </div>
                 </div>
               )}
-              
+
               <div className="text-sm text-muted-foreground">
                 Try searching for "API", "getting started", or "troubleshooting"
               </div>
             </div>
           </TabsContent>
 
-          <TabsContent 
-            value="chat" 
+          <TabsContent
+            value="chat"
             className="flex-1 flex flex-col px-4 mt-0"
             role="tabpanel"
             id="chat-panel"
             aria-labelledby="tab-chat"
             tabIndex={0}
           >
-            <div 
+            <div
               className="flex-1 overflow-y-auto space-y-4  min-h-0 max-h-[400px] w-full"
               style={{
                 scrollbarWidth: 'thin',
@@ -732,7 +765,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                   key={index}
                   type={message.type}
                   content={message.content}
-                  citations={message.citations}
+                  citations={undefined}
                   timestamp={message.timestamp}
                   showFeedback={message.type === "assistant"}
                   messageId={message.messageId}
@@ -744,7 +777,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                   actualReranker={message.actualReranker}
                 />
               ))}
-              
+
               {/* 🎭 Typing Animation */}
               {isTyping && (
                 <div className="flex justify-start">
@@ -756,7 +789,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                   </div>
                 </div>
               )}
-              
+
               {/* 🌊 Streaming Response */}
               {isStreaming && streamingContent && (
                 <div className="flex justify-start">
@@ -769,11 +802,11 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                   </div>
                 </div>
               )}
-              
+
               {/* 📜 Scroll target for auto-scroll */}
               <div ref={messagesEndRef} />
             </div>
-            
+
             <div className="testingvll flex-shrink-0  ">
               <SearchBar
                 placeholder="Type your message..."
@@ -783,27 +816,27 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                 enableSuggestions={false}
               />
               {/* 💬 Recent Chat History removed */}
-              
+
               {/* 💬 Enhanced loading indicator for chat */}
               {isSending && (
-                <TypingIndicator 
-                  message="Sending message..." 
-                  variant="pulse" 
-                  size="sm" 
+                <TypingIndicator
+                  message="Sending message..."
+                  variant="pulse"
+                  size="sm"
                 />
               )}
             </div>
           </TabsContent>
 
-          <TabsContent 
-            value="auto" 
+          <TabsContent
+            value="auto"
             className="flex-1 flex flex-col px-4 mt-0"
             role="tabpanel"
             id="auto-panel"
             aria-labelledby="tab-auto"
             tabIndex={0}
           >
-            <div 
+            <div
               className="flex-1 overflow-y-auto space-y-4 min-h-0 max-h-[400px] w-full"
               style={{
                 scrollbarWidth: 'thin',
@@ -827,7 +860,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                   actualReranker={message.actualReranker}
                 />
               ))}
-              
+
               {/* 🎭 Typing Animation */}
               {isTyping && (
                 <div className="flex justify-start">
@@ -839,7 +872,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                   </div>
                 </div>
               )}
-              
+
               {/* 🌊 Streaming Response */}
               {isStreaming && streamingContent && (
                 <div className="flex justify-start">
@@ -852,7 +885,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                   </div>
                 </div>
               )}
-              
+
               {/* 📜 Scroll target for auto-scroll */}
               <div ref={messagesEndRef} />
             </div>
@@ -865,13 +898,13 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                 enableHistory={false}
                 enableSuggestions={false}
               />
-              
+
               {/* 💬 Enhanced loading indicator for auto */}
               {isSending && (
-                <TypingIndicator 
-                  message="Processing..." 
-                  variant="wave" 
-                  size="sm" 
+                <TypingIndicator
+                  message="Processing..."
+                  variant="wave"
+                  size="sm"
                 />
               )}
             </div>

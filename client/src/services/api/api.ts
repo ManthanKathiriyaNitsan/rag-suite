@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 🌐 API Configuration - Unified API base URL for all endpoints
-const API_BASE_URL = 'http://192.168.0.112:8000/api/v1';
+const API_BASE_URL = 'http://192.168.0.106:8000/api/v1';
 
 // 📡 Create axios instance - This is your unified API client
 export const apiClient = axios.create({
@@ -234,6 +234,48 @@ export const chatAPI = {
       return response.data;
     } catch (error) {
       console.error('❌ Feedback Error:', error);
+      throw error;
+    }
+  },
+
+  // Get chat history
+  getChatHistory: async () => {
+    console.log('📜 Chat API - Getting chat history');
+
+    try {
+      const response = await apiClient.get('/chat/history');
+      console.log('✅ Chat History Response:', response.data);
+
+      // Backend returns array of chat messages
+      const history = Array.isArray(response.data) ? response.data : [];
+
+      return history.map((item: any) => ({
+        id: item.id,
+        sessionId: item.session_id,
+        messageId: item.message_id,
+        userMessage: item.user_message,
+        assistantResponse: item.assistant_response,
+        messageType: item.message_type,
+        feedback: item.feedback,
+        sources: item.sources || [],
+        createdAt: item.created_at,
+      }));
+    } catch (error) {
+      console.error('❌ Chat History Error:', error);
+      throw error;
+    }
+  },
+
+  // Delete all chat messages
+  deleteAllMessages: async () => {
+    console.log('🗑️ Chat API - Deleting all messages');
+
+    try {
+      const response = await apiClient.delete('/chat/messages');
+      console.log('✅ Delete All Messages Response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Delete All Messages Error:', error);
       throw error;
     }
   },

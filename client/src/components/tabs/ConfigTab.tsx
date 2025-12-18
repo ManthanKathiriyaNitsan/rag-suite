@@ -46,20 +46,20 @@ interface ConfigData {
   contextWindow: number;
   retrievalCount: number;
   similarityThreshold: number;
-  
+
   // Feature Toggles
   enableChat: boolean;
   enableSearch: boolean;
   enableSuggestions: boolean;
   enableCitations: boolean;
   enableFollowUps: boolean;
-  
+
   // Response Settings
   responseMode: string;
   fallbackResponse: string;
   maxResponseLength: number;
   enableStreaming: boolean;
-  
+
   // Advanced Settings
   customPrompts: {
     system: string;
@@ -85,7 +85,7 @@ interface ConfigTabProps {
 
 export default function ConfigTab({ data, onChange }: ConfigTabProps) {
   const [config, setConfig] = useState<ConfigData>(data || {
-    ragModel: "gpt-3.5-turbo",
+    ragModel: "custom-llm",
     temperature: 0.7,
     maxTokens: 1000,
     topK: 5,
@@ -120,7 +120,9 @@ export default function ConfigTab({ data, onChange }: ConfigTabProps) {
   });
 
   useEffect(() => {
-    setConfig(data || config);
+    if (data) {
+      setConfig(data);
+    }
   }, [data]);
 
   const handleConfigChange = (field: string, value: any) => {
@@ -133,11 +135,11 @@ export default function ConfigTab({ data, onChange }: ConfigTabProps) {
     const keys = path.split('.');
     const updated = { ...config };
     let current: any = updated;
-    
+
     for (let i = 0; i < keys.length - 1; i++) {
       current = current[keys[i]];
     }
-    
+
     current[keys[keys.length - 1]] = value;
     setConfig(updated);
     onChange(updated);
@@ -200,6 +202,7 @@ export default function ConfigTab({ data, onChange }: ConfigTabProps) {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="custom-llm">Custom LLM</SelectItem>
                       <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
                       <SelectItem value="gpt-4">GPT-4</SelectItem>
                       <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>

@@ -18,6 +18,8 @@ import { useSearch } from "@/hooks/useSearch";
 import { useChat, useChatSessions } from "@/hooks/useChat";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Message } from "@/types/components";
+import { chatAPI } from "@/services/api/api";
+import { useLocation } from "wouter";
 
 
 
@@ -31,75 +33,194 @@ export default function RAGTuning() {
 
   const { t } = useTranslation();
 
-
-
-  // 💬 Load messages from sessionStorage on mount
-
-  const [messages, setMessages] = useState<Message[]>(() => {
-
-    try {
-
-      const savedMessages = sessionStorage.getItem('rag-tuning-messages');
-
-      if (savedMessages) {
-
-        const parsedMessages = JSON.parse(savedMessages);
-
-        // Convert timestamp strings back to Date objects
-
-        return parsedMessages.map((msg: any) => ({
-
-          ...msg,
-
-          timestamp: new Date(msg.timestamp)
-
-        }));
-
-      }
-
-    } catch (error) {
-
-      console.warn('Failed to load RAG tuning messages from sessionStorage:', error);
-
-    }
+  const [location] = useLocation();
 
 
 
-    // Default welcome message
+  // 💬 Load messages from API on mount
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      type: "assistant",
+      content: "Welcome to the RAG Tuning Playground! Ask me anything about your documentation to test different retrieval and generation settings.",
+      timestamp: new Date(),
+    },
+  ]);
 
-    return [
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
-      {
-
-        type: "assistant",
-
-        content: "Welcome to the RAG Tuning Playground! Ask me anything about your documentation to test different retrieval and generation settings.",
-
-        timestamp: new Date(),
-
-      },
-
-    ];
-
-  });
-
-
-
-  // 💬 Save messages to sessionStorage whenever messages change
-
+  // 💬 Load chat history from API on mount
   useEffect(() => {
+    const loadChatHistory = async () => {
+      try {
+        setIsLoadingHistory(true);
+        const history = await chatAPI.getChatHistory();
 
-    try {
+        if (history && history.length > 0) {
+          // Convert API history to Message format
+          // Reverse array to show oldest messages first
+          const convertedMessages: Message[] = [];
 
-      sessionStorage.setItem('rag-tuning-messages', JSON.stringify(messages));
+          [...history].reverse().forEach((item: any) => {
+            // Add user message
+            convertedMessages.push({
+              type: "user",
+              content: item.userMessage,
+              timestamp: new Date(item.createdAt),
+            });
 
-    } catch (error) {
+            // Add assistant message with sources
+            convertedMessages.push({
+              type: "assistant",
+              content: item.assistantResponse,
+              timestamp: new Date(item.createdAt),
+              messageId: item.messageId,
+              sessionId: item.sessionId,
+              citations: item.sources && item.sources.length > 0 ? item.sources.map((source: any) => ({
+                title: source.title || 'Untitled',
+                url: source.url || '#',
+                snippet: source.snippet || ''
+              })) : undefined,
+            });
+          });
 
-      console.warn('Failed to save RAG tuning messages to sessionStorage:', error);
+          // Add welcome message at the beginning if there are messages
+          setMessages([
+            {
+              type: "assistant",
+              content: "Welcome to the RAG Tuning Playground! Ask me anything about your documentation to test different retrieval and generation settings.",
+              timestamp: new Date(),
+            },
+            ...convertedMessages
+          ]);
+        }
+      } catch (error) {
+        console.warn('Failed to load chat history from API:', error);
+        // Keep default welcome message on error
+      } finally {
+        setIsLoadingHistory(false);
+        sessionStorage.setItem('rag-tuning-loaded', 'true');
 
+        // Restore scroll position smoothly after a short delay
+        setTimeout(() => {
+          const savedScrollPos = sessionStorage.getItem('rag-tuning-scroll');
+          if (savedScrollPos) {
+            const scrollContainer = document.querySelector('[data-chat-scroll]') as HTMLElement;
+            if (scrollContainer) {
+              scrollContainer.scrollTo({
+                top: parseInt(savedScrollPos, 10),
+                behavior: 'smooth'
+              });
+            }
+          }
+        }, 150);
+      }
+    };
+
+    loadChatHistory();
+  }, []);
+
+  // 🔄 Reload chat history when user returns to the page
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (!document.hidden) {
+        // Page is visible again, reload chat history
+        try {
+          const history = await chatAPI.getChatHistory();
+
+          if (history && history.length > 0) {
+            const convertedMessages: Message[] = [];
+
+            history.forEach((item: any) => {
+              convertedMessages.push({
+                type: "user",
+                content: item.userMessage,
+                timestamp: new Date(item.createdAt),
+              });
+
+              convertedMessages.push({
+                type: "assistant",
+                content: item.assistantResponse,
+                timestamp: new Date(item.createdAt),
+                messageId: item.messageId,
+                sessionId: item.sessionId,
+              });
+            });
+
+            setMessages([
+              {
+                type: "assistant",
+                content: "Welcome to the RAG Tuning Playground! Ask me anything about your documentation to test different retrieval and generation settings.",
+                timestamp: new Date(),
+              },
+              ...convertedMessages
+            ]);
+          }
+        } catch (error) {
+          console.warn('Failed to reload chat history:', error);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  // 🔄 Reload chat history when navigating back to this page
+  useEffect(() => {
+    const hasLoaded = sessionStorage.getItem('rag-tuning-loaded') === 'true';
+    console.log('🔄 Location changed:', location, 'hasLoaded:', hasLoaded);
+
+    if (location.includes('rag-tuning') && hasLoaded) {
+      console.log('🔄 Reloading chat history...');
+      const reloadHistory = async () => {
+        try {
+          const history = await chatAPI.getChatHistory();
+          console.log('🔄 Fetched history:', history);
+
+          if (history && history.length > 0) {
+            const convertedMessages: Message[] = [];
+
+            [...history].reverse().forEach((item: any) => {
+              convertedMessages.push({
+                type: "user",
+                content: item.userMessage,
+                timestamp: new Date(item.createdAt),
+              });
+
+              convertedMessages.push({
+                type: "assistant",
+                content: item.assistantResponse,
+                timestamp: new Date(item.createdAt),
+                messageId: item.messageId,
+                sessionId: item.sessionId,
+                citations: item.sources && item.sources.length > 0 ? item.sources.map((source: any) => ({
+                  title: source.title || 'Untitled',
+                  url: source.url || '#',
+                  snippet: source.snippet || ''
+                })) : undefined,
+              });
+            });
+
+            setMessages([
+              {
+                type: "assistant",
+                content: "Welcome to the RAG Tuning Playground! Ask me anything about your documentation to test different retrieval and generation settings.",
+                timestamp: new Date(),
+              },
+              ...convertedMessages
+            ]);
+          }
+        } catch (error) {
+          console.warn('Failed to reload chat history:', error);
+        }
+      };
+
+      reloadHistory();
     }
-
-  }, [messages]);
+  }, [location]);
 
 
 
@@ -172,10 +293,29 @@ export default function RAGTuning() {
 
 
 
-  // 📜 Auto-scroll to bottom when messages, streaming content, or streaming state changes
+  // 📜 Auto-scroll to bottom only when new content is being generated
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Only scroll when actively streaming or typing (not on page load)
+    if (isStreaming || isTyping) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages, streamingContent, isStreaming, isTyping]);
+
+  // 💾 Save scroll position when user scrolls
+  useEffect(() => {
+    const scrollContainer = document.querySelector('[data-chat-scroll]') as HTMLElement;
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+      sessionStorage.setItem('rag-tuning-scroll', scrollContainer.scrollTop.toString());
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      scrollContainer.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
 
 
@@ -459,7 +599,13 @@ export default function RAGTuning() {
 
   // 🗑️ Clear chat function
 
-  const clearChat = () => {
+  const clearChat = async () => {
+    try {
+      await chatAPI.deleteAllMessages();
+      console.log('✅ All messages deleted from database');
+    } catch (error) {
+      console.error('❌ Failed to delete messages:', error);
+    }
 
     setMessages([
 
@@ -706,6 +852,7 @@ export default function RAGTuning() {
 
 
                 <div
+                  data-chat-scroll
                   className={`space-y-4 flex-1 p-6 ${(isStreaming || isTyping) ? "overflow-hidden" : "overflow-y-auto"}
     [&::-webkit-scrollbar]:w-2
     [&::-webkit-scrollbar-track]:rounded-full
@@ -716,8 +863,12 @@ export default function RAGTuning() {
     dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500`}
                 >
 
-
-                  {messages.map((message, index) => (
+                  {isLoadingHistory ? (
+                    <div className="flex items-center justify-center p-8">
+                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                      <span className="text-sm text-muted-foreground">Loading chat history...</span>
+                    </div>
+                  ) : messages.map((message, index) => (
 
                     <Suspense key={index} fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-4 w-4 animate-spin" /></div>}>
 
