@@ -240,6 +240,7 @@ const Overview = React.memo(function Overview() {
           title="p95 Latency"
           value={formatLatency(p95Latency?.latency || overviewData?.p95Latency)}
           description="avg response time"
+          
           icon={<Activity className="h-4 w-4" />}
         />
         <GlassStatsCard

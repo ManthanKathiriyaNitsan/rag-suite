@@ -244,14 +244,19 @@ export default function PermissionsTab({ data, users, onChange }: PermissionsTab
     }
   };
 
-  const getInitials = (name: string) => {
+  const getInitials = (name?: string) => {
+    if (!name || typeof name !== "string") return "U";
+  
     return name
-      .split(" ")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
       .map(word => word[0])
       .join("")
       .toUpperCase()
       .slice(0, 2);
   };
+  
 
   return (
     <div className="space-y-6 w-full max-w-full overflow-hidden min-w-0">

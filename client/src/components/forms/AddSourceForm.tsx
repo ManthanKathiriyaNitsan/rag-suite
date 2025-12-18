@@ -47,7 +47,8 @@ const AddSourceForm = React.memo(function AddSourceForm({ open, onOpenChange, on
     setCrawlDepth((editData as any)?.crawlDepth ?? 2);
     // Defaults for fields not present in site object
     setCadenceUI("daily");
-    setHeadless(false);
+    setHeadless(editData?.headlessMode === "ON");
+
     setIncludePatterns((editData as any)?.settings?.allowedDomains ?? (editData as any)?.includePatterns ?? []);
     setExcludePatterns((editData as any)?.settings?.blockedDomains ?? (editData as any)?.excludePatterns ?? []);
   }, [editData, open]); // Only depend on actual values
