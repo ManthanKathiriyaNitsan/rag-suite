@@ -20,6 +20,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Message } from "@/types/components";
 import { chatAPI } from "@/services/api/api";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/useToast";
 
 
 
@@ -28,6 +29,7 @@ export default function RAGTuning() {
   // 🎛️ Use global RAG settings
 
   const { settings, updateSettings } = useRAGSettings();
+  const { toast } = useToast();
 
   const { metrics, updateMetrics } = usePerformanceMetrics();
 
@@ -75,11 +77,15 @@ export default function RAGTuning() {
               timestamp: new Date(item.createdAt),
               messageId: item.messageId,
               sessionId: item.sessionId,
-              citations: item.sources && item.sources.length > 0 ? item.sources.map((source: any) => ({
-                title: source.title || 'Untitled',
-                url: source.url || '#',
-                snippet: source.snippet || ''
-              })) : undefined,
+              citations: (Array.isArray(item.sources) && item.sources.length > 0)
+                ? item.sources
+                  .filter((source: any) => source != null) // Filter out null/undefined sources
+                  .map((source: any) => ({
+                    title: source?.title || 'Untitled',
+                    url: source?.url || '#',
+                    snippet: source?.snippet || ''
+                  }))
+                : undefined,
             });
           });
 
@@ -95,6 +101,11 @@ export default function RAGTuning() {
         }
       } catch (error) {
         console.warn('Failed to load chat history from API:', error);
+        toast({
+          title: "Failed to load chat history",
+          description: "Could not retrieve previous messages. You can still send new messages.",
+          variant: "destructive",
+        });
         // Keep default welcome message on error
       } finally {
         setIsLoadingHistory(false);
@@ -119,61 +130,19 @@ export default function RAGTuning() {
     loadChatHistory();
   }, []);
 
-  // 🔄 Reload chat history when user returns to the page
-  useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (!document.hidden) {
-        // Page is visible again, reload chat history
-        try {
-          const history = await chatAPI.getChatHistory();
-
-          if (history && history.length > 0) {
-            const convertedMessages: Message[] = [];
-
-            history.forEach((item: any) => {
-              convertedMessages.push({
-                type: "user",
-                content: item.userMessage,
-                timestamp: new Date(item.createdAt),
-              });
-
-              convertedMessages.push({
-                type: "assistant",
-                content: item.assistantResponse,
-                timestamp: new Date(item.createdAt),
-                messageId: item.messageId,
-                sessionId: item.sessionId,
-              });
-            });
-
-            setMessages([
-              {
-                type: "assistant",
-                content: "Welcome to the RAG Tuning Playground! Ask me anything about your documentation to test different retrieval and generation settings.",
-                timestamp: new Date(),
-              },
-              ...convertedMessages
-            ]);
-          }
-        } catch (error) {
-          console.warn('Failed to reload chat history:', error);
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
 
   // 🔄 Reload chat history when navigating back to this page
   useEffect(() => {
     const hasLoaded = sessionStorage.getItem('rag-tuning-loaded') === 'true';
-    console.log('🔄 Location changed:', location, 'hasLoaded:', hasLoaded);
+    const previousLocation = sessionStorage.getItem('previous-location') || '';
 
-    if (location.includes('rag-tuning') && hasLoaded) {
+    console.log('🔄 Location changed:', location, 'hasLoaded:', hasLoaded, 'previousLocation:', previousLocation);
+
+    // Only reload if:
+    // 1. We're on the rag-tuning page
+    // 2. Initial load has happened
+    // 3. We're coming FROM a different page (not already on rag-tuning)
+    if (location.includes('rag-tuning') && hasLoaded && !previousLocation.includes('rag-tuning')) {
       console.log('🔄 Reloading chat history...');
       const reloadHistory = async () => {
         try {
@@ -196,11 +165,15 @@ export default function RAGTuning() {
                 timestamp: new Date(item.createdAt),
                 messageId: item.messageId,
                 sessionId: item.sessionId,
-                citations: item.sources && item.sources.length > 0 ? item.sources.map((source: any) => ({
-                  title: source.title || 'Untitled',
-                  url: source.url || '#',
-                  snippet: source.snippet || ''
-                })) : undefined,
+                citations: (Array.isArray(item.sources) && item.sources.length > 0)
+                  ? item.sources
+                    .filter((source: any) => source != null) // Filter out null/undefined sources
+                    .map((source: any) => ({
+                      title: source?.title || 'Untitled',
+                      url: source?.url || '#',
+                      snippet: source?.snippet || ''
+                    }))
+                  : undefined,
               });
             });
 
@@ -215,11 +188,19 @@ export default function RAGTuning() {
           }
         } catch (error) {
           console.warn('Failed to reload chat history:', error);
+          toast({
+            title: "Failed to refresh messages",
+            description: "Could not reload chat history. Your current messages are still available.",
+            variant: "destructive",
+          });
         }
       };
 
       reloadHistory();
     }
+
+    // Store current location for next navigation
+    sessionStorage.setItem('previous-location', location);
   }, [location]);
 
 
@@ -870,11 +851,11 @@ export default function RAGTuning() {
                     </div>
                   ) : messages.map((message, index) => (
 
-                    <Suspense key={index} fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-4 w-4 animate-spin" /></div>}>
+                    <Suspense key={message.messageId || `${message.timestamp?.getTime()}-${index}`} fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-4 w-4 animate-spin" /></div>}>
 
                       <ChatMessage
 
-                        key={index}
+                        key={message.messageId || `${message.timestamp?.getTime()}-${index}`}
 
                         type={message.type}
 
