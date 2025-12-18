@@ -121,7 +121,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
     console.log('🔑 ApiKeys component - handleCreateApiKey called with:', formData);
 
-    
+
 
     // Check if formData is already an ApiKey (from form) or if we need to call the API
 
@@ -151,7 +151,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
       }
 
-      
+
 
       // Safely parse lastUsed date
 
@@ -177,7 +177,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
       }
 
-      
+
 
       setApiKeys((prev) => [
 
@@ -231,7 +231,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
       console.log('🔑 ApiKeys component - Form data:', formData);
 
-      
+
 
       try {
 
@@ -263,7 +263,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
         }
 
-        
+
 
         let expiration = formData.expiration || "Never expires";
 
@@ -293,7 +293,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
         }
 
-        
+
 
         const payload = {
 
@@ -309,11 +309,11 @@ const ApiKeys = React.memo(function ApiKeys() {
 
         };
 
-        
+
 
         console.log('🔑 ApiKeys component - Normalized payload:', payload);
 
-        
+
 
         console.log('🔑 ApiKeys component - Calling apiKeysAPI.create with payload:', payload);
 
@@ -321,7 +321,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
         console.log('✅ ApiKeys component - API key created successfully:', created);
 
-        
+
 
         // Safely parse createdAt date
 
@@ -343,7 +343,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
         }
 
-        
+
 
         // Safely parse lastUsed date
 
@@ -369,7 +369,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
         }
 
-        
+
 
         setApiKeys((prev) => [
 
@@ -419,7 +419,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
         console.error('❌ ApiKeys component - Failed to create API key:', error);
 
-        
+
 
         // Log detailed validation errors
 
@@ -429,7 +429,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
           console.error('❌ ApiKeys component - Validation errors:', detail);
 
-          
+
 
           // Handle Pydantic validation errors (array format)
 
@@ -443,7 +443,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
             }).join(', ');
 
-            
+
 
             toast({
 
@@ -479,7 +479,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
               .join(', ');
 
-            
+
 
             toast({
 
@@ -692,21 +692,24 @@ const ApiKeys = React.memo(function ApiKeys() {
 
 
   const handleRevokeApiKey = useCallback(async (id: string) => {
+    try {
+      await apiKeysAPI.delete(id);
 
-    await apiKeysAPI.delete(id);
+      setApiKeys((prev) => prev.filter((k) => k.id !== id));
 
-    setApiKeys((prev) => prev.filter((k) => k.id !== id));
-
-    toast({
-
-      title: "API Key Revoked",
-
-      description: "The API key has been revoked successfully.",
-
-      variant: "destructive",
-
-    });
-
+      toast({
+        title: "API Key Revoked",
+        description: "The API key has been revoked successfully.",
+        variant: "destructive",
+      });
+    } catch (error: any) {
+      console.error('❌ Failed to revoke API key:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to revoke API key. Please try again.",
+        variant: "destructive",
+      });
+    }
   }, [toast]);
 
 
@@ -719,7 +722,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
     setLoading(true);
 
-    
+
 
     apiKeysAPI.list()
 
@@ -759,7 +762,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
           }
 
-          
+
 
           // Safely parse lastUsed date
 
@@ -785,7 +788,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
           }
 
-          
+
 
           // Truncate key_preview to 20 characters + "..."
 
@@ -793,7 +796,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
           const truncatedPreview = preview.length > 20 ? preview.slice(0, 20) + '...' : preview;
 
-          
+
 
           return {
 
@@ -1001,7 +1004,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
                         </div>
 
-                        
+
 
                         <div className="space-y-2">
 
@@ -1067,7 +1070,7 @@ const ApiKeys = React.memo(function ApiKeys() {
 
                           </div>
 
-                          
+
 
                           <div className="grid grid-cols-2 gap-3 text-xs">
 
@@ -1077,9 +1080,9 @@ const ApiKeys = React.memo(function ApiKeys() {
 
                               <p className="mt-1">
 
-                                {key.createdAt && !isNaN(key.createdAt.getTime()) 
+                                {key.createdAt && !isNaN(key.createdAt.getTime())
 
-                                  ? key.createdAt.toLocaleDateString(locale) 
+                                  ? key.createdAt.toLocaleDateString(locale)
 
                                   : "–"}
 
@@ -1093,15 +1096,15 @@ const ApiKeys = React.memo(function ApiKeys() {
 
                               <p className="mt-1">
 
-                                {key.lastUsed && !isNaN(key.lastUsed.getTime()) 
+                                {key.lastUsed && !isNaN(key.lastUsed.getTime())
 
                                   ? new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
 
-                                      Math.floor((key.lastUsed.getTime() - Date.now()) / (1000 * 60)),
+                                    Math.floor((key.lastUsed.getTime() - Date.now()) / (1000 * 60)),
 
-                                      "minute"
+                                    "minute"
 
-                                    )
+                                  )
 
                                   : "–"}
 
@@ -1115,9 +1118,9 @@ const ApiKeys = React.memo(function ApiKeys() {
 
                               <p className="mt-1">
 
-                                {typeof key.requests === 'number' 
+                                {typeof key.requests === 'number'
 
-                                  ? key.requests.toLocaleString(locale) 
+                                  ? key.requests.toLocaleString(locale)
 
                                   : "0"}
 
@@ -1251,9 +1254,9 @@ const ApiKeys = React.memo(function ApiKeys() {
 
                             <TableCell className="text-sm text-muted-foreground">
 
-                              {key.createdAt && !isNaN(key.createdAt.getTime()) 
+                              {key.createdAt && !isNaN(key.createdAt.getTime())
 
-                                ? key.createdAt.toLocaleDateString(locale) 
+                                ? key.createdAt.toLocaleDateString(locale)
 
                                 : "–"}
 
@@ -1261,15 +1264,15 @@ const ApiKeys = React.memo(function ApiKeys() {
 
                             <TableCell className="text-sm text-muted-foreground">
 
-                              {key.lastUsed && !isNaN(key.lastUsed.getTime()) 
+                              {key.lastUsed && !isNaN(key.lastUsed.getTime())
 
                                 ? new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
 
-                                    Math.floor((key.lastUsed.getTime() - Date.now()) / (1000 * 60)),
+                                  Math.floor((key.lastUsed.getTime() - Date.now()) / (1000 * 60)),
 
-                                    "minute"
+                                  "minute"
 
-                                  )
+                                )
 
                                 : "–"}
 
@@ -1277,9 +1280,9 @@ const ApiKeys = React.memo(function ApiKeys() {
 
                             <TableCell className="text-sm">
 
-                              {typeof key.requests === 'number' 
+                              {typeof key.requests === 'number'
 
-                                ? key.requests.toLocaleString(locale) 
+                                ? key.requests.toLocaleString(locale)
 
                                 : "0"}
 
@@ -1433,9 +1436,9 @@ const ApiKeys = React.memo(function ApiKeys() {
 
             <DialogFooter>
 
-              <Button 
+              <Button
 
-                onClick={handleCloseSuccessDialog} 
+                onClick={handleCloseSuccessDialog}
 
                 className="sm:min-w-[140px]"
 
@@ -1468,6 +1471,47 @@ const ApiKeys = React.memo(function ApiKeys() {
           />
 
         </Suspense>
+
+        {/* Curl Command Section */}
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold mb-4">Curl Command</h2>
+          <div className="relative group rounded-lg overflow-hidden bg-[#1e1e1e] border border-border shadow-sm">
+            <div className="absolute right-4 top-4 z-10">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-foreground bg-background hover:bg-accent border border-border shadow-sm transform transition-all active:scale-95"
+                onClick={async () => {
+                  const curlCommand = `curl -X POST "http://192.168.0.106:8000/api/v1/search" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer Your_API_key" \\
+  -d '{
+    "query": "Your_Query",
+    "topK": 5
+  }'`;
+                  const ok = await copyToClipboardSafe(curlCommand);
+                  if (ok) {
+                    toast({
+                      title: "Copied",
+                      description: "Curl command copied to clipboard",
+                    });
+                  }
+                }}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            <pre className="p-6 overflow-x-auto text-sm font-mono leading-relaxed text-[#d4d4d4]">
+              {`curl -X POST "http://192.168.0.106:8000/api/v1/search" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer Your_API_key" \\
+  -d '{
+    "query": "Your_Query",
+    "topK": 5
+  }'`}
+            </pre>
+          </div>
+        </div>
 
       </div>
 

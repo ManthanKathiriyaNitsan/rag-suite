@@ -1459,3 +1459,67 @@ export interface CrawlError {
   source?: string;
   [key: string]: any;
 }
+
+// 🔌 Embed/Integrations API
+export interface EmbedKey {
+  id: string;
+  label: string;
+  keyPrefix: string;
+  environment: string;
+  rateLimit: number;
+  expiresAt: string;
+  isActive: boolean;
+  lastUsedAt: string;
+  createdAt: string;
+}
+
+export interface EmbedConfigPayload {
+  publicId: string;
+  keys: Partial<EmbedKey>[];
+}
+
+export interface EmbedConfigResponse {
+  id: string;
+  user_id: number;
+  public_id: string;
+  keys: EmbedKey[];
+  created_at: string;
+  updated_at: string;
+}
+
+export const embedAPI = {
+  get: async (): Promise<EmbedConfigResponse> => {
+    console.log('🔌 Embed API - Getting config');
+    try {
+      const response = await apiClient.get('/integrations/embed');
+      console.log('✅ Embed API - Get successful:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Embed API - Get failed:', error);
+      throw error;
+    }
+  },
+
+  update: async (payload: EmbedConfigPayload): Promise<EmbedConfigResponse> => {
+    console.log('🔌 Embed API - Updating config:', payload);
+    try {
+      const response = await apiClient.post('/integrations/embed', payload);
+      console.log('✅ Embed API - Update successful:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Embed API - Update failed:', error);
+      throw error;
+    }
+  },
+
+  deleteKey: async (id: string): Promise<void> => {
+    console.log('🔌 Embed API - Deleting key:', id);
+    try {
+      await apiClient.delete(`/integrations/embed/${id}`);
+      console.log('✅ Embed API - Delete key successful');
+    } catch (error) {
+      console.error('❌ Embed API - Delete key failed:', error);
+      throw error;
+    }
+  }
+};

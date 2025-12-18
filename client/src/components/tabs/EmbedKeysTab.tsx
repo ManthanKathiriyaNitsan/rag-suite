@@ -40,13 +40,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
-import { 
-  Plus, 
-  Copy, 
-  Eye, 
-  EyeOff, 
-  RefreshCw, 
-  Trash2, 
+import {
+  Plus,
+  Copy,
+  Eye,
+  EyeOff,
+  RefreshCw,
+  Trash2,
   MoreHorizontal,
   Key,
   Code,
@@ -55,35 +55,60 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 
-interface IntegrationKey {
-  id: string;
-  label: string;
-  keyPrefix: string;
-  environment: "staging" | "production";
-  rateLimit: number;
-  expiresAt: Date | null;
-  isActive: boolean;
-  lastUsedAt: Date | null;
-  createdAt: Date;
-}
+import { embedAPI, type EmbedKey } from "@/services/api/api";
+import { Loader2 } from "lucide-react";
 
 interface EmbedKeysTabProps {
   data: {
     publicId: string;
-    keys: IntegrationKey[];
+    keys: EmbedKey[];
   };
   onChange: (data: any) => void;
 }
 
 export default function EmbedKeysTab({ data, onChange }: EmbedKeysTabProps) {
-  const [keys, setKeys] = useState<IntegrationKey[]>(data.keys || []);
-  const [publicId, setPublicId] = useState(data.publicId || "");
+  const [keys, setKeys] = useState<EmbedKey[]>([]);
+  const [publicId, setPublicId] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [createKeyOpen, setCreateKeyOpen] = useState(false);
   const [showGeneratedKey, setShowGeneratedKey] = useState(false);
   const [generatedKey, setGeneratedKey] = useState("");
   const { toast } = useToast();
 
-  // Update parent state when data changes
+  // Fetch initial data from API
+  useEffect(() => {
+    const fetchConfig = async () => {
+      setIsLoading(true);
+      try {
+        const response = await embedAPI.get();
+        if (response) {
+          setPublicId(response.public_id);
+          // Map backend keys to frontend format if needed
+          // The API response keys match EmbedKey interface
+          setKeys(response.keys || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch embed config:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load embed configuration",
+          variant: "destructive",
+        });
+
+        // Fallback to props data (legacy/offline mode)
+        if (data) {
+          setPublicId(data.publicId || "");
+          setKeys(data.keys || []);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchConfig();
+  }, [toast]); // Run once on mount
+
+  // Update parent state when data changes (for compatibility)
   useEffect(() => {
     onChange({
       publicId,
@@ -91,40 +116,78 @@ export default function EmbedKeysTab({ data, onChange }: EmbedKeysTabProps) {
     });
   }, [publicId, keys, onChange]);
 
+  // Helper to save current state to API
+  const saveConfiguration = async (newPublicId: string, newKeys: EmbedKey[]) => {
+    try {
+      // API expects keys as Partial<EmbedKey>, we can pass full objects
+      const payload = {
+        publicId: newPublicId,
+        keys: newKeys
+      };
+
+      const response = await embedAPI.update(payload);
+
+      // Update state with server response (it might include new IDs or timestamps)
+      if (response) {
+        setPublicId(response.public_id);
+        setKeys(response.keys);
+      }
+      return true;
+    } catch (error) {
+      console.error('Failed to update embed config:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save configuration changes",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   // Create key form state
   const [newKeyLabel, setNewKeyLabel] = useState("");
   const [newKeyEnv, setNewKeyEnv] = useState<"staging" | "production">("staging");
   const [newKeyRateLimit, setNewKeyRateLimit] = useState("1000");
   const [newKeyExpiry, setNewKeyExpiry] = useState("");
 
-  const handleCreateKey = () => {
-    const newKey: IntegrationKey = {
+  const handleCreateKey = async () => {
+    // Generate new key locally (optimistic)
+    const newKey: EmbedKey = {
       id: `key-${Date.now()}`,
       label: newKeyLabel,
       keyPrefix: `rag_pk_${newKeyEnv}_${Math.random().toString(36).substr(2, 6)}`,
       environment: newKeyEnv,
       rateLimit: parseInt(newKeyRateLimit),
-      expiresAt: newKeyExpiry ? new Date(newKeyExpiry) : null,
+      expiresAt: newKeyExpiry ? new Date(newKeyExpiry).toISOString() : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // Default 1 year if empty
       isActive: true,
-      lastUsedAt: null,
-      createdAt: new Date(),
+      lastUsedAt: new Date().toISOString(), // Use ISO string
+      createdAt: new Date().toISOString(),
     };
 
     const fullKey = `${newKey.keyPrefix}${Math.random().toString(36).substr(2, 24)}`;
-    setGeneratedKey(fullKey);
-    setShowGeneratedKey(true);
-    setKeys(prev => [...prev, newKey]);
-    
-    // Reset form
-    setNewKeyLabel("");
-    setNewKeyEnv("staging");
-    setNewKeyRateLimit("1000");
-    setNewKeyExpiry("");
-    
-    toast({
-      title: "API Key Created",
-      description: "Your new API key has been generated. Make sure to copy it now.",
-    });
+
+    // Add to list
+    const updatedKeys = [...keys, newKey];
+
+    // Save to API
+    const success = await saveConfiguration(publicId, updatedKeys);
+
+    if (success) {
+      setGeneratedKey(fullKey);
+      setShowGeneratedKey(true);
+
+      // Reset form
+      setNewKeyLabel("");
+      setNewKeyEnv("staging");
+      setNewKeyRateLimit("1000");
+      setNewKeyExpiry("");
+      setCreateKeyOpen(false); // Close dialog
+
+      toast({
+        title: "API Key Created",
+        description: "Your new API key has been generated. Make sure to copy it now.",
+      });
+    }
   };
 
   const handleCopyKey = (keyToCopy: string) => {
@@ -143,23 +206,37 @@ export default function EmbedKeysTab({ data, onChange }: EmbedKeysTabProps) {
     });
   };
 
-  const handleRegeneratePublicId = () => {
+  const handleRegeneratePublicId = async () => {
     const newPublicId = `docs-widget-${Math.random().toString(36).substr(2, 6)}`;
-    setPublicId(newPublicId);
-    toast({
-      title: "Public ID Regenerated",
-      description: "A new public ID has been generated",
-    });
+    const success = await saveConfiguration(newPublicId, keys);
+
+    if (success) {
+      toast({
+        title: "Public ID Regenerated",
+        description: "A new public ID has been generated",
+      });
+    }
   };
 
-  const handleRevokeKey = (keyId: string) => {
-    setKeys(prev => prev.map(key => 
-      key.id === keyId ? { ...key, isActive: false } : key
-    ));
-    toast({
-      title: "Key Revoked",
-      description: "The API key has been revoked and is no longer active",
-    });
+  const handleDeleteKey = async (keyId: string) => {
+    try {
+      await embedAPI.deleteKey(keyId);
+
+      setKeys(prev => prev.filter(key => key.id !== keyId));
+
+      toast({
+        title: "Key Deleted",
+        description: "The API key has been permanently deleted",
+        variant: "destructive",
+      });
+    } catch (error) {
+      console.error('Failed to delete key:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete API key",
+        variant: "destructive",
+      });
+    }
   };
 
   const getEmbedScript = () => {
@@ -232,25 +309,25 @@ class ViewController: UIViewController {
                   data-testid="input-public-id"
                 />
                 <div className="flex gap-2 flex-col sm:flex-row w-full">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleCopyPublicId}
-                  data-testid="button-copy-public-id"
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleCopyPublicId}
+                    data-testid="button-copy-public-id"
                     className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10"
-                >
+                  >
                     <Copy className="h-3 w-3 sm:h-4 sm:w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleRegeneratePublicId}
-                  data-testid="button-regenerate-public-id"
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleRegeneratePublicId}
+                    data-testid="button-regenerate-public-id"
                     className="flex-1 sm:flex-none h-8 sm:h-10 text-xs sm:text-sm"
-                >
+                  >
                     <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                     <span className="hidden sm:inline">Regenerate</span>
                     <span className="sm:hidden">Regen</span>
-                </Button>
+                  </Button>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
@@ -351,8 +428,8 @@ class ViewController: UIViewController {
         <CardContent className="p-0">
           <div className="overflow-x-auto max-w-full min-w-0 mx-2 sm:mx-0" style={{ maxWidth: 'calc(100% - 1rem)' }}>
             <Table className="min-w-[700px] sm:min-w-[800px] w-full table-fixed">
-      <TableHeader>
-        <TableRow>
+              <TableHeader>
+                <TableRow>
                   <TableHead className="w-[20%]">Label</TableHead>
                   <TableHead className="w-[25%]">Prefix</TableHead>
                   <TableHead className="w-[15%]">Environment</TableHead>
@@ -360,135 +437,135 @@ class ViewController: UIViewController {
                   <TableHead className="w-[12%]">Created</TableHead>
                   <TableHead className="w-[12%]">Last Used</TableHead>
                   <TableHead className="w-[7%]">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {keys.map((key) => (
-          <TableRow key={key.id} data-testid={`row-key-${key.id}`}>
-            <TableCell>
-              <div className="flex items-center gap-2">
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {keys.map((key) => (
+                  <TableRow key={key.id} data-testid={`row-key-${key.id}`}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
                         <span className="font-medium truncate">{key.label}</span>
-                {!key.isActive && (
+                        {!key.isActive && (
                           <Badge variant="destructive" className="text-xs flex-shrink-0">
-                    Revoked
-                  </Badge>
-                )}
-              </div>
-            </TableCell>
-            <TableCell>
+                            Revoked
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       <code className="text-sm break-all font-mono">{key.keyPrefix}...</code>
-            </TableCell>
-            <TableCell>
-              <Badge
-                variant={
-                  key.environment === "production" ? "default" : "secondary"
-                }
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          key.environment === "production" ? "default" : "secondary"
+                        }
                         className="text-xs"
-              >
-                {key.environment}
-              </Badge>
-            </TableCell>
+                      >
+                        {key.environment}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-sm">
                       {key.rateLimit.toLocaleString()}/hr
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-              {new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-                Math.floor(
-                  (key.createdAt.getTime() - Date.now()) /
-                    (1000 * 60 * 60 * 24)
-                ),
-                "day"
-              )}
-            </TableCell>
+                      {new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
+                        Math.floor(
+                          (new Date(key.createdAt).getTime() - Date.now()) /
+                          (1000 * 60 * 60 * 24)
+                        ),
+                        "day"
+                      )}
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-              {key.lastUsedAt
-                ? new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-                    Math.floor(
-                      (key.lastUsedAt.getTime() - Date.now()) / (1000 * 60 * 60)
-                    ),
-                    "hour"
-                  )
-                : "Never"}
-            </TableCell>
-            <TableCell>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    data-testid={`button-key-actions-${key.id}`}
+                      {key.lastUsedAt
+                        ? new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
+                          Math.floor(
+                            (new Date(key.lastUsedAt).getTime() - Date.now()) / (1000 * 60 * 60)
+                          ),
+                          "hour"
+                        )
+                        : "Never"}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            data-testid={`button-key-actions-${key.id}`}
                             className="h-8 w-8 p-0"
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={() => console.log("Rotate key:", key.id)}
-                    data-testid={`action-rotate-${key.id}`}
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Rotate
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleRevokeKey(key.id)}
-                    disabled={!key.isActive}
-                    data-testid={`action-revoke-${key.id}`}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Revoke
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  </div>
-</CardContent>
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => console.log("Rotate key:", key.id)}
+                            data-testid={`action-rotate-${key.id}`}
+                          >
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Rotate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteKey(key.id)}
+                            className="text-destructive focus:text-destructive"
+                            data-testid={`action-delete-${key.id}`}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
 
       </Card>
 
       {/* Generated Key Modal */}
       <Dialog open={showGeneratedKey} onOpenChange={setShowGeneratedKey}>
         <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-md md:max-w-lg lg:max-w-xl max-h-[80vh] overflow-x-auto mx-2 sm:mx-0">
-    <DialogHeader>
-      <DialogTitle>API Key Generated</DialogTitle>
-      <DialogDescription>
-        Copy your API key now. For security reasons, we cannot show it again.
-      </DialogDescription>
-    </DialogHeader>
+          <DialogHeader>
+            <DialogTitle>API Key Generated</DialogTitle>
+            <DialogDescription>
+              Copy your API key now. For security reasons, we cannot show it again.
+            </DialogDescription>
+          </DialogHeader>
 
-    <div className="space-y-4">
-      <div className="p-2 sm:p-4 bg-muted rounded-lg">
-        <div className="flex items-center justify-between gap-2">
-          <code className="text-sm flex-1 break-words whitespace-pre-wrap">
-            {generatedKey}
-          </code>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => handleCopyKey(generatedKey)}
-            data-testid="button-copy-generated-key"
-          >
-            <Copy className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </div>
+          <div className="space-y-4">
+            <div className="p-2 sm:p-4 bg-muted rounded-lg">
+              <div className="flex items-center justify-between gap-2">
+                <code className="text-sm flex-1 break-words whitespace-pre-wrap">
+                  {generatedKey}
+                </code>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleCopyKey(generatedKey)}
+                  data-testid="button-copy-generated-key"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
 
-    <DialogFooter>
-      <Button
-        className="sm:min-w-[140px]"
-        onClick={() => setShowGeneratedKey(false)}
-        data-testid="button-close-generated-key"
-      >
-        I've copied the key
-      </Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
+          <DialogFooter>
+            <Button
+              className="sm:min-w-[140px]"
+              onClick={() => setShowGeneratedKey(false)}
+              data-testid="button-close-generated-key"
+            >
+              I've copied the key
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Embed Code Section */}
       <Card className="w-full overflow-hidden">
