@@ -58,8 +58,8 @@ const SystemHealth = React.memo(function SystemHealth() {
           <CardContent>
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {systemServices.map((service, index) => (
-                <GlassCard 
-                  key={index} 
+                <GlassCard
+                  key={index}
                   data-testid={`service-card-${index}`}
                   noHover={true}
                 >

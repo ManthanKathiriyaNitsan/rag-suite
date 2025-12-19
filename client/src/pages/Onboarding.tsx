@@ -54,7 +54,7 @@ export default function Onboarding() {
 
   const handleTestQuery = (query: string) => {
     setTestQuery(query);
-    
+
     // Simulate streaming response
     const response = {
       type: "assistant" as const,
@@ -73,7 +73,7 @@ Your RAG system is ready to help users find information from your documentation!
       ],
       timestamp: new Date(),
     };
-    
+
     setTestResponse(response);
     console.log("Test query:", query);
   };
@@ -82,7 +82,7 @@ Your RAG system is ready to help users find information from your documentation!
     <div className="relative min-h-screen">
       {/* Theme-aware Background */}
       <BackgroundWrapper />
-      
+
       {/* Content */}
       <div className="relative z-10 container mx-auto px-0 sm:px-3 md:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
         {/* Header */}
@@ -106,11 +106,11 @@ Your RAG system is ready to help users find information from your documentation!
                   <div
                     className={`
                       w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center
-                      ${currentStep > step.id 
-                        ? 'bg-primary text-primary-foreground' 
-                        : currentStep === step.id 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-muted text-muted-foreground'}
+                      ${currentStep > step.id
+                        ? 'bg-primary text-primary-foreground'
+                        : currentStep === step.id
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground'}
                     `}
                   >
                     {currentStep > step.id ? (
@@ -330,7 +330,7 @@ Your RAG system is ready to help users find information from your documentation!
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back
                   </Button>
-                
+
                   {currentStep < 3 ? (
                     <Button
                       onClick={handleNext}

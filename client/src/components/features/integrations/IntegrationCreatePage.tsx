@@ -251,10 +251,11 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
     }
   };
 
+  const handleDataChange = React.useCallback((updates: any) => {
+    setFormData(prev => ({ ...prev, ...updates }));
+  }, []);
+
   const renderTabContent = () => {
-    const handleDataChange = (updates: any) => {
-      setFormData(prev => ({ ...prev, ...updates }));
-    };
 
     switch (activeTab) {
       case "overview":

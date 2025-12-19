@@ -5,8 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  Palette, 
+import {
+  Palette,
   Copy,
   Check,
   AlertTriangle,
@@ -100,11 +100,11 @@ const ThemeColorsSection: React.FC<ThemeColorsSectionProps> = ({
     const colorMap: Record<string, keyof typeof theme> = {
       "Primary": "primaryColor",
     };
-    
+
     const property = colorMap[tokenName];
     if (property) {
       onUpdateTheme({ [property]: value });
-      
+
       // Also update global branding context for primary color
       if (tokenName === "Primary") {
         setBranding({ primaryColor: value });
@@ -137,7 +137,7 @@ const ThemeColorsSection: React.FC<ThemeColorsSectionProps> = ({
         {colorTokens.map((token) => {
           const colorValue = getColorValue(token);
           const isCopied = copiedColor === token.name;
-          
+
           return (
             <Card key={token.name} className="overflow-hidden">
               <CardHeader className="pb-2">
@@ -159,7 +159,7 @@ const ThemeColorsSection: React.FC<ThemeColorsSectionProps> = ({
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-2">
-               
+
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2">
                       <Input
@@ -182,7 +182,7 @@ const ThemeColorsSection: React.FC<ThemeColorsSectionProps> = ({
                         placeholder="#000000"
                       />
                     </div>
-                
+
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">{token.description}</p>

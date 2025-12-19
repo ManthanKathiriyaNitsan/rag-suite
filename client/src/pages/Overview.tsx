@@ -1,19 +1,15 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Activity, Search, Users, AlertTriangle, TrendingUp, Loader2 } from "lucide-react";
-import { StatsCard } from "@/components/features/analytics/StatsCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useTranslation } from "@/contexts/I18nContext";
-import { HeroSection } from "@/components/ui/HeroSection";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { GlassStatsCard } from "@/components/ui/GlassStatsCard";
-import { overviewAPI, OverviewData, QueryOverTime, LatestFeedback, ThumbsUpRate, P95Latency, CrawlError, TopSource } from "@/services/api/api";
+import { overviewAPI, OverviewData, QueryOverTime, LatestFeedback, ThumbsUpRate, P95Latency, CrawlError } from "@/services/api/api";
 
 const Overview = React.memo(function Overview() {
   const { t } = useTranslation();
-  
+
   // State for all API data
   const [overviewData, setOverviewData] = useState<OverviewData | null>(null);
   const [queriesOverTime, setQueriesOverTime] = useState<QueryOverTime[]>([]);
@@ -30,7 +26,7 @@ const Overview = React.memo(function Overview() {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Fetch all endpoints in parallel
         const [
           overview,
@@ -157,7 +153,7 @@ const Overview = React.memo(function Overview() {
       console.log('✅ Using topSources from API:', overviewData.topSources);
       return overviewData.topSources;
     }
-    
+
     // Fallback: calculate from crawl errors if API data not available
     console.log('⚠️ No topSources from API, calculating from crawl errors');
     const errorMap = new Map<string, number>();
@@ -165,7 +161,7 @@ const Overview = React.memo(function Overview() {
       const url = error.source || error.url || 'Unknown';
       errorMap.set(url, (errorMap.get(url) || 0) + 1);
     });
-    
+
     return Array.from(errorMap.entries())
       .map(([url, errors]) => ({
         url,
@@ -175,7 +171,7 @@ const Overview = React.memo(function Overview() {
       }))
       .slice(0, 4); // Top 4 sources with errors
   }, [overviewData, crawlErrors]);
-  
+
   if (loading) {
     return (
       <div className="relative">
@@ -227,161 +223,159 @@ const Overview = React.memo(function Overview() {
           </p>
         </div>
 
-      {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <GlassStatsCard
-          title="Queries Today"
-          value={formatNumber(overviewData?.queriesToday)}
-          description={queriesTrend ? `from yesterday` : "from today"}
-          trend={queriesTrend || undefined}
-          icon={<Search className="h-4 w-4" />}
-        />
-        <GlassStatsCard
-          title="p95 Latency"
-          value={formatLatency(p95Latency?.latency || overviewData?.p95Latency)}
-          description="avg response time"
-          
-          icon={<Activity className="h-4 w-4" />}
-        />
-        <GlassStatsCard
-          title="Thumbs-up Rate"
-          value={formatPercentage(thumbsUpRate?.rate || overviewData?.thumbsUpRate)}
-          description="user satisfaction"
-          icon={<Users className="h-4 w-4" />}
-        />
-        <GlassStatsCard
-          title="Crawl Errors"
-          value={formatNumber(crawlErrors.length || overviewData?.crawlErrors)}
-          description="need attention"
-          icon={<AlertTriangle className="h-4 w-4" />}
-        />
-      </div>
+        {/* KPI Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <GlassStatsCard
+            title="Queries Today"
+            value={formatNumber(overviewData?.queriesToday)}
+            description={queriesTrend ? `from yesterday` : "from today"}
+            trend={queriesTrend || undefined}
+            icon={<Search className="h-4 w-4" />}
+          />
+          <GlassStatsCard
+            title="p95 Latency"
+            value={formatLatency(p95Latency?.latency || overviewData?.p95Latency)}
+            description="avg response time"
+
+            icon={<Activity className="h-4 w-4" />}
+          />
+          <GlassStatsCard
+            title="Thumbs-up Rate"
+            value={formatPercentage(thumbsUpRate?.rate || overviewData?.thumbsUpRate)}
+            description="user satisfaction"
+            icon={<Users className="h-4 w-4" />}
+          />
+          <GlassStatsCard
+            title="Crawl Errors"
+            value={formatNumber(crawlErrors.length || overviewData?.crawlErrors)}
+            description="need attention"
+            icon={<AlertTriangle className="h-4 w-4" />}
+          />
+        </div>
 
         {/* Queries Chart */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <GlassCard>
-          <div className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="h-5 w-5" />
-              <h3 className="text-lg font-semibold">Queries Over Time</h3>
-            </div>
-            <div>
-              {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line 
-                      type="monotone" 
-                      dataKey="queries" 
-                      stroke="hsl(var(--primary))" 
-                      strokeWidth={2}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-[200px] text-muted-foreground">
-                  No data available
-                </div>
-              )}
-            </div>
-          </div>
-        </GlassCard>
-
-        {/* Top Sources */}
-        <GlassCard>
-          <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Top Crawl Sources</h3>
-            <div className="space-y-3">
-              {topSources.length > 0 ? (
-                topSources.slice(0, 4).map((source, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 border hover-elevate bg-background/30 backdrop-blur-sm shadow-sm"
-                    style={{ borderRadius: 'var(--component-cardRadius, 2px)' }}
-                    data-testid={`source-${index}`}
-                  >
-                    <div className="space-y-1 flex-1">
-                      <p className="font-medium text-sm">{source.url}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {source.docs > 0 ? `${source.docs.toLocaleString()} docs` : '0 docs'} • 
-                        {source.lastCrawl && source.lastCrawl !== 'N/A' ? ` Last crawl: ${source.lastCrawl}` : ' Never crawled'}
-                        {source.errors > 0 ? ` • ${source.errors} error${source.errors > 1 ? 's' : ''}` : ''}
-                      </p>
-                    </div>
-                    {source.errors > 0 && (
-                      <Badge variant="destructive" className="text-xs ml-2">
-                        {source.errors} error{source.errors > 1 ? 's' : ''}
-                      </Badge>
-                    )}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <GlassCard>
+            <div className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="h-5 w-5" />
+                <h3 className="text-lg font-semibold">Queries Over Time</h3>
+              </div>
+              <div>
+                {chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={200}>
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="queries"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={2}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                    No data available
                   </div>
-                ))
+                )}
+              </div>
+            </div>
+          </GlassCard>
+
+          {/* Top Sources */}
+          <GlassCard>
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Top Crawl Sources</h3>
+              <div className="space-y-3">
+                {topSources.length > 0 ? (
+                  topSources.slice(0, 4).map((source, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 border hover-elevate bg-background/30 backdrop-blur-sm shadow-sm"
+                      style={{ borderRadius: 'var(--component-cardRadius, 2px)' }}
+                      data-testid={`source-${index}`}
+                    >
+                      <div className="space-y-1 flex-1">
+                        <p className="font-medium text-sm">{source.url}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {source.docs > 0 ? `${source.docs.toLocaleString()} docs` : '0 docs'} •
+                          {source.lastCrawl && source.lastCrawl !== 'N/A' ? ` Last crawl: ${source.lastCrawl}` : ' Never crawled'}
+                          {source.errors > 0 ? ` • ${source.errors} error${source.errors > 1 ? 's' : ''}` : ''}
+                        </p>
+                      </div>
+                      {source.errors > 0 && (
+                        <Badge variant="destructive" className="text-xs ml-2">
+                          {source.errors} error{source.errors > 1 ? 's' : ''}
+                        </Badge>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No crawl sources found
+                  </div>
+                )}
+              </div>
+            </div>
+          </GlassCard>
+        </div>
+
+        {/* Latest Feedback */}
+        <GlassCard>
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Latest Feedback</h3>
+            <div className="space-y-3">
+              {latestFeedback.length > 0 ? (
+                latestFeedback.slice(0, 4).map((feedback, index) => {
+                  const vote = feedback.vote || (feedback as any).feedback;
+                  const isUp = vote === 'up' || vote === 'positive' || vote === true;
+                  const isDown = vote === 'down' || vote === 'negative' || vote === false;
+                  const timeAgo = feedback.time || formatTimeAgo(feedback.timestamp);
+
+                  return (
+                    <div
+                      key={feedback.id || index}
+                      className="flex items-center justify-between p-3 border hover-elevate bg-background/30 backdrop-blur-sm shadow-sm"
+                      style={{ borderRadius: 'var(--component-cardRadius, 2px)' }}
+                      data-testid={`feedback-${index}`}
+                    >
+                      <div className="space-y-1">
+                        <p className="font-medium text-sm">{feedback.query}</p>
+                        <div className="flex items-center gap-2">
+                          {(isUp || isDown) && (
+                            <Badge
+                              variant={isUp ? "default" : "destructive"}
+                              className="text-xs"
+                            >
+                              {isUp ? "👍" : "👎"} {isUp ? "up" : "down"}
+                            </Badge>
+                          )}
+                          {feedback.reason && (
+                            <Badge variant="outline" className="text-xs">
+                              {feedback.reason}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{timeAgo}</p>
+                    </div>
+                  );
+                })
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  No crawl sources found
+                  No feedback available
                 </div>
               )}
             </div>
           </div>
         </GlassCard>
-      </div>
-
-      {/* Latest Feedback */}
-      <GlassCard>
-        <div className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Latest Feedback</h3>
-          <div className="space-y-3">
-            {latestFeedback.length > 0 ? (
-              latestFeedback.slice(0, 4).map((feedback, index) => {
-                const vote = feedback.vote || (feedback as any).feedback;
-                const isUp = vote === 'up' || vote === 'positive' || vote === true;
-                const isDown = vote === 'down' || vote === 'negative' || vote === false;
-                const timeAgo = feedback.time || formatTimeAgo(feedback.timestamp);
-                
-                return (
-                  <div
-                    key={feedback.id || index}
-                    className="flex items-center justify-between p-3 border hover-elevate bg-background/30 backdrop-blur-sm shadow-sm"
-                    style={{ borderRadius: 'var(--component-cardRadius, 2px)' }}
-                    data-testid={`feedback-${index}`}
-                  >
-                    <div className="space-y-1">
-                      <p className="font-medium text-sm">{feedback.query}</p>
-                      <div className="flex items-center gap-2">
-                        {(isUp || isDown) && (
-                          <Badge
-                            variant={isUp ? "default" : "destructive"}
-                            className="text-xs"
-                          >
-                            {isUp ? "👍" : "👎"} {isUp ? "up" : "down"}
-                          </Badge>
-                        )}
-                        {feedback.reason && (
-                          <Badge variant="outline" className="text-xs">
-                            {feedback.reason}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{timeAgo}</p>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                No feedback available
-              </div>
-            )}
-          </div>
-        </div>
-      </GlassCard>
       </div>
     </div>
   );
 });
 
 export default Overview;
-
-

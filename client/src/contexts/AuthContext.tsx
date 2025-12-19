@@ -10,7 +10,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   error: string | null;
-  
+
   // Auth actions
   login: (credentials: { username: string; password: string }) => void;
   logout: () => void;
@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     token,
     isLoading: isInitializing || isLoggingIn || isLoggingOut,
     error,
-    
+
     // Auth actions
     login,
     logout,
@@ -121,7 +121,7 @@ export function useAuthContext() {
 // 🔐 Auth Guard Hook
 export function useAuthGuard() {
   const { isAuthenticated, isLoading } = useAuthContext();
-  
+
   return {
     isAuthenticated,
     isLoading,

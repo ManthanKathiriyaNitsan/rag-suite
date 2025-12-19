@@ -131,10 +131,10 @@ const AppSidebar = React.memo(function AppSidebar() {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth < 640); // sm breakpoint
     };
-    
+
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
-    
+
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
@@ -147,14 +147,14 @@ const AppSidebar = React.memo(function AppSidebar() {
   }, []);
 
   const { theme } = useTheme();
-  
+
   return (
-    <Sidebar 
+    <Sidebar
       collapsible="icon"
       className={cn(
         "backdrop-blur-xl transition-all duration-300",
-        theme === 'dark' 
-          ? "glass-sidebar-dark" 
+        theme === 'dark'
+          ? "glass-sidebar-dark"
           : "glass-sidebar-light"
       )}
       style={{
@@ -162,11 +162,11 @@ const AppSidebar = React.memo(function AppSidebar() {
         WebkitBackdropFilter: 'blur(20px)',
       }}
     >
-      <SidebarHeader 
+      <SidebarHeader
         className={cn(
           "p-4 transition-all duration-300",
-          theme === 'dark' 
-            ? "glass-navbar-dark" 
+          theme === 'dark'
+            ? "glass-navbar-dark"
             : "glass-navbar-light"
         )}
         style={{
@@ -205,9 +205,9 @@ const AppSidebar = React.memo(function AppSidebar() {
               <ChevronDown className="h-4 w-4 opacity-50" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent 
-            className={isMobile ? "w-[calc(100vw-2rem)]" : "w-64"} 
-            align="start" 
+          <DropdownMenuContent
+            className={isMobile ? "w-[calc(100vw-2rem)]" : "w-64"}
+            align="start"
             side={isMobile ? "bottom" : "right"}
             sideOffset={4}
             alignOffset={0}
@@ -216,10 +216,10 @@ const AppSidebar = React.memo(function AppSidebar() {
               Switch Project
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-              {projects.map((project) => (
-                <DropdownMenuItem
-                  key={project.id}
-                  onClick={() => handleProjectSelect(project)}
+            {projects.map((project) => (
+              <DropdownMenuItem
+                key={project.id}
+                onClick={() => handleProjectSelect(project)}
                 className="flex items-center gap-3 p-3 cursor-pointer"
                 data-testid={`project-${project.id}`}
               >
@@ -264,7 +264,7 @@ const AppSidebar = React.memo(function AppSidebar() {
                   'Settings': 'nav.settings'
                 };
                 const translationKey = translationMap[item.title] || `nav.${item.title.toLowerCase().replace(' ', '-')}`;
-                
+
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton

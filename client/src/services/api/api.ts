@@ -1512,10 +1512,11 @@ export const embedAPI = {
     }
   },
 
-  deleteKey: async (id: string): Promise<void> => {
-    console.log('🔌 Embed API - Deleting key:', id);
+  deleteKey: async (keyId: string): Promise<void> => {
+    console.log('🔌 Embed API - Deleting key (key_id):', keyId);
     try {
-      await apiClient.delete(`/integrations/embed/${id}`);
+      // Endpoint specified by user from backend code: DELETE /api/v1/integrations/embed/keys/{key_id}
+      await apiClient.delete(`/integrations/embed/keys/${keyId}`);
       console.log('✅ Embed API - Delete key successful');
     } catch (error) {
       console.error('❌ Embed API - Delete key failed:', error);

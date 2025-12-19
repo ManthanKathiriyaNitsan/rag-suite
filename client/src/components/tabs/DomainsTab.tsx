@@ -22,11 +22,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { 
-  Plus, 
-  Trash2, 
-  Globe, 
-  Copy, 
+import {
+  Plus,
+  Trash2,
+  Globe,
+  Copy,
   AlertTriangle,
   ExternalLink,
   Shield
@@ -49,16 +49,16 @@ interface DomainsTabProps {
 
 const DOMAIN_EXAMPLES = [
   "https://example.com",
-  "https://app.example.com", 
+  "https://app.example.com",
   "https://docs.example.com",
   "http://localhost:3000",
   "https://*.example.com", // Wildcard subdomain
 ];
 
 export default function DomainsTab({ data, onChange }: DomainsTabProps) {
- const [domains, setDomains] = useState<IntegrationDomain[]>(
-  Array.isArray(data?.domains) ? data.domains : []
-);
+  const [domains, setDomains] = useState<IntegrationDomain[]>(
+    Array.isArray(data?.domains) ? data.domains : []
+  );
 
   const [addDomainOpen, setAddDomainOpen] = useState(false);
   const [newDomain, setNewDomain] = useState("");
@@ -66,9 +66,9 @@ export default function DomainsTab({ data, onChange }: DomainsTabProps) {
   const { toast } = useToast();
 
   // Update parent state when domains change
-useEffect(() => {
-  onChange({ domains: Array.isArray(domains) ? domains : [] });
-}, [domains, onChange]);
+  useEffect(() => {
+    onChange({ domains: Array.isArray(domains) ? domains : [] });
+  }, [domains, onChange]);
 
 
   const validateDomain = (domain: string): string | null => {
@@ -113,11 +113,11 @@ useEffect(() => {
     const updatedDomains = [...domains, newDomainObj];
     setDomains(updatedDomains);
     onChange({ domains: updatedDomains });
-    
+
     setNewDomain("");
     setDomainError("");
     setAddDomainOpen(false);
-    
+
     toast({
       title: "Domain Added",
       description: `${normalizedDomain} has been added to the allowlist`,
@@ -129,7 +129,7 @@ useEffect(() => {
     const updatedDomains = domains.filter(d => d.id !== domainId);
     setDomains(updatedDomains);
     onChange({ domains: updatedDomains });
-    
+
     toast({
       title: "Domain Removed",
       description: `${domain?.origin} has been removed from the allowlist`,
@@ -190,7 +190,7 @@ useEffect(() => {
                       <p className="text-sm text-red-600">{domainError}</p>
                     )}
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label>Examples</Label>
                     <div className="flex flex-wrap gap-2">
@@ -212,7 +212,7 @@ useEffect(() => {
                   <Alert className="bg-blue-100 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700">
                     <Shield className="h-4 w-4 text-blue-700 dark:text-blue-300" />
                     <AlertDescription className="text-blue-900 dark:text-blue-100">
-                      Only domains in this allowlist will be able to load your widget. 
+                      Only domains in this allowlist will be able to load your widget.
                       Use wildcards (*.example.com) for subdomains.
                     </AlertDescription>
                   </Alert>
@@ -247,7 +247,7 @@ useEffect(() => {
             <Alert className="bg-yellow-100 border-yellow-300 dark:bg-yellow-900/30 dark:border-yellow-700">
               <AlertTriangle className="h-4 w-4 text-yellow-700 dark:text-yellow-300" />
               <AlertDescription className="text-yellow-900 dark:text-yellow-100">
-                <strong>Warning:</strong> No domains configured. Your widget will not load on any website. 
+                <strong>Warning:</strong> No domains configured. Your widget will not load on any website.
                 Add at least one domain to enable your integration.
               </AlertDescription>
             </Alert>
@@ -263,61 +263,61 @@ useEffect(() => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-               {Array.isArray(domains) && domains.map((domain) => (
+                  {Array.isArray(domains) && domains.map((domain) => (
 
-                  <TableRow key={domain.id} data-testid={`row-domain-${domain.id}`}>
-                    <TableCell>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
-                        <code className="text-sm bg-muted px-2 py-1 rounded break-all">
-                          {domain.origin}
-                        </code>
+                    <TableRow key={domain.id} data-testid={`row-domain-${domain.id}`}>
+                      <TableCell>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
+                          <code className="text-sm bg-muted px-2 py-1 rounded break-all">
+                            {domain.origin}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 flex-shrink-0"
+                            onClick={() => window.open(domain.origin, '_blank')}
+                            data-testid={`button-visit-${domain.id}`}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
+                          <code className="text-xs text-muted-foreground break-all">
+                            {domain.cspHelper}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 flex-shrink-0"
+                            onClick={() => handleCopyCSP(domain.cspHelper)}
+                            data-testid={`button-copy-csp-${domain.id}`}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
+                          Math.floor((domain.addedAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+                          "day"
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 flex-shrink-0"
-                          onClick={() => window.open(domain.origin, '_blank')}
-                          data-testid={`button-visit-${domain.id}`}
+                          onClick={() => handleRemoveDomain(domain.id)}
+                          data-testid={`button-remove-${domain.id}`}
+                          className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
-                          <ExternalLink className="h-3 w-3" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
-                        <code className="text-xs text-muted-foreground break-all">
-                          {domain.cspHelper}
-                        </code>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 flex-shrink-0"
-                          onClick={() => handleCopyCSP(domain.cspHelper)}
-                          data-testid={`button-copy-csp-${domain.id}`}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-                        Math.floor((domain.addedAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
-                        "day"
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemoveDomain(domain.id)}
-                        data-testid={`button-remove-${domain.id}`}
-                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
               </Table>
             </div>
           )}
@@ -346,11 +346,11 @@ useEffect(() => {
               </code>
             </pre>
           </div>
-          
+
           <div className="space-y-2">
             <h4 className="font-medium">Wildcard Domains</h4>
             <p className="text-sm text-muted-foreground">
-              Use <code>*.example.com</code> to allow all subdomains of example.com. 
+              Use <code>*.example.com</code> to allow all subdomains of example.com.
               This includes app.example.com, docs.example.com, etc.
             </p>
           </div>
@@ -358,7 +358,7 @@ useEffect(() => {
           <div className="space-y-2">
             <h4 className="font-medium">Local Development</h4>
             <p className="text-sm text-muted-foreground">
-              Add <code>http://localhost:3000</code> or your local development URL 
+              Add <code>http://localhost:3000</code> or your local development URL
               to test the widget during development.
             </p>
           </div>

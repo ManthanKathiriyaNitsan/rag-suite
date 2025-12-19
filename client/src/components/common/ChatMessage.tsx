@@ -13,6 +13,7 @@ import {
 // 💬 Import feedback hook
 import { useChatFeedback } from "@/hooks/useChat";
 import { linkifyTextToNodes } from "@/utils/linkify";
+import { copyToClipboard } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeContext";
 import { simpleHighlight } from "@/utils/textHighlighting";
 import { useCitationFormatting } from "@/contexts/CitationFormattingContext";
@@ -67,17 +68,17 @@ const ChatMessage = React.memo(function ChatMessage({
   actualReranker,
 }: ChatMessageProps) {
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
-  
+
   // 💬 Use feedback hook
   const { submitFeedback, isSubmitting } = useChatFeedback();
   const [copied, setCopied] = useState(false);
-  
+
   // 🎨 Get theme for syntax highlighting
   const { theme } = useTheme();
-  
+
   // 🎨 Get citation formatting options
   const { formatting } = useCitationFormatting();
-  
+
   // Get widget appearance settings from global context
   const getWidgetAppearance = () => {
     try {
@@ -99,7 +100,7 @@ const ChatMessage = React.memo(function ChatMessage({
       animationsEnabled: true,
     };
   };
-  
+
   const widgetAppearance = getWidgetAppearance();
 
   // 🎨 Citation formatting functions
@@ -115,7 +116,7 @@ const ChatMessage = React.memo(function ChatMessage({
 
   const getCitationStyleClasses = () => {
     const baseClasses = "rounded-md border";
-    
+
     switch (formatting.style) {
       case 'compact':
         return `${baseClasses} p-1 text-xs`;
@@ -153,8 +154,8 @@ const ChatMessage = React.memo(function ChatMessage({
     return snippet.substring(0, formatting.maxSnippetLength) + "...";
   };
 
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(content);
+  const handleCopy = useCallback(async () => {
+    await copyToClipboard(content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [content]);
@@ -163,7 +164,7 @@ const ChatMessage = React.memo(function ChatMessage({
   const handleFeedback = useCallback((type: "up" | "down") => {
     const newFeedback = feedback === type ? null : type;
     setFeedback(newFeedback);
-    
+
     // Submit feedback to API if we have both messageId and sessionId
     if (messageId && sessionId && newFeedback) {
       submitFeedback({
@@ -186,12 +187,11 @@ const ChatMessage = React.memo(function ChatMessage({
       aria-live="polite"
     >
       {type === "assistant" && (
-        <Avatar 
-          className={`h-8 w-8 mt-1 ${
-            widgetAppearance.avatarStyle === "circle" ? "rounded-full" :
+        <Avatar
+          className={`h-8 w-8 mt-1 ${widgetAppearance.avatarStyle === "circle" ? "rounded-full" :
             widgetAppearance.avatarStyle === "square" ? "rounded-none" :
-            "rounded-md"
-          }`}
+              "rounded-md"
+            }`}
           aria-label="AI Assistant avatar"
         >
           <AvatarFallback className="bg-primary text-primary-foreground">
@@ -202,17 +202,14 @@ const ChatMessage = React.memo(function ChatMessage({
 
       <div className={`max-w-[80%] min-w-0 ${type === "user" ? "order-first" : ""}`}>
         <Card
-          className={`chat-bubble p-4 ${
-            type === "user"
-              ? "bg-primary ml-auto"
-              : "bg-card"
-          } ${
-            widgetAppearance.chatBubbleStyle === "sharp" ? "rounded-none" :
-            widgetAppearance.chatBubbleStyle === "minimal" ? "rounded-sm" :
-            "rounded-lg"
-          } ${
-            widgetAppearance.animationsEnabled ? "transition-all duration-200 ease-in-out" : ""
-          }`}
+          className={`chat-bubble p-4 ${type === "user"
+            ? "bg-primary ml-auto"
+            : "bg-card"
+            } ${widgetAppearance.chatBubbleStyle === "sharp" ? "rounded-none" :
+              widgetAppearance.chatBubbleStyle === "minimal" ? "rounded-sm" :
+                "rounded-lg"
+            } ${widgetAppearance.animationsEnabled ? "transition-all duration-200 ease-in-out" : ""
+            }`}
         >
           <div className="space-y-3">
             <div className="opacity-90 w-full min-w-0">
@@ -235,11 +232,11 @@ const ChatMessage = React.memo(function ChatMessage({
                             </code>
                           );
                         }
-                        
+
                         // Extract language from className (e.g., "language-javascript" -> "javascript")
                         const match = /language-(\w+)/.exec(className || '');
                         const language = match ? match[1] : 'text';
-                        
+
                         return (
                           <div className="my-4">
                             <SyntaxHighlighter
@@ -262,9 +259,9 @@ const ChatMessage = React.memo(function ChatMessage({
                       },
                       // Custom styling for links
                       a: ({ href, children, ...props }) => (
-                        <a 
-                          href={href} 
-                          target="_blank" 
+                        <a
+                          href={href}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="text-primary hover:underline"
                           {...props}
@@ -323,41 +320,36 @@ const ChatMessage = React.memo(function ChatMessage({
                   {citations.map((source, index) => (
                     <HoverCard key={index} openDelay={300} closeDelay={100}>
                       <HoverCardTrigger asChild>
-                        <div 
-                          className={`${getCitationStyleClasses()} ${getColorSchemeClasses()} ${
-                            formatting.enableHover ? 'cursor-pointer' : ''
-                          }`}
+                        <div
+                          className={`${getCitationStyleClasses()} ${getColorSchemeClasses()} ${formatting.enableHover ? 'cursor-pointer' : ''
+                            }`}
                         >
                           <div className="flex items-start gap-2">
-                            <Badge 
-                              variant="outline" 
-                              className={`text-xs shrink-0 ${
-                                formatting.style === 'minimal' ? 'text-xs px-1 py-0' : ''
-                              }`}
+                            <Badge
+                              variant="outline"
+                              className={`text-xs shrink-0 ${formatting.style === 'minimal' ? 'text-xs px-1 py-0' : ''
+                                }`}
                             >
                               {getNumberingStyle(index)}
                             </Badge>
                             <div className="flex-1 min-w-0">
-                              <p className={`font-medium text-foreground mb-1 ${
-                                formatting.style === 'compact' ? 'text-xs' : 'text-sm'
-                              }`}>
+                              <p className={`font-medium text-foreground mb-1 ${formatting.style === 'compact' ? 'text-xs' : 'text-sm'
+                                }`}>
                                 {source.title || `Source ${index + 1}`}
                               </p>
                               {formatting.showSnippets && truncateSnippet(source.snippet) && (
-                                <p className={`text-muted-foreground leading-relaxed ${
-                                  formatting.style === 'compact' ? 'text-xs' : 'text-xs'
-                                }`}>
+                                <p className={`text-muted-foreground leading-relaxed ${formatting.style === 'compact' ? 'text-xs' : 'text-xs'
+                                  }`}>
                                   {queryString ? simpleHighlight(truncateSnippet(source.snippet), queryString) : truncateSnippet(source.snippet)}
                                 </p>
                               )}
                               {formatting.showUrls && source.url && source.url !== "#" && (
-                                <a 
-                                  href={source.url} 
-                                  target="_blank" 
+                                <a
+                                  href={source.url}
+                                  target="_blank"
                                   rel="noopener noreferrer"
-                                  className={`text-primary hover:underline mt-1 inline-block ${
-                                    formatting.style === 'compact' ? 'text-xs' : 'text-xs'
-                                  }`}
+                                  className={`text-primary hover:underline mt-1 inline-block ${formatting.style === 'compact' ? 'text-xs' : 'text-xs'
+                                    }`}
                                 >
                                   View Source →
                                 </a>
@@ -366,8 +358,8 @@ const ChatMessage = React.memo(function ChatMessage({
                           </div>
                         </div>
                       </HoverCardTrigger>
-                      <HoverCardContent 
-                        className="w-80 max-h-60 overflow-y-auto" 
+                      <HoverCardContent
+                        className="w-80 max-h-60 overflow-y-auto"
                         side="top"
                         align="start"
                         sideOffset={5}
@@ -386,9 +378,9 @@ const ChatMessage = React.memo(function ChatMessage({
                           )}
                           {source.url && source.url !== "#" && (
                             <div className="pt-2 border-t">
-                              <a 
-                                href={source.url} 
-                                target="_blank" 
+                              <a
+                                href={source.url}
+                                target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-xs text-primary hover:underline flex items-center gap-1"
                               >
@@ -428,9 +420,8 @@ const ChatMessage = React.memo(function ChatMessage({
                       onClick={() => handleFeedback("up")}
                       data-testid="button-feedback-up"
                       disabled={isSubmitting}
-                      className={`h-8 px-2 ${
-                        feedback === "up" ? "bg-accent" : ""
-                      }`}
+                      className={`h-8 px-2 ${feedback === "up" ? "bg-accent" : ""
+                        }`}
                       aria-label="Thumbs up - positive feedback"
                       aria-pressed={feedback === "up"}
                       tabIndex={0}
@@ -443,9 +434,8 @@ const ChatMessage = React.memo(function ChatMessage({
                       onClick={() => handleFeedback("down")}
                       data-testid="button-feedback-down"
                       disabled={isSubmitting}
-                      className={`h-8 px-2 ${
-                        feedback === "down" ? "bg-accent" : ""
-                      }`}
+                      className={`h-8 px-2 ${feedback === "down" ? "bg-accent" : ""
+                        }`}
                       aria-label="Thumbs down - negative feedback"
                       aria-pressed={feedback === "down"}
                       tabIndex={0}

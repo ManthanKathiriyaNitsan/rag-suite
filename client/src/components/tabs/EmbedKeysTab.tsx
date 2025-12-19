@@ -53,6 +53,7 @@ import {
   Smartphone,
   Globe
 } from "lucide-react";
+import { copyToClipboard } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
 
 import { embedAPI, type EmbedKey } from "@/services/api/api";
@@ -190,16 +191,16 @@ export default function EmbedKeysTab({ data, onChange }: EmbedKeysTabProps) {
     }
   };
 
-  const handleCopyKey = (keyToCopy: string) => {
-    navigator.clipboard.writeText(keyToCopy);
+  const handleCopyKey = async (keyToCopy: string) => {
+    await copyToClipboard(keyToCopy);
     toast({
       title: "Copied!",
       description: "API key copied to clipboard",
     });
   };
 
-  const handleCopyPublicId = () => {
-    navigator.clipboard.writeText(publicId);
+  const handleCopyPublicId = async () => {
+    await copyToClipboard(publicId);
     toast({
       title: "Copied!",
       description: "Public ID copied to clipboard",
@@ -219,6 +220,16 @@ export default function EmbedKeysTab({ data, onChange }: EmbedKeysTabProps) {
   };
 
   const handleDeleteKey = async (keyId: string) => {
+    if (!keyId) {
+      console.error("Attempted to delete key with undefined ID");
+      return;
+    }
+
+    console.log("Deleting key with ID:", keyId);
+
+    // Store previous keys in case we need to rollback (optimistic update turned off for safety or keep it?)
+    // Let's stick to waiting for API success to update UI to avoid ghosting if API fails
+
     try {
       await embedAPI.deleteKey(keyId);
 
@@ -227,13 +238,12 @@ export default function EmbedKeysTab({ data, onChange }: EmbedKeysTabProps) {
       toast({
         title: "Key Deleted",
         description: "The API key has been permanently deleted",
-        variant: "destructive",
       });
     } catch (error) {
       console.error('Failed to delete key:', error);
       toast({
         title: "Error",
-        description: "Failed to delete API key",
+        description: "Failed to delete API key. Please try again.",
         variant: "destructive",
       });
     }

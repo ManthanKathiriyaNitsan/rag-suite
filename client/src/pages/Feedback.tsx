@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { copyToClipboard } from "@/lib/utils";
 import { Filter, ExternalLink, Copy, ThumbsUp, ThumbsDown, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -115,8 +116,8 @@ export default function Feedback() {
     return true;
   });
 
-  const handleCopyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+  const handleCopyToClipboard = async (text: string) => {
+    await copyToClipboard(text);
     // Copied to clipboard
   };
 
@@ -124,295 +125,295 @@ export default function Feedback() {
     <div className="relative">
       {/* Content */}
       <div className="relative z-10 space-y-6 w-full max-w-full overflow-hidden min-w-0 p-0 sm:p-6" style={{ maxWidth: '92vw' }}>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('feedback.title')}</h1>
-          <p className="text-muted-foreground">
-            {t('feedback.description')}
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{t('feedback.title')}</h1>
+            <p className="text-muted-foreground">
+              {t('feedback.description')}
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Filters */}
-      <GlassCard className="w-full overflow-hidden">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="relative">
-              <Select value={timeRange} onValueChange={setTimeRange}>
-                <SelectTrigger className="w-40" data-testid="select-time-range">
-                  <SelectValue placeholder="Time Range" />
+        {/* Filters */}
+        <GlassCard className="w-full overflow-hidden">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filters
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="relative">
+                <Select value={timeRange} onValueChange={setTimeRange}>
+                  <SelectTrigger className="w-40" data-testid="select-time-range">
+                    <SelectValue placeholder="Time Range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Time</SelectItem>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="week">This Week</SelectItem>
+                    <SelectItem value="month">This Month</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Select value={voteFilter} onValueChange={setVoteFilter}>
+                <SelectTrigger className="w-32" data-testid="select-vote-filter">
+                  <SelectValue placeholder="Vote" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Time</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="week">This Week</SelectItem>
-                  <SelectItem value="month">This Month</SelectItem>
+                  <SelectItem value="all">All Votes</SelectItem>
+                  <SelectItem value="up">👍 Positive</SelectItem>
+                  <SelectItem value="down">👎 Negative</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={reasonFilter} onValueChange={setReasonFilter}>
+                <SelectTrigger className="w-40" data-testid="select-reason-filter">
+                  <SelectValue placeholder="Reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Reasons</SelectItem>
+                  <SelectItem value="helpful">Helpful</SelectItem>
+                  <SelectItem value="accurate">Accurate</SelectItem>
+                  <SelectItem value="complete">Complete</SelectItem>
+                  <SelectItem value="clear">Clear</SelectItem>
+                  <SelectItem value="not helpful">Not Helpful</SelectItem>
+                  <SelectItem value="outdated">Outdated</SelectItem>
+                  <SelectItem value="missing sources">Missing Sources</SelectItem>
+                  <SelectItem value="too technical">Too Technical</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+          </CardContent>
+        </GlassCard>
 
-            <Select value={voteFilter} onValueChange={setVoteFilter}>
-              <SelectTrigger className="w-32" data-testid="select-vote-filter">
-                <SelectValue placeholder="Vote" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Votes</SelectItem>
-                <SelectItem value="up">👍 Positive</SelectItem>
-                <SelectItem value="down">👎 Negative</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={reasonFilter} onValueChange={setReasonFilter}>
-              <SelectTrigger className="w-40" data-testid="select-reason-filter">
-                <SelectValue placeholder="Reason" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Reasons</SelectItem>
-                <SelectItem value="helpful">Helpful</SelectItem>
-                <SelectItem value="accurate">Accurate</SelectItem>
-                <SelectItem value="complete">Complete</SelectItem>
-                <SelectItem value="clear">Clear</SelectItem>
-                <SelectItem value="not helpful">Not Helpful</SelectItem>
-                <SelectItem value="outdated">Outdated</SelectItem>
-                <SelectItem value="missing sources">Missing Sources</SelectItem>
-                <SelectItem value="too technical">Too Technical</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </GlassCard>
-
-      {/* Feedback Table */}
-      <GlassCard className="w-full overflow-hidden">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Feedback ({filteredFeedback.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto max-w-full" style={{ maxWidth: '100%' }}>
-            <Table className="min-w-[800px] w-full table-fixed">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[25%]">Query</TableHead>
-                <TableHead className="w-[15%]">Vote</TableHead>
-                <TableHead className="w-[20%]">Reasons</TableHead>
-                <TableHead className="w-[15%]">Time</TableHead>
-                <TableHead className="w-[20%]">Session</TableHead>
-                <TableHead className="w-[10%]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredFeedback.map((feedback) => (
-                <TableRow
-                  key={feedback.id}
-                  className="cursor-pointer hover-elevate"
-                  onClick={() => setSelectedFeedback(feedback)}
-                  data-testid={`row-feedback-${feedback.id}`}
-                >
-                  <TableCell className="w-[25%]">
-                    <div>
-                      <p className="font-medium line-clamp-1">{feedback.query}</p>
-                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                        {feedback.excerpt}
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="w-[15%]">
-                    <Badge variant={getVoteColor(feedback.vote)} className="flex items-center gap-1 w-fit">
-                      {getVoteIcon(feedback.vote)}
-                      {feedback.vote}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="w-[20%]">
-                    <div className="flex flex-wrap gap-1">
-                      {feedback.reasons.map((reason, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {reason}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="w-[15%] text-sm text-muted-foreground">
-                    {new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-                      Math.floor((feedback.createdAt.getTime() - Date.now()) / (1000 * 60)),
-                      "minute"
-                    )}
-                  </TableCell>
-                  <TableCell className="w-[20%] text-sm text-muted-foreground font-mono">
-                    {feedback.sessionId}
-                  </TableCell>
-                  <TableCell className="w-[5%]">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        console.log("View session:", feedback.sessionId);
-                      }}
-                      data-testid={`button-view-session-${feedback.id}`}
+        {/* Feedback Table */}
+        <GlassCard className="w-full overflow-hidden">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Feedback ({filteredFeedback.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto max-w-full" style={{ maxWidth: '100%' }}>
+              <Table className="min-w-[800px] w-full table-fixed">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[25%]">Query</TableHead>
+                    <TableHead className="w-[15%]">Vote</TableHead>
+                    <TableHead className="w-[20%]">Reasons</TableHead>
+                    <TableHead className="w-[15%]">Time</TableHead>
+                    <TableHead className="w-[20%]">Session</TableHead>
+                    <TableHead className="w-[10%]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredFeedback.map((feedback) => (
+                    <TableRow
+                      key={feedback.id}
+                      className="cursor-pointer hover-elevate"
+                      onClick={() => setSelectedFeedback(feedback)}
+                      data-testid={`row-feedback-${feedback.id}`}
                     >
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          </div>
-        </CardContent>
-      </GlassCard>
-
-      {/* Feedback Detail Sheet */}
-      <Sheet open={!!selectedFeedback} onOpenChange={() => setSelectedFeedback(null)}>
-        <SheetContent className="w-[600px] max-w-[90vw] overflow-y-auto">
-          {selectedFeedback && (
-            <>
-              <SheetHeader>
-                <SheetTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  Feedback Details
-                </SheetTitle>
-                <SheetDescription>
-                  Full conversation and feedback analysis
-                </SheetDescription>
-              </SheetHeader>
-              
-              <div className="mt-6 space-y-6">
-                {/* Query */}
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">User Query</label>
-                  <div className="mt-2 p-3 bg-secondary rounded-lg">
-                    <p className="text-sm">{selectedFeedback.query}</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => handleCopyToClipboard(selectedFeedback.query)}
-                    data-testid="button-copy-query"
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy Query
-                  </Button>
-                </div>
-
-                {/* Answer */}
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">AI Response</label>
-                  <div className="mt-2 p-3 bg-card border rounded-lg">
-                    <div className="prose prose-sm max-w-none">
-                      <p className="whitespace-pre-wrap text-sm">{selectedFeedback.fullAnswer}</p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => handleCopyToClipboard(selectedFeedback.fullAnswer)}
-                    data-testid="button-copy-answer"
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy Answer
-                  </Button>
-                </div>
-
-                {/* Citations */}
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Sources Used</label>
-                  <div className="mt-2 space-y-2">
-                    {selectedFeedback.citations.map((citation, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-2 border rounded-lg hover-elevate"
-                      >
-                        <span className="text-sm">{citation.title}</span>
+                      <TableCell className="w-[25%]">
+                        <div>
+                          <p className="font-medium line-clamp-1">{feedback.query}</p>
+                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                            {feedback.excerpt}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="w-[15%]">
+                        <Badge variant={getVoteColor(feedback.vote)} className="flex items-center gap-1 w-fit">
+                          {getVoteIcon(feedback.vote)}
+                          {feedback.vote}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="w-[20%]">
+                        <div className="flex flex-wrap gap-1">
+                          {feedback.reasons.map((reason, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {reason}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="w-[15%] text-sm text-muted-foreground">
+                        {new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
+                          Math.floor((feedback.createdAt.getTime() - Date.now()) / (1000 * 60)),
+                          "minute"
+                        )}
+                      </TableCell>
+                      <TableCell className="w-[20%] text-sm text-muted-foreground font-mono">
+                        {feedback.sessionId}
+                      </TableCell>
+                      <TableCell className="w-[5%]">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => console.log("Open:", citation.url)}
-                          data-testid={`button-open-citation-${index}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log("View session:", feedback.sessionId);
+                          }}
+                          data-testid={`button-view-session-${feedback.id}`}
                         >
-                          <ExternalLink className="h-3 w-3" />
+                          <ExternalLink className="h-4 w-4" />
                         </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </GlassCard>
 
-                {/* Feedback */}
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">User Feedback</label>
-                  <div className="mt-2 flex items-center gap-4">
-                    <Badge variant={getVoteColor(selectedFeedback.vote)} className="flex items-center gap-1">
-                      {getVoteIcon(selectedFeedback.vote)}
-                      {selectedFeedback.vote === "up" ? "Positive" : "Negative"}
-                    </Badge>
-                    <div className="flex flex-wrap gap-1">
-                      {selectedFeedback.reasons.map((reason, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {reason}
-                        </Badge>
+        {/* Feedback Detail Sheet */}
+        <Sheet open={!!selectedFeedback} onOpenChange={() => setSelectedFeedback(null)}>
+          <SheetContent className="w-[600px] max-w-[90vw] overflow-y-auto">
+            {selectedFeedback && (
+              <>
+                <SheetHeader>
+                  <SheetTitle className="flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5" />
+                    Feedback Details
+                  </SheetTitle>
+                  <SheetDescription>
+                    Full conversation and feedback analysis
+                  </SheetDescription>
+                </SheetHeader>
+
+                <div className="mt-6 space-y-6">
+                  {/* Query */}
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">User Query</label>
+                    <div className="mt-2 p-3 bg-secondary rounded-lg">
+                      <p className="text-sm">{selectedFeedback.query}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => handleCopyToClipboard(selectedFeedback.query)}
+                      data-testid="button-copy-query"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy Query
+                    </Button>
+                  </div>
+
+                  {/* Answer */}
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">AI Response</label>
+                    <div className="mt-2 p-3 bg-card border rounded-lg">
+                      <div className="prose prose-sm max-w-none">
+                        <p className="whitespace-pre-wrap text-sm">{selectedFeedback.fullAnswer}</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => handleCopyToClipboard(selectedFeedback.fullAnswer)}
+                      data-testid="button-copy-answer"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy Answer
+                    </Button>
+                  </div>
+
+                  {/* Citations */}
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Sources Used</label>
+                    <div className="mt-2 space-y-2">
+                      {selectedFeedback.citations.map((citation, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 border rounded-lg hover-elevate"
+                        >
+                          <span className="text-sm">{citation.title}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => console.log("Open:", citation.url)}
+                            data-testid={`button-open-citation-${index}`}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </div>
                       ))}
                     </div>
                   </div>
+
+                  {/* Feedback */}
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">User Feedback</label>
+                    <div className="mt-2 flex items-center gap-4">
+                      <Badge variant={getVoteColor(selectedFeedback.vote)} className="flex items-center gap-1">
+                        {getVoteIcon(selectedFeedback.vote)}
+                        {selectedFeedback.vote === "up" ? "Positive" : "Negative"}
+                      </Badge>
+                      <div className="flex flex-wrap gap-1">
+                        {selectedFeedback.reasons.map((reason, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {reason}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Metadata */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Session ID</label>
+                      <p className="text-sm font-mono mt-1">{selectedFeedback.sessionId}</p>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Timestamp</label>
+                      <p className="text-sm mt-1">{selectedFeedback.createdAt.toLocaleString()}</p>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">User Agent</label>
+                      <p className="text-xs mt-1 break-all">{selectedFeedback.userAgent}</p>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">IP Address</label>
+                      <p className="text-sm font-mono mt-1">{selectedFeedback.ipAddress}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopyToClipboard(JSON.stringify(selectedFeedback, null, 2))}
+                      data-testid="button-copy-all"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy All Data
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => console.log("View full session:", selectedFeedback.sessionId)}
+                      data-testid="button-view-full-session"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      View Full Session
+                    </Button>
+                  </div>
                 </div>
-
-                {/* Metadata */}
-                <div className="space-y-4 pt-4 border-t">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Session ID</label>
-                    <p className="text-sm font-mono mt-1">{selectedFeedback.sessionId}</p>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Timestamp</label>
-                    <p className="text-sm mt-1">{selectedFeedback.createdAt.toLocaleString()}</p>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">User Agent</label>
-                    <p className="text-xs mt-1 break-all">{selectedFeedback.userAgent}</p>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">IP Address</label>
-                    <p className="text-sm font-mono mt-1">{selectedFeedback.ipAddress}</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 pt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleCopyToClipboard(JSON.stringify(selectedFeedback, null, 2))}
-                    data-testid="button-copy-all"
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy All Data
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => console.log("View full session:", selectedFeedback.sessionId)}
-                    data-testid="button-view-full-session"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    View Full Session
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+              </>
+            )}
+          </SheetContent>
+        </Sheet>
       </div>
     </div>
   );
