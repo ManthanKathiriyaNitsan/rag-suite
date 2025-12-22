@@ -54,7 +54,13 @@ const Documents = React.memo(function Documents() {
       console.log('📄 Loading documents from API...');
       const docs = await documentAPI.getDocuments();
       console.log('📄 Documents loaded:', docs);
-      setDocuments(docs);
+      // Sort documents by lastIndexed in descending order (newest first)
+      const sortedDocs = Array.isArray(docs) ? [...docs].sort((a, b) => {
+        const dateA = new Date(a.lastIndexed).getTime();
+        const dateB = new Date(b.lastIndexed).getTime();
+        return dateB - dateA; // Descending order (newest first)
+      }) : docs;
+      setDocuments(sortedDocs);
     } catch (error) {
       console.error('❌ Failed to load documents:', error);
       setDocumentsError(true);
@@ -173,10 +179,66 @@ const Documents = React.memo(function Documents() {
     }
   };
 
-  const handleBulkAction = (action: string) => {
-    console.log(`${action} action for documents:`, selectedDocs);
-    setSelectedDocs([]);
-  };
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedDocs.length === 0) return;
+
+    const count = selectedDocs.length;
+    const idsToDelete = [...selectedDocs]; // Store a copy before clearing
+
+    try {
+      setIsDeleting(true);
+      const deletePromises = idsToDelete.map(id => documentAPI.deleteDocument(id));
+      await Promise.all(deletePromises);
+      
+      await loadDocuments(); // Reload documents after delete
+      setSelectedDocs([]); // Clear selection
+      
+      toast({
+        title: "Documents Deleted",
+        description: `Successfully deleted ${count} document${count > 1 ? 's' : ''}`,
+      });
+    } catch (error) {
+      console.error('❌ Bulk delete failed:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete some documents. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [selectedDocs, loadDocuments, toast]);
+
+  const handleBulkReindex = useCallback(async () => {
+    if (selectedDocs.length === 0) return;
+
+    const count = selectedDocs.length;
+    const idsToReindex = [...selectedDocs]; // Store a copy before clearing
+
+    // Note: Re-indexing functionality depends on backend API
+    // This is a placeholder - you may need to implement a re-index API endpoint
+    // or use an update operation to trigger re-indexing
+    try {
+      // TODO: Implement actual re-index API call when available
+      // For now, show a message that this feature is pending
+      toast({
+        title: "Re-indexing Started",
+        description: `Re-indexing ${count} document${count > 1 ? 's' : ''}. This feature may need backend API support.`,
+      });
+      
+      // Optionally, you could trigger an update for each document to force re-indexing
+      // await Promise.all(idsToReindex.map(id => documentAPI.updateDocument(id, {})));
+      
+      setSelectedDocs([]); // Clear selection after action
+    } catch (error) {
+      console.error('❌ Bulk re-index failed:', error);
+      toast({
+        title: "Error",
+        description: "Failed to re-index documents. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [selectedDocs, toast]);
 
   // 📄 Memoized filtered documents with all filters applied
   const filteredDocuments = useMemo(() => {
@@ -364,13 +426,8 @@ const Documents = React.memo(function Documents() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                handleBulkAction("re-index");
-                toast({
-                  title: "Re-indexing Started",
-                  description: `Re-indexing ${selectedDocs.length} documents`,
-                });
-              }}
+              onClick={handleBulkReindex}
+              disabled={isDeleting}
               data-testid="button-bulk-reindex"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -379,14 +436,8 @@ const Documents = React.memo(function Documents() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                handleBulkAction("delete");
-                toast({
-                  title: "Documents Deleted",
-                  description: `Deleted ${selectedDocs.length} documents`,
-                  variant: "destructive",
-                });
-              }}
+              onClick={handleBulkDelete}
+              disabled={isDeleting}
               data-testid="button-bulk-delete"
             >
               <Trash2 className="h-4 w-4 mr-2" />
