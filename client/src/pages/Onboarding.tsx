@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Bot, Upload, Globe, Search, CheckCircle, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ const steps = [
 ];
 
 export default function Onboarding() {
+  const [, setLocation] = useLocation();
   const [currentStep, setCurrentStep] = useState(1);
   const [orgName, setOrgName] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#1F6FEB");
@@ -48,8 +50,9 @@ export default function Onboarding() {
   };
 
   const handleFinish = () => {
-    console.log("Onboarding completed, redirecting to dashboard");
-    // In real app, would redirect to overview
+    console.log("Onboarding completed, redirecting to main page");
+    // Redirect to main dashboard page
+    setLocation("/");
   };
 
   const handleTestQuery = (query: string) => {

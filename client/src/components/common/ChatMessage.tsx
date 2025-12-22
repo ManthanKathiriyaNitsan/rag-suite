@@ -21,6 +21,7 @@ import { safeStringConversion } from "@/utils/safeStringConversion";
 // 📝 Import markdown support
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 // 🎨 Import syntax highlighting
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -51,6 +52,7 @@ interface ChatMessageProps {
   serverMessage?: string; // Server response message with actual TopK
   actualTopK?: number; // Actual TopK used by server
   actualReranker?: boolean; // Actual reranker status from server
+  isWidget?: boolean; // 🎨 Whether this is being used in embedded widget (grid layout disabled)
 }
 
 const ChatMessage = React.memo(function ChatMessage({
@@ -66,6 +68,7 @@ const ChatMessage = React.memo(function ChatMessage({
   serverMessage,
   actualTopK,
   actualReranker,
+  isWidget = false,
 }: ChatMessageProps) {
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
 
@@ -132,6 +135,11 @@ const ChatMessage = React.memo(function ChatMessage({
   };
 
   const getLayoutClasses = () => {
+    // 🎨 Grid layout only works in RAGTuning, not in embedded widget
+    if (isWidget && formatting.layout === 'grid') {
+      return "space-y-2"; // Force vertical layout in widget
+    }
+    
     switch (formatting.layout) {
       case 'vertical': return "space-y-2";
       case 'grid': return "grid grid-cols-1 sm:grid-cols-2 gap-2";
@@ -221,6 +229,7 @@ const ChatMessage = React.memo(function ChatMessage({
                 >
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeRaw]}
                     components={{
                       // 🎨 Enhanced code blocks with syntax highlighting
                       code: ({ node, className, children, ...props }: any) => {

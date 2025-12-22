@@ -93,7 +93,6 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
       case 'bottom-left': return 'bottom-4 left-4 sm:bottom-6 sm:left-6';
       case 'top-right': return 'top-4 right-4 sm:top-6 sm:right-6';
       case 'top-left': return 'top-4 left-4 sm:top-6 sm:left-6';
-      case 'center': return 'top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2';
       default: return 'bottom-4 right-4 sm:bottom-6 sm:right-6';
     }
   };
@@ -104,7 +103,6 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
       case 'bottom-left': return 'top-0 left-0 sm:bottom-6 sm:left-6 sm:top-auto sm:right-auto';
       case 'top-right': return 'top-0 left-0 sm:top-6 sm:right-6 sm:bottom-auto sm:left-auto';
       case 'top-left': return 'top-0 left-0 sm:top-6 sm:left-6 sm:bottom-auto sm:right-auto';
-      case 'center': return 'top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2';
       default: return 'top-0 left-0 sm:bottom-6 sm:right-6 sm:top-auto sm:left-auto';
     }
   };
@@ -775,6 +773,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                   serverMessage={message.serverMessage}
                   actualTopK={message.actualTopK}
                   actualReranker={message.actualReranker}
+                  isWidget={true}
                 />
               ))}
 
@@ -858,6 +857,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
                   serverMessage={message.serverMessage}
                   actualTopK={message.actualTopK}
                   actualReranker={message.actualReranker}
+                  isWidget={true}
                 />
               ))}
 

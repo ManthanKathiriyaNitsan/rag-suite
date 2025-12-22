@@ -47,15 +47,68 @@ export default function Signup() {
       });
 
       console.log("📦 Signup response data:", data);
-      console.log("✅ Signup successful, redirecting to login");
-      setLocation("/login");
+      
+      // Store authentication data from registration response
+      const accessToken = data.access_token || data.token || '';
+      
+      // Calculate expiration time (default to 30 days from now if not provided)
+      // You can decode the JWT to get actual expiration, but for now use a default
+      const expiresAt = data.expires_at || 
+        data.expiresAt || 
+        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days default
+      
+      // Transform user data to match User format expected by auth system
+      const userData = {
+        id: data.id?.toString() || data.user_id?.toString() || '1',
+        username: data.username || username,
+        email: data.email || email,
+        role: data.is_admin ? 'admin' : 'user',
+        permissions: data.is_admin ? ['read', 'write', 'admin'] : ['read', 'write'],
+        createdAt: data.created_at || new Date().toISOString(),
+      };
+
+      // Store auth data in localStorage (same format as login)
+      localStorage.setItem('auth_token', accessToken);
+      localStorage.setItem('user_data', JSON.stringify(userData));
+      localStorage.setItem('token_expires', expiresAt);
+      
+      // Also store in the alternative key for compatibility
+      localStorage.setItem('auth-token', accessToken);
+      
+      console.log("✅ Registration successful, auth data stored, redirecting to onboarding");
+      
+      // Use window.location for full page reload to ensure auth state syncs properly
+      window.location.href = "/onboarding";
     } catch (error: any) {
       console.error("🚨 Signup error:", error);
-      const backendMessage =
-        error?.response?.data?.detail ||
-        error?.response?.data?.message ||
-        error?.message;
-      setError(backendMessage || "Signup failed. Please try again.");
+      
+      // Handle validation errors from FastAPI
+      let backendMessage = "Signup failed. Please try again.";
+      
+      if (error?.response?.data?.detail) {
+        const detail = error.response.data.detail;
+        
+        // Handle Pydantic validation errors (array format)
+        if (Array.isArray(detail)) {
+          const errorMessages = detail.map((err: any) => {
+            const loc = err.loc ? err.loc.join('.') : 'unknown';
+            return `${loc}: ${err.msg || err.message || 'Invalid value'}`;
+          }).join(', ');
+          backendMessage = `Validation error: ${errorMessages}`;
+        } else if (typeof detail === 'string') {
+          // Single error message
+          backendMessage = detail;
+        } else {
+          // Object or other type - convert to string
+          backendMessage = JSON.stringify(detail);
+        }
+      } else if (error?.response?.data?.message) {
+        backendMessage = error.response.data.message;
+      } else if (error?.message) {
+        backendMessage = error.message;
+      }
+      
+      setError(backendMessage);
     } finally {
       setIsLoading(false);
     }

@@ -6,7 +6,7 @@ export type BrandingState = {
   logoDataUrl: string | null; // Base64 data URL
   // Widget positioning controls
   widgetZIndex: number;
-  widgetPosition: "bottom-right" | "bottom-left" | "top-right" | "top-left" | "center";
+  widgetPosition: "bottom-right" | "bottom-left" | "top-right" | "top-left";
   widgetOffsetX: number; // Custom X offset in pixels
   widgetOffsetY: number; // Custom Y offset in pixels
 };
@@ -130,7 +130,10 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
           logoDataUrl: typeof parsed.logoDataUrl !== "undefined" ? (parsed.logoDataUrl as string | null) : DEFAULT_BRANDING.logoDataUrl,
           // Widget positioning fields
           widgetZIndex: parsed.widgetZIndex ?? DEFAULT_BRANDING.widgetZIndex,
-          widgetPosition: parsed.widgetPosition ?? DEFAULT_BRANDING.widgetPosition,
+          widgetPosition: (parsed.widgetPosition && parsed.widgetPosition !== "center" && 
+            ["bottom-right", "bottom-left", "top-right", "top-left"].includes(parsed.widgetPosition))
+            ? parsed.widgetPosition as "bottom-right" | "bottom-left" | "top-right" | "top-left"
+            : DEFAULT_BRANDING.widgetPosition,
           widgetOffsetX: parsed.widgetOffsetX ?? DEFAULT_BRANDING.widgetOffsetX,
           widgetOffsetY: parsed.widgetOffsetY ?? DEFAULT_BRANDING.widgetOffsetY,
         };

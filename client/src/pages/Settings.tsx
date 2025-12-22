@@ -391,7 +391,6 @@ const Settings = React.memo(function Settings() {
                           <SelectItem value="bottom-left">Bottom Left</SelectItem>
                           <SelectItem value="top-right">Top Right</SelectItem>
                           <SelectItem value="top-left">Top Left</SelectItem>
-                          <SelectItem value="center">Center</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
