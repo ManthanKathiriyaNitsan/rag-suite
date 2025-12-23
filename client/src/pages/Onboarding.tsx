@@ -206,10 +206,13 @@ export default function Onboarding() {
     // Don't sync step if:
     // 1. We're completing onboarding
     // 2. We're in step 3 and actively creating/starting a crawl (to prevent auto-advance)
-    // 3. User is manually navigating (clicking Back/Next buttons)
+    // 3. We're in step 3 and crawl has completed but user hasn't clicked Next yet (prevent auto-advance)
+    // 4. User is manually navigating (clicking Back/Next buttons)
     const isActivelyCrawling = currentStep === 3 && (isCreatingDataSourceLocal || isCreatingDataSourceFromHook || isCrawlStarting);
+    // Prevent auto-advance from step 3 after crawl completes - user must click Next manually
+    const isCrawlCompleteWaitingForUser = currentStep === 3 && isCrawlComplete && hasStartedCrawl;
     
-    if (status && !isCompleting && !isActivelyCrawling && !isManualNavigationRef.current) {
+    if (status && !isCompleting && !isActivelyCrawling && !isCrawlCompleteWaitingForUser && !isManualNavigationRef.current) {
       const stepNumber = stepKeyToNumber[status.current_step] || 1;
       // Only update if the step is different to avoid unnecessary re-renders
       if (stepNumber !== currentStep) {
@@ -222,9 +225,11 @@ export default function Onboarding() {
     } else {
       if (isManualNavigationRef.current) {
         console.log('⏸️ Status sync paused: Manual navigation in progress');
+      } else if (isCrawlCompleteWaitingForUser) {
+        console.log('⏸️ Status sync paused: Crawl completed in step 3, waiting for user to click Next');
       }
     }
-  }, [status, isCompleting, currentStep, isCreatingDataSourceLocal, isCreatingDataSourceFromHook, isCrawlStarting]);
+  }, [status, isCompleting, currentStep, isCreatingDataSourceLocal, isCreatingDataSourceFromHook, isCrawlStarting, isCrawlComplete, hasStartedCrawl]);
 
   // Load branding from API on mount
   useEffect(() => {
@@ -257,7 +262,7 @@ export default function Onboarding() {
       reader.readAsDataURL(file);
     }
   }, []);
-
+    
   const handleNext = useCallback(async () => {
     if (currentStep === 1) {
       // Save branding
@@ -374,7 +379,7 @@ export default function Onboarding() {
       
       // Redirect immediately without waiting for status refetch
       // This prevents the status sync from resetting the step
-      setLocation("/");
+    setLocation("/");
     } catch (error) {
       // Error handled by hook (toast notification)
       console.error("Failed to complete onboarding:", error);
@@ -672,14 +677,14 @@ export default function Onboarding() {
                     <div>
                       <Label htmlFor="source-url">Website URL</Label>
                       <div className="flex gap-2">
-                        <Input
-                          id="source-url"
-                          placeholder="https://docs.yourcompany.com"
-                          value={sourceUrl}
-                          onChange={(e) => setSourceUrl(e.target.value)}
-                          data-testid="input-source-url"
+                      <Input
+                        id="source-url"
+                        placeholder="https://docs.yourcompany.com"
+                        value={sourceUrl}
+                        onChange={(e) => setSourceUrl(e.target.value)}
+                        data-testid="input-source-url"
                           className="flex-1"
-                        />
+                      />
                         <Button
                           type="button"
                           onClick={handleStartCrawl}

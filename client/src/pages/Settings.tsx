@@ -74,7 +74,7 @@ const Settings = React.memo(function Settings() {
       if (settings.org_name) setOrgName(settings.org_name);
       if (settings.primary_color) setPrimaryColor(settings.primary_color);
       if (settings.logo_data_url !== undefined) setLogoDataUrl(settings.logo_data_url);
-    }
+      }
   }, [settings]);
 
   const handleLogoChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
@@ -132,13 +132,13 @@ const Settings = React.memo(function Settings() {
       
       setOrgName(defaultOrgName);
       setPrimaryColor(defaultColor);
-      setLogoDataUrl(null);
-      resetBranding();
+    setLogoDataUrl(null);
+    resetBranding();
       
       // Refetch settings
       await refetchSettings();
       
-      toast({ title: "Branding reset", description: "Branding settings were reset to defaults.", variant: "info" });
+    toast({ title: "Branding reset", description: "Branding settings were reset to defaults.", variant: "info" });
     } catch (error) {
       console.error("Failed to reset branding:", error);
       toast({ title: "Reset failed", description: "Could not reset branding settings.", variant: "destructive" });

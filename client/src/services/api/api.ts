@@ -23,13 +23,13 @@ apiClient.interceptors.request.use(
       // If expiresAt exists, check if token is expired
       if (expiresAt) {
         try {
-          const expirationDate = new Date(expiresAt);
-          const currentDate = new Date();
-          
+      const expirationDate = new Date(expiresAt);
+      const currentDate = new Date();
+
           // Only add token if not expired (with 5 minute buffer for safety)
           const bufferTime = 5 * 60 * 1000; // 5 minutes
           if (expirationDate.getTime() > (currentDate.getTime() + bufferTime)) {
-            config.headers.Authorization = `Bearer ${token}`;
+        config.headers.Authorization = `Bearer ${token}`;
           } else {
             console.warn('⚠️ Token expired, not adding to request');
           }
@@ -94,13 +94,13 @@ apiClient.interceptors.response.use(
       if (!isLoginPage && !isLoginRequest) {
         console.warn('🔐 Authentication failed (401) - clearing tokens and redirecting to login');
         // Clear auth data (clear both token storage keys for compatibility)
-        localStorage.removeItem('auth-token');
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth-user');
-        localStorage.removeItem('user_data');
-        localStorage.removeItem('token_expires');
+      localStorage.removeItem('auth-token');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth-user');
+      localStorage.removeItem('user_data');
+      localStorage.removeItem('token_expires');
         // Only redirect if not already on login page
-        window.location.href = '/login';
+      window.location.href = '/login';
       } else {
         console.warn('🔐 Authentication failed (401) on login page - token may be invalid');
       }

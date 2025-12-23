@@ -223,7 +223,7 @@ const ChatMessage = React.memo(function ChatMessage({
             <div className="opacity-90 w-full min-w-0">
               {type === "assistant" ? (
                 <div
-                  className="text-sm leading-relaxed prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground prose-blockquote:text-muted-foreground prose-blockquote:border-l-muted-foreground"
+                  className="text-sm leading-relaxed  prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground prose-blockquote:text-muted-foreground prose-blockquote:border-l-muted-foreground"
                   role="text"
                   aria-label="Assistant message content"
                 >
