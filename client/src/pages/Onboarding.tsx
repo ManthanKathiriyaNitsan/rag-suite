@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Bot, Upload, Globe, Search, CheckCircle, ArrowLeft, ArrowRight } from "lucide-react";
+import { Bot, Upload, Globe, Search, CheckCircle, ArrowLeft, ArrowRight, Folder } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -21,15 +22,54 @@ import { GlassCard } from "@/components/ui/GlassCard";
 
 const steps = [
   { id: 1, title: "Branding", description: "Customize your organization" },
-  { id: 2, title: "Data Source", description: "Add your first content source" },
-  { id: 3, title: "Quick Test", description: "Test your RAG system" },
+  { id: 2, title: "Create Project", description: "Set up your first project" },
+  { id: 3, title: "Data Source", description: "Add your first content source" },
+  { id: 4, title: "Quick Test", description: "Test your RAG system" },
 ];
+
+const STORAGE_KEY = 'ragsuite-projects';
+
+interface Project {
+  id: string;
+  name: string;
+  description: string;
+  isActive: boolean;
+  createdAt?: string;
+}
+
+// Load projects from localStorage
+const loadProjects = (): Project[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return parsed.map((p: Project) => ({
+        ...p,
+        createdAt: p.createdAt || new Date().toISOString(),
+      }));
+    }
+  } catch (error) {
+    console.error('Failed to load projects from localStorage:', error);
+  }
+  return [];
+};
+
+// Save projects to localStorage
+const saveProjects = (projects: Project[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+  } catch (error) {
+    console.error('Failed to save projects to localStorage:', error);
+  }
+};
 
 export default function Onboarding() {
   const [, setLocation] = useLocation();
   const [currentStep, setCurrentStep] = useState(1);
   const [orgName, setOrgName] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#1F6FEB");
+  const [projectName, setProjectName] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
   const [crawlDepth, setCrawlDepth] = useState(2);
   const [cadence, setCadence] = useState("daily");
@@ -38,9 +78,38 @@ export default function Onboarding() {
   const [testResponse, setTestResponse] = useState<any>(null);
 
   const handleNext = () => {
-    if (currentStep < 3) {
+    if (currentStep === 2) {
+      // Create project before moving to next step
+      handleCreateProject();
+    }
+    if (currentStep < 4) {
       setCurrentStep(currentStep + 1);
     }
+  };
+
+  const handleCreateProject = () => {
+    if (!projectName.trim() || !projectDescription.trim()) {
+      return;
+    }
+
+    const projects = loadProjects();
+    
+    // Deactivate all existing projects
+    const updatedProjects = projects.map(p => ({ ...p, isActive: false }));
+    
+    const newProject: Project = {
+      id: `project-${Date.now()}`,
+      name: projectName.trim(),
+      description: projectDescription.trim(),
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    };
+
+    const finalProjects = [...updatedProjects, newProject];
+    saveProjects(finalProjects);
+    
+    // Save selected project to localStorage for AppSidebar
+    localStorage.setItem('selected-project-id', newProject.id);
   };
 
   const handleBack = () => {
@@ -195,8 +264,43 @@ Your RAG system is ready to help users find information from your documentation!
                   </div>
                 )}
 
-                {/* Step 2: Data Source */}
+                {/* Step 2: Create Project */}
                 {currentStep === 2 && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="project-name">Project Name</Label>
+                      <Input
+                        id="project-name"
+                        placeholder="My First Project"
+                        value={projectName}
+                        onChange={(e) => setProjectName(e.target.value)}
+                        data-testid="input-project-name"
+                      />
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Give your project a descriptive name
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="project-description">Project Description</Label>
+                      <Textarea
+                        id="project-description"
+                        placeholder="Describe what this project is for..."
+                        value={projectDescription}
+                        onChange={(e) => setProjectDescription(e.target.value)}
+                        className="mt-1"
+                        rows={4}
+                        data-testid="textarea-project-description"
+                      />
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Provide a brief description of your project
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 3: Data Source */}
+                {currentStep === 3 && (
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="source-url">Website URL</Label>
@@ -265,8 +369,8 @@ Your RAG system is ready to help users find information from your documentation!
                   </div>
                 )}
 
-                {/* Step 3: Quick Test */}
-                {currentStep === 3 && (
+                {/* Step 4: Quick Test */}
+                {currentStep === 4 && (
                   <div className="space-y-4">
                     <div>
                       <Label>Test Your RAG System</Label>
@@ -334,12 +438,13 @@ Your RAG system is ready to help users find information from your documentation!
                     Back
                   </Button>
 
-                  {currentStep < 3 ? (
+                  {currentStep < 4 ? (
                     <Button
                       onClick={handleNext}
                       disabled={
                         (currentStep === 1 && !orgName) ||
-                        (currentStep === 2 && !sourceUrl)
+                        (currentStep === 2 && (!projectName.trim() || !projectDescription.trim())) ||
+                        (currentStep === 3 && !sourceUrl)
                       }
                       data-testid="button-next"
                       className="w-full sm:w-auto group"
@@ -389,6 +494,36 @@ Your RAG system is ready to help users find information from your documentation!
                 {currentStep === 2 && (
                   <div className="space-y-4">
                     <div className="p-3 sm:p-4 border rounded-lg">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Folder className="h-5 w-5 text-primary" />
+                        <h4 className="font-medium text-sm sm:text-base">Project Preview</h4>
+                      </div>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-xs sm:text-sm text-muted-foreground">Project Name:</span>
+                          <p className="font-medium text-sm sm:text-base mt-1">
+                            {projectName || "Your Project Name"}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-xs sm:text-sm text-muted-foreground">Description:</span>
+                          <p className="text-sm sm:text-base mt-1 text-muted-foreground">
+                            {projectDescription || "Project description will appear here"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-3 border-t">
+                        <Badge variant="secondary" className="text-xs">
+                          This will be your active project
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {currentStep === 3 && (
+                  <div className="space-y-4">
+                    <div className="p-3 sm:p-4 border rounded-lg">
                       <h4 className="font-medium mb-2 text-sm sm:text-base">Crawl Configuration</h4>
                       <div className="space-y-2 text-xs sm:text-sm">
                         <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
@@ -414,7 +549,7 @@ Your RAG system is ready to help users find information from your documentation!
                   </div>
                 )}
 
-                {currentStep === 3 && (
+                {currentStep === 4 && (
                   <div className="space-y-4">
                     <div className="p-3 sm:p-4 border rounded-lg">
                       <h4 className="font-medium mb-2 text-sm sm:text-base">System Status</h4>
@@ -422,6 +557,10 @@ Your RAG system is ready to help users find information from your documentation!
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
                           <span className="text-xs sm:text-sm">Organization configured</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
+                          <span className="text-xs sm:text-sm">Project created</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />

@@ -118,8 +118,10 @@ export const useAuth = () => {
 
     onSuccess: () => {
       console.log('✅ Logout successful');
-      // Clear all auth data
+      // Clear all auth data (including compatibility and legacy keys)
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth-token'); // Compatibility key from signup
+      localStorage.removeItem('auth-user'); // Legacy key
       localStorage.removeItem('user_data');
       localStorage.removeItem('token_expires');
 
@@ -134,8 +136,10 @@ export const useAuth = () => {
 
     onError: (error) => {
       console.error('❌ Logout failed:', error);
-      // Still clear local data even if API call fails
+      // Still clear local data even if API call fails (including compatibility and legacy keys)
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth-token'); // Compatibility key from signup
+      localStorage.removeItem('auth-user'); // Legacy key
       localStorage.removeItem('user_data');
       localStorage.removeItem('token_expires');
 

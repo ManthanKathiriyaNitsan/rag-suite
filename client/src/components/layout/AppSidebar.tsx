@@ -14,6 +14,9 @@ import {
   Check,
   Plus,
   Folder,
+  List,
+  X,
+  Trash2,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -38,10 +41,32 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/AlertDialog";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useTranslation } from "@/contexts/I18nContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/useToast";
 
 const menuItems = [
   {
@@ -99,33 +124,83 @@ const settingsItems = [
   },
 ];
 
-const projects = [
+const STORAGE_KEY = 'ragsuite-projects';
+
+interface Project {
+  id: string;
+  name: string;
+  description: string;
+  isActive: boolean;
+  createdAt?: string; // ISO timestamp for sorting
+}
+
+const defaultProjects: Project[] = [
   {
     id: "main",
     name: "Main Project",
     description: "Primary documentation site",
     isActive: true,
+    createdAt: new Date().toISOString(),
   },
   {
     id: "support",
     name: "Support Center",
     description: "Customer support docs",
     isActive: false,
+    createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
   },
   {
     id: "api",
     name: "API Documentation",
     description: "Developer resources",
     isActive: false,
+    createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
   },
 ];
 
+// Load projects from localStorage or use defaults
+const loadProjects = (): Project[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Add createdAt to projects that don't have it (for backward compatibility)
+      return parsed.map((p: Project) => ({
+        ...p,
+        createdAt: p.createdAt || new Date().toISOString(),
+      }));
+    }
+  } catch (error) {
+    console.error('Failed to load projects from localStorage:', error);
+  }
+  return defaultProjects;
+};
+
+// Save projects to localStorage
+const saveProjects = (projects: Project[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+  } catch (error) {
+    console.error('Failed to save projects to localStorage:', error);
+  }
+};
+
 const AppSidebar = React.memo(function AppSidebar() {
   const [location] = useLocation();
-  const [selectedProject, setSelectedProject] = useState(projects[0]);
+  const [projects, setProjects] = useState<Project[]>(loadProjects);
+  const [selectedProject, setSelectedProject] = useState<Project>(() => {
+    const loaded = loadProjects();
+    return loaded.find(p => p.isActive) || loaded[0];
+  });
   const [isMobile, setIsMobile] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showAllProjects, setShowAllProjects] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectDescription, setNewProjectDescription] = useState("");
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const { orgName, logoDataUrl } = useBranding();
   const { t } = useTranslation();
+  const { toast } = useToast();
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -142,9 +217,109 @@ const AppSidebar = React.memo(function AppSidebar() {
   const memoizedMenuItems = useMemo(() => menuItems, []);
 
   // 🚀 Memoize project selection handler
-  const handleProjectSelect = useCallback((project: any) => {
+  const handleProjectSelect = useCallback((project: Project) => {
+    // Update active status
+    const updatedProjects = projects.map(p => ({
+      ...p,
+      isActive: p.id === project.id
+    }));
+    setProjects(updatedProjects);
+    saveProjects(updatedProjects);
     setSelectedProject(project);
+    setShowAllProjects(false);
+  }, [projects]);
+
+  // Handle create new project
+  const handleCreateProject = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newProjectName.trim()) {
+      toast({
+        title: "Error",
+        description: "Project name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newProjectDescription.trim()) {
+      toast({
+        title: "Error",
+        description: "Project description is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newProject: Project = {
+      id: `project-${Date.now()}`,
+      name: newProjectName.trim(),
+      description: newProjectDescription.trim(),
+      isActive: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedProjects = [...projects, newProject];
+    setProjects(updatedProjects);
+    saveProjects(updatedProjects);
+    
+    // Reset form
+    setNewProjectName("");
+    setNewProjectDescription("");
+    setShowCreateDialog(false);
+    
+    toast({
+      title: "Project Created",
+      description: `"${newProject.name}" has been created successfully`,
+    });
+  }, [newProjectName, newProjectDescription, projects, toast]);
+
+  // Handle view all projects
+  const handleViewAllProjects = useCallback(() => {
+    setShowAllProjects(true);
   }, []);
+
+  // Handle delete project
+  const handleDeleteProject = useCallback((project: Project) => {
+    // Prevent deleting the active project
+    if (project.isActive) {
+      toast({
+        title: "Cannot Delete Active Project",
+        description: "Please switch to another project before deleting this one.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const updatedProjects = projects.filter(p => p.id !== project.id);
+    setProjects(updatedProjects);
+    saveProjects(updatedProjects);
+    setProjectToDelete(null);
+    
+    toast({
+      title: "Project Deleted",
+      description: `"${project.name}" has been deleted successfully`,
+    });
+  }, [projects, toast]);
+
+  // Get sorted projects (active first, then newest first)
+  const sortedProjects = useMemo(() => {
+    return [...projects].sort((a, b) => {
+      // Active project always comes first
+      if (a.isActive && !b.isActive) return -1;
+      if (!a.isActive && b.isActive) return 1;
+      
+      // If both have same active status, sort by creation date (newest first)
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [projects]);
+
+  // Get top 3 latest projects
+  const top3Projects = useMemo(() => {
+    return sortedProjects.slice(0, 3);
+  }, [sortedProjects]);
 
   const { theme } = useTheme();
 
@@ -206,7 +381,10 @@ const AppSidebar = React.memo(function AppSidebar() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className={isMobile ? "w-[calc(100vw-2rem)]" : "w-64"}
+            className={cn(
+              isMobile ? "w-[calc(100vw-2rem)] max-h-[70vh]" : "w-64 max-h-[60vh]",
+              "overflow-y-auto"
+            )}
             align="start"
             side={isMobile ? "bottom" : "right"}
             sideOffset={4}
@@ -216,7 +394,7 @@ const AppSidebar = React.memo(function AppSidebar() {
               Switch Project
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {projects.map((project) => (
+            {top3Projects.map((project) => (
               <DropdownMenuItem
                 key={project.id}
                 onClick={() => handleProjectSelect(project)}
@@ -238,9 +416,25 @@ const AppSidebar = React.memo(function AppSidebar() {
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="flex items-center gap-3 p-3 cursor-pointer text-muted-foreground">
+            <DropdownMenuItem 
+              onSelect={(e) => {
+                e.preventDefault();
+                setShowCreateDialog(true);
+              }}
+              className="flex items-center gap-3 p-3 cursor-pointer text-muted-foreground hover:text-foreground"
+            >
               <Plus className="h-4 w-4" />
               <span className="text-sm">Create New Project</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onSelect={(e) => {
+                e.preventDefault();
+                handleViewAllProjects();
+              }}
+              className="flex items-center gap-3 p-3 cursor-pointer text-muted-foreground hover:text-foreground"
+            >
+              <List className="h-4 w-4" />
+              <span className="text-sm">View All Projects</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -314,6 +508,171 @@ const AppSidebar = React.memo(function AppSidebar() {
           <Badge variant="outline" className="text-xs bg-white dark:bg-card border-none">v1.0.0</Badge>
         </div>
       </SidebarFooter>
+
+      {/* Create New Project Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className={cn("max-w-md", isMobile && "w-[calc(100vw-2rem)]")}>
+          <DialogHeader>
+            <DialogTitle>Create New Project</DialogTitle>
+            <DialogDescription>
+              Create a new project to organize your documentation and content sources.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateProject} className="space-y-4">
+            <div>
+              <Label htmlFor="project-name">Project Name</Label>
+              <Input
+                id="project-name"
+                placeholder="e.g., Marketing Docs"
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                required
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="project-description">Description</Label>
+              <Textarea
+                id="project-description"
+                placeholder="Describe this project..."
+                value={newProjectDescription}
+                onChange={(e) => setNewProjectDescription(e.target.value)}
+                className="mt-1"
+                rows={3}
+                required
+              />
+            </div>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowCreateDialog(false);
+                  setNewProjectName("");
+                  setNewProjectDescription("");
+                }}
+                className="w-full sm:w-auto"
+              >
+                Cancel
+              </Button>
+              <Button type="submit" className="w-full sm:w-auto">
+                Create Project
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View All Projects Dialog */}
+      <Dialog open={showAllProjects} onOpenChange={setShowAllProjects}>
+        <DialogContent className={cn("max-w-2xl max-h-[85vh] flex flex-col", isMobile && "w-[calc(100vw-2rem)] max-h-[90vh]")}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <List className="h-5 w-5" />
+              All Projects ({projects.length})
+            </DialogTitle>
+            <DialogDescription>
+              Manage and switch between all your projects.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 space-y-2 overflow-y-auto min-h-0">
+            {sortedProjects.map((project) => (
+              <div
+                key={project.id}
+                className={cn(
+                  "group flex items-center justify-between gap-3 p-3 rounded-lg border transition-colors",
+                  selectedProject.id === project.id
+                    ? "bg-accent border-primary"
+                    : "border-border hover:bg-accent"
+                )}
+              >
+                <div
+                  onClick={() => handleProjectSelect(project)}
+                  className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
+                >
+                  <Folder className={cn(
+                    "h-5 w-5 flex-shrink-0",
+                    selectedProject.id === project.id ? "text-primary" : "text-muted-foreground"
+                  )} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm flex items-center gap-2">
+                      {project.name}
+                      {selectedProject.id === project.id && (
+                        <Badge variant="secondary" className="text-xs">Active</Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {project.description}
+                    </div>
+                  </div>
+                  {selectedProject.id === project.id && (
+                    <Check className="h-5 w-5 text-primary flex-shrink-0 ml-2" />
+                  )}
+                </div>
+                {!project.isActive && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setProjectToDelete(project);
+                    }}
+                    className="h-8 w-8 flex-shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors duration-200"
+                    title="Delete project"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="pt-3 mt-2 border-t">
+            <Button
+              type="button"
+              onClick={() => {
+                setShowAllProjects(false);
+                setShowCreateDialog(true);
+              }}
+              className={cn(
+                "w-full justify-start gap-3 p-3 rounded-lg border transition-colors",
+                "bg-primary text-primary-foreground hover:bg-primary/90 border-primary text-left",
+                "sm:w-auto sm:justify-center sm:px-4 sm:py-2 sm:rounded-md",
+                isMobile && "h-auto"
+              )}
+            >
+              <Plus className="h-5 w-5 flex-shrink-0" />
+              <span>Create New Project</span>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Project Confirmation Dialog */}
+      <AlertDialog open={!!projectToDelete} onOpenChange={(open) => !open && setProjectToDelete(null)}>
+        <AlertDialogContent className={cn(isMobile && "w-[calc(100vw-2rem)]")}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Project</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{projectToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (projectToDelete) {
+                  handleDeleteProject(projectToDelete);
+                }
+              }}
+              className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sidebar>
   );
 });
