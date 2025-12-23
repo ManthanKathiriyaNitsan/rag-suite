@@ -16,7 +16,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
-import { AuthProvider, useAuthContext } from "@/contexts/AuthContext";
+import { AuthProvider, useAuthContext, AuthContext } from "@/contexts/AuthContext";
 
 import { RAGSettingsProvider } from "@/contexts/RAGSettingsContext";
 
@@ -66,8 +66,6 @@ const Overview = lazy(() => import("@/pages/Overview"));
 
 const Crawl = lazy(() => import("@/pages/Crawl"));
 
-const Documents = lazy(() => import("@/pages/Documents"));
-
 const Analytics = lazy(() => import("@/pages/Analytics"));
 
 const Feedback = lazy(() => import("@/pages/Feedback"));
@@ -87,6 +85,8 @@ const Login = lazy(() => import("@/pages/Login"));
 const Onboarding = lazy(() => import("@/pages/Onboarding"));
 
 const Profile = lazy(() => import("@/pages/Profile"));
+
+const Projects = lazy(() => import("@/pages/Projects"));
 
 const Signup = lazy(() => import("./pages/Signup"));
 const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
@@ -120,11 +120,39 @@ import LanguageSelector from "@/components/common/LanguageSelector";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
-  // Use AuthContext instead of checking localStorage directly
+  // Use AuthContext directly to avoid throwing error if provider not ready
 
   // This ensures we're using the same auth state as the rest of the app
 
-  const { isAuthenticated, isLoading } = useAuthContext();
+  const authContext = React.useContext(AuthContext);
+
+  
+
+  // If context is not available, show loading state
+
+  // This can happen during initial render or HMR
+
+  if (!authContext) {
+
+    return (
+
+      <div className="min-h-screen flex items-center justify-center">
+
+        <div className="flex items-center gap-2">
+
+          <Loader2 className="h-6 w-6 animate-spin" />
+
+          <span>Initializing...</span>
+
+        </div>
+
+      </div>
+
+    );
+
+  }
+
+  const { isAuthenticated, isLoading } = authContext;
 
 
 
@@ -684,7 +712,14 @@ function PageTransitionWrapper({ children, pageName }: { children: React.ReactNo
 
 }
 
-
+// Redirect component for /documents to /crawl
+function RedirectToCrawl() {
+  const [, setLocation] = useLocation();
+  React.useEffect(() => {
+    setLocation("/crawl");
+  }, [setLocation]);
+  return null;
+}
 
 function Router() {
 
@@ -847,17 +882,7 @@ function Router() {
                 </Route>
 
                 <Route path="/documents">
-
-                  <PageErrorBoundary pageName="Documents">
-
-                    <PageTransitionWrapper pageName="Documents">
-
-                      <Documents />
-
-                    </PageTransitionWrapper>
-
-                  </PageErrorBoundary>
-
+                  <RedirectToCrawl />
                 </Route>
 
                 <Route path="/analytics">
@@ -951,6 +976,20 @@ function Router() {
                     <PageTransitionWrapper pageName="System Health">
 
                       <SystemHealth />
+
+                    </PageTransitionWrapper>
+
+                  </PageErrorBoundary>
+
+                </Route>
+
+                <Route path="/projects">
+
+                  <PageErrorBoundary pageName="Projects">
+
+                    <PageTransitionWrapper pageName="Projects">
+
+                      <Projects />
 
                     </PageTransitionWrapper>
 

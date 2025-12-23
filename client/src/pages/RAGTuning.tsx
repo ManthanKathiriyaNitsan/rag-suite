@@ -18,9 +18,10 @@ import { useSearch } from "@/hooks/useSearch";
 import { useChat, useChatSessions } from "@/hooks/useChat";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Message } from "@/types/components";
-import { chatAPI } from "@/services/api/api";
+import { chatAPI, suggestionsAPI } from "@/services/api/api";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/useToast";
+import { useQuery } from "@tanstack/react-query";
 
 
 
@@ -624,19 +625,28 @@ export default function RAGTuning() {
 
 
 
-  // 📝 Memoized example queries
+  // 📝 Fetch suggestions from API - refresh every time page is visited
+  const { data: suggestionsData, isLoading: isLoadingSuggestions } = useQuery({
+    queryKey: ['suggestions'],
+    queryFn: suggestionsAPI.getSuggestions,
+    staleTime: 0, // Always consider data stale to ensure fresh data on each visit
+    refetchOnMount: true, // Refetch when component mounts (page visit)
+    refetchOnWindowFocus: true, // Also refetch when window regains focus
+  });
 
-  const exampleQueries = useMemo(() => [
-
-    "How do I configure authentication?",
-
-    "What are the API rate limits?",
-
-    "How to troubleshoot deployment issues?",
-
-    "Best practices for data backup",
-
-  ], []);
+  // 📝 Memoized example queries - use API suggestions or fallback to defaults
+  const exampleQueries = useMemo(() => {
+    if (suggestionsData?.suggestions && suggestionsData.suggestions.length > 0) {
+      return suggestionsData.suggestions;
+    }
+    // Fallback to default queries if API returns empty or fails
+    return [
+      "How do I configure authentication?",
+      "What are the API rate limits?",
+      "How to troubleshoot deployment issues?",
+      "Best practices for data backup",
+    ];
+  }, [suggestionsData]);
 
 
 
@@ -782,8 +792,13 @@ export default function RAGTuning() {
                   <Label className="text-sm text-muted-foreground">Suggested Questions:</Label>
 
                   <div className="flex flex-wrap gap-2">
-
-                    {exampleQueries.map((query, index) => (
+                    {isLoadingSuggestions && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Loading suggestions...</span>
+                      </div>
+                    )}
+                    {!isLoadingSuggestions && exampleQueries.map((query, index) => (
 
                       <Button
 
@@ -808,7 +823,9 @@ export default function RAGTuning() {
                       </Button>
 
                     ))}
-
+                    {!isLoadingSuggestions && exampleQueries.length === 0 && (
+                      <p className="text-sm text-muted-foreground">No suggestions available</p>
+                    )}
                   </div>
 
                 </div>

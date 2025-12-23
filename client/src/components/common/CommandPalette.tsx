@@ -66,7 +66,7 @@ const CommandPalette = React.memo(function CommandPalette({ open, onOpenChange }
       title: "Go to Documents",
       description: "Browse document library",
       icon: FileText,
-      action: () => setLocation("/documents"),
+      action: () => setLocation("/crawl"),
       keywords: ["documents", "files", "library"],
     },
     {
@@ -125,7 +125,7 @@ const CommandPalette = React.memo(function CommandPalette({ open, onOpenChange }
       description: "Upload files to the document library",
       icon: FileText,
       action: () => {
-        setLocation("/documents");
+        setLocation("/crawl");
         setTimeout(() => {
           const uploadButton = document.querySelector('[data-testid="button-upload-document"]') as HTMLElement;
           uploadButton?.click();

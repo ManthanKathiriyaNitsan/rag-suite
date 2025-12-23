@@ -120,7 +120,7 @@ const translations: Record<string, Record<string, string>> = {
     
     // Crawl
     "crawl.title": "Crawl Management",
-    "crawl.description": "Configure and monitor website crawling sources",
+    "crawl.description": "Configure and monitor website crawling sources & Documents",
     "crawl.addSource": "Add Source",
     "crawl.sources": "Sources",
     "crawl.jobs": "Jobs",

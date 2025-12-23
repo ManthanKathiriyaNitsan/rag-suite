@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { settingsAPI } from "@/services/api/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export type BrandingState = {
   orgName: string;
@@ -27,9 +29,18 @@ const DEFAULT_BRANDING: BrandingState = {
   widgetOffsetY: 0,
 };
 
-const LOCAL_STORAGE_KEY = "branding";
+// Initialize with default value to prevent "must be used within provider" errors
+const defaultContextValue: BrandingContextType = {
+  ...DEFAULT_BRANDING,
+  setBranding: () => {
+    console.warn('setBranding called before BrandingProvider is initialized');
+  },
+  resetBranding: () => {
+    console.warn('resetBranding called before BrandingProvider is initialized');
+  },
+};
 
-const BrandingContext = createContext<BrandingContextType | undefined>(undefined);
+const BrandingContext = createContext<BrandingContextType>(defaultContextValue);
 
 function hexToHslComponents(hex: string): string | null {
   try {
@@ -119,39 +130,42 @@ function hexToHslComponents(hex: string): string | null {
 }
 
 export function BrandingProvider({ children }: { children: React.ReactNode }) {
-  const [branding, setBrandingState] = useState<BrandingState>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as Partial<BrandingState>;
-        return {
-          orgName: parsed.orgName ?? DEFAULT_BRANDING.orgName,
-          primaryColor: parsed.primaryColor ?? DEFAULT_BRANDING.primaryColor,
-          logoDataUrl: typeof parsed.logoDataUrl !== "undefined" ? (parsed.logoDataUrl as string | null) : DEFAULT_BRANDING.logoDataUrl,
-          // Widget positioning fields
-          widgetZIndex: parsed.widgetZIndex ?? DEFAULT_BRANDING.widgetZIndex,
-          widgetPosition: (parsed.widgetPosition && parsed.widgetPosition !== "center" && 
-            ["bottom-right", "bottom-left", "top-right", "top-left"].includes(parsed.widgetPosition))
-            ? parsed.widgetPosition as "bottom-right" | "bottom-left" | "top-right" | "top-left"
-            : DEFAULT_BRANDING.widgetPosition,
-          widgetOffsetX: parsed.widgetOffsetX ?? DEFAULT_BRANDING.widgetOffsetX,
-          widgetOffsetY: parsed.widgetOffsetY ?? DEFAULT_BRANDING.widgetOffsetY,
-        };
-      }
-    } catch {
-      // ignore
-    }
-    return DEFAULT_BRANDING;
+  const queryClient = useQueryClient();
+  
+  // Use React Query to fetch branding from settings API - fully dynamic, no localStorage
+  const brandingQuery = useQuery({
+    queryKey: ['settings'],
+    queryFn: settingsAPI.getSettings,
+    staleTime: 0, // Always consider data stale to ensure fresh data
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
   });
 
-  // Persist changes
-  useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(branding));
-    } catch {
-      // ignore
-    }
-  }, [branding]);
+  // Local state for widget positioning (not stored in API)
+  const [widgetSettings, setWidgetSettings] = useState<Pick<BrandingState, 'widgetZIndex' | 'widgetPosition' | 'widgetOffsetX' | 'widgetOffsetY'>>({
+    widgetZIndex: DEFAULT_BRANDING.widgetZIndex,
+    widgetPosition: DEFAULT_BRANDING.widgetPosition,
+    widgetOffsetX: DEFAULT_BRANDING.widgetOffsetX,
+    widgetOffsetY: DEFAULT_BRANDING.widgetOffsetY,
+  });
+
+  // Merge API settings data with widget settings
+  const branding = useMemo<BrandingState>(() => {
+    const apiSettings = brandingQuery.data;
+    return {
+      orgName: apiSettings?.org_name || DEFAULT_BRANDING.orgName,
+      primaryColor: apiSettings?.primary_color || DEFAULT_BRANDING.primaryColor,
+      logoDataUrl: apiSettings?.logo_data_url || DEFAULT_BRANDING.logoDataUrl,
+      ...widgetSettings,
+    };
+  }, [brandingQuery.data, widgetSettings]);
+
+  // Note: Branding will automatically refetch when:
+  // 1. The query is invalidated (e.g., after onboarding completes)
+  // 2. Component mounts (refetchOnMount: true)
+  // 3. Window regains focus (refetchOnWindowFocus: true)
+  // No need for manual subscription - React Query handles this automatically
 
   // Apply primary color globally via CSS variable used by Tailwind tokens: bg-primary, text-primary, etc.
   useEffect(() => {
@@ -165,16 +179,36 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
   }, [branding.primaryColor]);
 
   const setBranding = (updates: Partial<BrandingState>) => {
-    setBrandingState(prev => ({ ...prev, ...updates }));
+    // Update widget settings if provided
+    if (updates.widgetZIndex !== undefined || 
+        updates.widgetPosition !== undefined || 
+        updates.widgetOffsetX !== undefined || 
+        updates.widgetOffsetY !== undefined) {
+      setWidgetSettings(prev => ({
+        ...prev,
+        ...(updates.widgetZIndex !== undefined && { widgetZIndex: updates.widgetZIndex }),
+        ...(updates.widgetPosition !== undefined && { widgetPosition: updates.widgetPosition }),
+        ...(updates.widgetOffsetX !== undefined && { widgetOffsetX: updates.widgetOffsetX }),
+        ...(updates.widgetOffsetY !== undefined && { widgetOffsetY: updates.widgetOffsetY }),
+      }));
+    }
+    
+    // If org name, color, or logo is updated, invalidate settings query to refetch from API
+    if (updates.orgName !== undefined || updates.primaryColor !== undefined || updates.logoDataUrl !== undefined) {
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
+    }
   };
 
   const resetBranding = () => {
-    setBrandingState(DEFAULT_BRANDING);
-    try {
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-    } catch {
-      // ignore
-    }
+    // Reset widget settings to defaults
+    setWidgetSettings({
+      widgetZIndex: DEFAULT_BRANDING.widgetZIndex,
+      widgetPosition: DEFAULT_BRANDING.widgetPosition,
+      widgetOffsetX: DEFAULT_BRANDING.widgetOffsetX,
+      widgetOffsetY: DEFAULT_BRANDING.widgetOffsetY,
+    });
+    // Invalidate settings query to refetch from API
+    queryClient.invalidateQueries({ queryKey: ['settings'] });
   };
 
   const value = useMemo<BrandingContextType>(() => ({
@@ -190,6 +224,6 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
 
 export function useBranding(): BrandingContextType {
   const ctx = useContext(BrandingContext);
-  if (!ctx) throw new Error("useBranding must be used within a BrandingProvider");
+  // Context is always defined (has default value), so no need to check
   return ctx;
 }

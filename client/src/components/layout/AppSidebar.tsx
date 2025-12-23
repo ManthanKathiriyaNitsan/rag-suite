@@ -17,6 +17,7 @@ import {
   List,
   X,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -67,6 +68,9 @@ import { useTranslation } from "@/contexts/I18nContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
+import { useProjects } from "@/hooks/useProjects";
+import { Project as APIProject } from "@/services/api/api";
+import { useQueryClient } from "@tanstack/react-query";
 
 const menuItems = [
   {
@@ -78,11 +82,6 @@ const menuItems = [
     title: "Crawl",
     url: "/crawl",
     icon: Search,
-  },
-  {
-    title: "Documents",
-    url: "/documents",
-    icon: FileText,
   },
   {
     title: "RAG Tuning",
@@ -124,83 +123,60 @@ const settingsItems = [
   },
 ];
 
-const STORAGE_KEY = 'ragsuite-projects';
-
+// Local interface for sidebar compatibility
 interface Project {
   id: string;
   name: string;
   description: string;
   isActive: boolean;
-  createdAt?: string; // ISO timestamp for sorting
+  createdAt?: string;
 }
 
-const defaultProjects: Project[] = [
-  {
-    id: "main",
-    name: "Main Project",
-    description: "Primary documentation site",
-    isActive: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "support",
-    name: "Support Center",
-    description: "Customer support docs",
-    isActive: false,
-    createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-  },
-  {
-    id: "api",
-    name: "API Documentation",
-    description: "Developer resources",
-    isActive: false,
-    createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-  },
-];
-
-// Load projects from localStorage or use defaults
-const loadProjects = (): Project[] => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      // Add createdAt to projects that don't have it (for backward compatibility)
-      return parsed.map((p: Project) => ({
-        ...p,
-        createdAt: p.createdAt || new Date().toISOString(),
-      }));
-    }
-  } catch (error) {
-    console.error('Failed to load projects from localStorage:', error);
-  }
-  return defaultProjects;
-};
-
-// Save projects to localStorage
-const saveProjects = (projects: Project[]) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-  } catch (error) {
-    console.error('Failed to save projects to localStorage:', error);
-  }
-};
-
 const AppSidebar = React.memo(function AppSidebar() {
-  const [location] = useLocation();
-  const [projects, setProjects] = useState<Project[]>(loadProjects);
-  const [selectedProject, setSelectedProject] = useState<Project>(() => {
-    const loaded = loadProjects();
-    return loaded.find(p => p.isActive) || loaded[0];
-  });
+  const [location, setLocation] = useLocation();
   const [isMobile, setIsMobile] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showAllProjects, setShowAllProjects] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectDescription, setNewProjectDescription] = useState("");
-  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<APIProject | null>(null);
   const { orgName, logoDataUrl } = useBranding();
   const { t } = useTranslation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Use projects hook
+  const {
+    projects: apiProjects,
+    activeProjectId,
+    isLoading: projectsLoading,
+    createProjectAsync,
+    isCreating,
+    deleteProjectAsync,
+    isDeleting,
+    activateProjectAsync,
+  } = useProjects();
+
+  // Convert API projects to local format and find selected project
+  // Filter out default/predefined projects like "Main Project" or "Default project"
+  const projects = useMemo(() => {
+    const defaultProjectNames = ['Main Project', 'Default project', 'Default Project', 'main project', 'default project'];
+    return apiProjects
+      .filter((p: APIProject) => {
+        const projectNameLower = p.name.toLowerCase().trim();
+        return !defaultProjectNames.some(defaultName => defaultName.toLowerCase() === projectNameLower);
+      })
+      .map((p: APIProject) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        isActive: p.id === activeProjectId,
+        createdAt: p.created_at,
+      }));
+  }, [apiProjects, activeProjectId]);
+
+  const selectedProject = useMemo(() => {
+    return projects.find(p => p.isActive) || projects[0] || null;
+  }, [projects]);
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -217,20 +193,33 @@ const AppSidebar = React.memo(function AppSidebar() {
   const memoizedMenuItems = useMemo(() => menuItems, []);
 
   // 🚀 Memoize project selection handler
-  const handleProjectSelect = useCallback((project: Project) => {
-    // Update active status
-    const updatedProjects = projects.map(p => ({
-      ...p,
-      isActive: p.id === project.id
-    }));
-    setProjects(updatedProjects);
-    saveProjects(updatedProjects);
-    setSelectedProject(project);
-    setShowAllProjects(false);
-  }, [projects]);
+  const handleProjectSelect = useCallback(async (project: Project) => {
+    try {
+      await activateProjectAsync(project.id);
+      
+      // Invalidate all queries to refresh all data
+      await queryClient.invalidateQueries();
+      
+      toast({
+        title: "Project Switched",
+        description: `Switched to "${project.name}". Refreshing...`,
+      });
+      
+      // Reload the page to refresh the entire application
+      setTimeout(() => {
+        window.location.reload();
+      }, 500); // Small delay to show the toast message
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.detail || "Failed to switch project. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [activateProjectAsync, toast, queryClient]);
 
   // Handle create new project
-  const handleCreateProject = useCallback((e: React.FormEvent) => {
+  const handleCreateProject = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!newProjectName.trim()) {
@@ -251,17 +240,11 @@ const AppSidebar = React.memo(function AppSidebar() {
       return;
     }
 
-    const newProject: Project = {
-      id: `project-${Date.now()}`,
+    try {
+      await createProjectAsync({
       name: newProjectName.trim(),
       description: newProjectDescription.trim(),
-      isActive: false,
-      createdAt: new Date().toISOString(),
-    };
-
-    const updatedProjects = [...projects, newProject];
-    setProjects(updatedProjects);
-    saveProjects(updatedProjects);
+      });
     
     // Reset form
     setNewProjectName("");
@@ -270,19 +253,26 @@ const AppSidebar = React.memo(function AppSidebar() {
     
     toast({
       title: "Project Created",
-      description: `"${newProject.name}" has been created successfully`,
+        description: `"${newProjectName.trim()}" has been created successfully`,
     });
-  }, [newProjectName, newProjectDescription, projects, toast]);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.detail || "Failed to create project. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [newProjectName, newProjectDescription, createProjectAsync, toast]);
 
-  // Handle view all projects
+  // Handle view all projects - navigate to projects page
   const handleViewAllProjects = useCallback(() => {
-    setShowAllProjects(true);
-  }, []);
+    setLocation("/projects");
+  }, [setLocation]);
 
   // Handle delete project
-  const handleDeleteProject = useCallback((project: Project) => {
+  const handleDeleteProject = useCallback(async (project: APIProject) => {
     // Prevent deleting the active project
-    if (project.isActive) {
+    if (project.id === activeProjectId) {
       toast({
         title: "Cannot Delete Active Project",
         description: "Please switch to another project before deleting this one.",
@@ -291,16 +281,22 @@ const AppSidebar = React.memo(function AppSidebar() {
       return;
     }
 
-    const updatedProjects = projects.filter(p => p.id !== project.id);
-    setProjects(updatedProjects);
-    saveProjects(updatedProjects);
+    try {
+      await deleteProjectAsync(project.id);
     setProjectToDelete(null);
     
     toast({
       title: "Project Deleted",
       description: `"${project.name}" has been deleted successfully`,
     });
-  }, [projects, toast]);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.detail || "Failed to delete project. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [activeProjectId, deleteProjectAsync, toast]);
 
   // Get sorted projects (active first, then newest first)
   const sortedProjects = useMemo(() => {
@@ -367,14 +363,31 @@ const AppSidebar = React.memo(function AppSidebar() {
               variant="ghost"
               className="w-full justify-between h-auto p-3 transition-[background-color,border-color] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))] active:bg-sidebar-accent active:text-sidebar-accent-foreground active:border-[hsl(var(--button-hover-border))]"
               data-testid="dropdown-projects"
+              disabled={projectsLoading || !selectedProject}
             >
               <div className="flex items-center gap-3">
                 <Folder className="h-4 w-4 text-primary" />
                 <div className="text-left">
+                  {projectsLoading ? (
+                    <>
+                      <div className="font-medium text-sm">Loading...</div>
+                      <div className="text-xs text-muted-foreground">Please wait</div>
+                    </>
+                  ) : selectedProject ? (
+                    <>
                   <div className="font-medium text-sm">{selectedProject.name}</div>
                   <div className="text-xs text-muted-foreground">
                     {selectedProject.description}
                   </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="font-medium text-sm">No Project</div>
+                      <div className="text-xs text-muted-foreground">
+                        Create a project to get started
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
               <ChevronDown className="h-4 w-4 opacity-50" />
@@ -394,7 +407,15 @@ const AppSidebar = React.memo(function AppSidebar() {
               Switch Project
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {top3Projects.map((project) => (
+            {projectsLoading ? (
+              <div className="flex items-center justify-center p-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading projects...
+                </div>
+              </div>
+            ) : top3Projects.length > 0 ? (
+              top3Projects.map((project) => (
               <DropdownMenuItem
                 key={project.id}
                 onClick={() => handleProjectSelect(project)}
@@ -410,11 +431,18 @@ const AppSidebar = React.memo(function AppSidebar() {
                     </div>
                   </div>
                 </div>
-                {selectedProject.id === project.id && (
+                  {selectedProject && selectedProject.id === project.id && (
                   <Check className="h-4 w-4 text-primary" />
                 )}
               </DropdownMenuItem>
-            ))}
+              ))
+            ) : (
+              <div className="flex items-center justify-center p-4">
+                <div className="text-sm text-muted-foreground text-center">
+                  No projects found
+                </div>
+              </div>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               onSelect={(e) => {
@@ -560,90 +588,6 @@ const AppSidebar = React.memo(function AppSidebar() {
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* View All Projects Dialog */}
-      <Dialog open={showAllProjects} onOpenChange={setShowAllProjects}>
-        <DialogContent className={cn("max-w-2xl max-h-[85vh] flex flex-col", isMobile && "w-[calc(100vw-2rem)] max-h-[90vh]")}>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <List className="h-5 w-5" />
-              All Projects ({projects.length})
-            </DialogTitle>
-            <DialogDescription>
-              Manage and switch between all your projects.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 space-y-2 overflow-y-auto min-h-0">
-            {sortedProjects.map((project) => (
-              <div
-                key={project.id}
-                className={cn(
-                  "group flex items-center justify-between gap-3 p-3 rounded-lg border transition-colors",
-                  selectedProject.id === project.id
-                    ? "bg-accent border-primary"
-                    : "border-border hover:bg-accent"
-                )}
-              >
-                <div
-                  onClick={() => handleProjectSelect(project)}
-                  className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
-                >
-                  <Folder className={cn(
-                    "h-5 w-5 flex-shrink-0",
-                    selectedProject.id === project.id ? "text-primary" : "text-muted-foreground"
-                  )} />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm flex items-center gap-2">
-                      {project.name}
-                      {selectedProject.id === project.id && (
-                        <Badge variant="secondary" className="text-xs">Active</Badge>
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {project.description}
-                    </div>
-                  </div>
-                  {selectedProject.id === project.id && (
-                    <Check className="h-5 w-5 text-primary flex-shrink-0 ml-2" />
-                  )}
-                </div>
-                {!project.isActive && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setProjectToDelete(project);
-                    }}
-                    className="h-8 w-8 flex-shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors duration-200"
-                    title="Delete project"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="pt-3 mt-2 border-t">
-            <Button
-              type="button"
-              onClick={() => {
-                setShowAllProjects(false);
-                setShowCreateDialog(true);
-              }}
-              className={cn(
-                "w-full justify-start gap-3 p-3 rounded-lg border transition-colors",
-                "bg-primary text-primary-foreground hover:bg-primary/90 border-primary text-left",
-                "sm:w-auto sm:justify-center sm:px-4 sm:py-2 sm:rounded-md",
-                isMobile && "h-auto"
-              )}
-            >
-              <Plus className="h-5 w-5 flex-shrink-0" />
-              <span>Create New Project</span>
-            </Button>
-          </div>
         </DialogContent>
       </Dialog>
 

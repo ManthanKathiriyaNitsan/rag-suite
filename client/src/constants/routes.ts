@@ -18,6 +18,7 @@ export const ROUTES = {
   SETTINGS: '/settings',
   API_KEYS: '/api-keys',
   SYSTEM_HEALTH: '/system-health',
+  PROJECTS: '/projects',
 } as const;
 
 export const ROUTE_LABELS = {
@@ -36,6 +37,7 @@ export const ROUTE_LABELS = {
   [ROUTES.SETTINGS]: 'Settings',
   [ROUTES.API_KEYS]: 'API Keys',
   [ROUTES.SYSTEM_HEALTH]: 'System Health',
+  [ROUTES.PROJECTS]: 'Projects',
 } as const;
 
 // Navigation Menu Items

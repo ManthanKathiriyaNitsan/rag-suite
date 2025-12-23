@@ -29,6 +29,7 @@ import { useCitationFormatting } from "@/contexts/CitationFormattingContext";
 import { useBackground } from "@/contexts/BackgroundContext";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Layers } from "lucide-react";
+import { useSettingsAPI } from "@/hooks/useSettingsAPI";
 
 const Settings = React.memo(function Settings() {
   const {
@@ -42,6 +43,10 @@ const Settings = React.memo(function Settings() {
     setBranding,
     resetBranding
   } = useBranding();
+  
+  // Use settings API for branding data
+  const { settings, isLoading: isLoadingSettings, saveSettingsAsync, isSaving, refetchSettings } = useSettingsAPI();
+  
   const [orgName, setOrgName] = useState(orgNameGlobal || "Acme Corporation");
   const [primaryColor, setPrimaryColor] = useState(primaryColorGlobal || "#1F5AAD");
   const [retentionDays, setRetentionDays] = useState(90);
@@ -63,19 +68,14 @@ const Settings = React.memo(function Settings() {
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Load settings from API on mount
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("branding");
-      if (saved) {
-        const b = JSON.parse(saved) as { orgName?: string; primaryColor?: string; logoDataUrl?: string | null };
-        if (typeof b.orgName !== "undefined") setOrgName(b.orgName ?? "");
-        if (typeof b.primaryColor !== "undefined") setPrimaryColor(b.primaryColor ?? "");
-        if (typeof b.logoDataUrl !== "undefined") setLogoDataUrl(b.logoDataUrl ?? null);
-      }
-    } catch (e) {
-      console.warn("Failed to load branding from localStorage", e);
+    if (settings) {
+      if (settings.org_name) setOrgName(settings.org_name);
+      if (settings.primary_color) setPrimaryColor(settings.primary_color);
+      if (settings.logo_data_url !== undefined) setLogoDataUrl(settings.logo_data_url);
     }
-  }, []); // Empty dependency array - runs only on mount
+  }, [settings]);
 
   const handleLogoChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
     const file = e.target.files?.[0];
@@ -94,24 +94,55 @@ const Settings = React.memo(function Settings() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleSaveBranding = () => {
+  const handleSaveBranding = async () => {
     try {
-      const data = { orgName, primaryColor, logoDataUrl };
-      localStorage.setItem("branding", JSON.stringify(data));
-      setBranding(data); // update global context so all pages reflect immediately
-      toast({ title: "Record saved", description: "Organization name, color, and logo were saved.", variant: "success" });
-    } catch (e) {
-      toast({ title: "Save failed", description: "Could not save branding settings.", variant: "destructive" });
+      // Save to API
+      await saveSettingsAsync({
+        org_name: orgName.trim(),
+        primary_color: primaryColor,
+        logo_data_url: logoDataUrl,
+      });
+      
+      // Update global context so all pages reflect immediately
+      setBranding({
+        orgName: orgName.trim(),
+        primaryColor: primaryColor,
+        logoDataUrl: logoDataUrl,
+      });
+      
+      // Refetch settings to ensure consistency
+      await refetchSettings();
+    } catch (error) {
+      // Error handled by hook (toast notification)
+      console.error("Failed to save branding:", error);
     }
   };
 
-  const handleResetBranding = () => {
-    setOrgName("Acme Corporation");
-    setPrimaryColor("#1F6FEB");
-    setLogoDataUrl(null);
-    resetBranding();
-    localStorage.removeItem("branding");
-    toast({ title: "Branding reset", description: "Branding settings were reset to defaults.", variant: "info" });
+  const handleResetBranding = async () => {
+    try {
+      // Reset to defaults and save to API
+      const defaultOrgName = "RAGSuite";
+      const defaultColor = "#1F6FEB";
+      
+      await saveSettingsAsync({
+        org_name: defaultOrgName,
+        primary_color: defaultColor,
+        logo_data_url: null,
+      });
+      
+      setOrgName(defaultOrgName);
+      setPrimaryColor(defaultColor);
+      setLogoDataUrl(null);
+      resetBranding();
+      
+      // Refetch settings
+      await refetchSettings();
+      
+      toast({ title: "Branding reset", description: "Branding settings were reset to defaults.", variant: "info" });
+    } catch (error) {
+      console.error("Failed to reset branding:", error);
+      toast({ title: "Reset failed", description: "Could not reset branding settings.", variant: "destructive" });
+    }
   };
 
   const handleSaveLocale = () => {
@@ -355,8 +386,22 @@ const Settings = React.memo(function Settings() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row justify-end gap-2  pt-10">
-                  <Button variant="outline" onClick={handleResetBranding} className="w-full sm:w-auto">Reset</Button>
-                  <Button onClick={handleSaveBranding} data-testid="button-save-branding" className="w-full sm:w-auto group">Save Changes</Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleResetBranding} 
+                    className="w-full sm:w-auto"
+                    disabled={isSaving || isLoadingSettings}
+                  >
+                    Reset
+                  </Button>
+                  <Button 
+                    onClick={handleSaveBranding} 
+                    data-testid="button-save-branding" 
+                    className="w-full sm:w-auto group"
+                    disabled={isSaving || isLoadingSettings}
+                  >
+                    {isSaving ? "Saving..." : "Save Changes"}
+                  </Button>
                 </div>
               </CardContent>
             </GlassCard>

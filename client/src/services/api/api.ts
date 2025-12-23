@@ -15,15 +15,32 @@ export const apiClient = axios.create({
 // 🔧 Add request interceptor for debugging and authentication
 apiClient.interceptors.request.use(
   (config) => {
-    // Add authentication token if available and not expired (check both token storage keys for compatibility)
+    // Add authentication token if available (check both token storage keys for compatibility)
     const token = localStorage.getItem('auth-token') || localStorage.getItem('auth_token');
     const expiresAt = localStorage.getItem('token_expires');
 
-    if (token && expiresAt) {
-      const expirationDate = new Date(expiresAt);
-      const currentDate = new Date();
-
-      if (expirationDate > currentDate) {
+    if (token) {
+      // If expiresAt exists, check if token is expired
+      if (expiresAt) {
+        try {
+          const expirationDate = new Date(expiresAt);
+          const currentDate = new Date();
+          
+          // Only add token if not expired (with 5 minute buffer for safety)
+          const bufferTime = 5 * 60 * 1000; // 5 minutes
+          if (expirationDate.getTime() > (currentDate.getTime() + bufferTime)) {
+            config.headers.Authorization = `Bearer ${token}`;
+          } else {
+            console.warn('⚠️ Token expired, not adding to request');
+          }
+        } catch (error) {
+          // If expiresAt is invalid, still try to use the token (let backend decide)
+          console.warn('⚠️ Invalid expiresAt format, using token anyway:', error);
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } else {
+        // If no expiresAt, still use the token (let backend decide if it's valid)
+        console.warn('⚠️ No expiresAt found, using token anyway');
         config.headers.Authorization = `Bearer ${token}`;
       }
     }
@@ -34,6 +51,8 @@ apiClient.interceptors.request.use(
       baseURL: config.baseURL,
       fullURL: `${config.baseURL}${config.url}`,
       hasAuth: !!config.headers.Authorization,
+      hasToken: !!token,
+      hasExpiresAt: !!expiresAt,
     });
     return config;
   },
@@ -68,14 +87,23 @@ apiClient.interceptors.response.use(
 
     // Check if it's a 401 Unauthorized error
     if (error.response?.status === 401) {
-      console.warn('🔐 Authentication failed - redirecting to login');
-      // Clear auth data and redirect to login (clear both token storage keys for compatibility)
-      localStorage.removeItem('auth-token');
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth-user');
-      localStorage.removeItem('user_data');
-      localStorage.removeItem('token_expires');
-      window.location.href = '/login';
+      // Don't redirect if we're already on login page or if it's a login request
+      const isLoginPage = window.location.pathname === '/login' || window.location.pathname === '/signup';
+      const isLoginRequest = error.config?.url?.includes('/login') || error.config?.url?.includes('/auth/login');
+      
+      if (!isLoginPage && !isLoginRequest) {
+        console.warn('🔐 Authentication failed (401) - clearing tokens and redirecting to login');
+        // Clear auth data (clear both token storage keys for compatibility)
+        localStorage.removeItem('auth-token');
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth-user');
+        localStorage.removeItem('user_data');
+        localStorage.removeItem('token_expires');
+        // Only redirect if not already on login page
+        window.location.href = '/login';
+      } else {
+        console.warn('🔐 Authentication failed (401) on login page - token may be invalid');
+      }
     }
 
     return Promise.reject(error);
@@ -1523,4 +1551,394 @@ export const embedAPI = {
       throw error;
     }
   }
+};
+
+// 📁 Project API type definitions
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  owner_id: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectsResponse {
+  projects: Project[];
+  total: number;
+  active_project_id: string;
+}
+
+export interface CreateProjectPayload {
+  name: string;
+  description: string;
+}
+
+export interface UpdateProjectPayload {
+  name?: string;
+  description?: string;
+  is_active?: boolean;
+}
+
+// 📁 Project API functions
+export const projectAPI = {
+  // Get all projects
+  getProjects: async (): Promise<ProjectsResponse> => {
+    console.log('📁 Project API - Getting projects');
+    try {
+      const response = await apiClient.get('/projects');
+      console.log('✅ Projects retrieved successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Get projects failed:', error);
+      throw error;
+    }
+  },
+
+  // Get single project
+  getProject: async (projectId: string): Promise<Project> => {
+    console.log('📁 Project API - Getting project:', projectId);
+    try {
+      const response = await apiClient.get(`/projects/${projectId}`);
+      console.log('✅ Project retrieved successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Get project failed:', error);
+      throw error;
+    }
+  },
+
+  // Create project
+  createProject: async (payload: CreateProjectPayload): Promise<Project> => {
+    console.log('📁 Project API - Creating project:', payload);
+    try {
+      const response = await apiClient.post('/projects', payload);
+      console.log('✅ Project created successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Create project failed:', error);
+      throw error;
+    }
+  },
+
+  // Update project
+  updateProject: async (projectId: string, payload: UpdateProjectPayload): Promise<Project> => {
+    console.log('📁 Project API - Updating project:', projectId, payload);
+    try {
+      const response = await apiClient.put(`/projects/${projectId}`, payload);
+      console.log('✅ Project updated successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Update project failed:', error);
+      throw error;
+    }
+  },
+
+  // Delete project
+  deleteProject: async (projectId: string): Promise<void> => {
+    console.log('📁 Project API - Deleting project:', projectId);
+    try {
+      await apiClient.delete(`/projects/${projectId}`);
+      console.log('✅ Project deleted successfully');
+    } catch (error) {
+      console.error('❌ Delete project failed:', error);
+      throw error;
+    }
+  },
+
+  // Activate project
+  activateProject: async (projectId: string): Promise<Project> => {
+    console.log('📁 Project API - Activating project:', projectId);
+    try {
+      const response = await apiClient.post(`/projects/${projectId}/activate`);
+      console.log('✅ Project activated successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Activate project failed:', error);
+      throw error;
+    }
+  },
+};
+
+// ==================== ONBOARDING API ====================
+
+export interface OnboardingBranding {
+  org_name: string;
+  logo_data_url?: string | null;
+  primary_color?: string | null;
+}
+
+export interface OnboardingProject {
+  name: string;
+  description: string;
+}
+
+export interface OnboardingDataSource {
+  base_url: string;
+  depth?: number;
+  cadence?: string;
+  headless_mode?: boolean;
+}
+
+export interface OnboardingTestQuery {
+  project_id: string;
+  query: string;
+}
+
+export interface OnboardingStatus {
+  completed_steps: string[];
+  current_step: string;
+  project_id: string | null;
+}
+
+export interface SuggestionResponse {
+  suggestions: string[];
+}
+
+// General suggestions API (for RAG Tuning, doesn't require projectId)
+export const suggestionsAPI = {
+  // Get general suggestions
+  getSuggestions: async (): Promise<SuggestionResponse> => {
+    console.log('💡 Suggestions API - Getting suggestions');
+    try {
+      const response = await apiClient.get('/suggestions');
+      console.log('✅ Suggestions retrieved successfully:', response.data);
+      return response.data;
+    } catch (error: any) {
+      // If 404 or error, return empty suggestions
+      if (error?.response?.status === 404) {
+        console.log('ℹ️ No suggestions found, returning empty array');
+        return { suggestions: [] };
+      }
+      console.error('❌ Get suggestions failed:', error);
+      // Return empty array on error instead of throwing
+      return { suggestions: [] };
+    }
+  },
+};
+
+export interface OnboardingBrandingResponse {
+  message: string;
+  org_name: string;
+  has_logo: boolean;
+  has_color: boolean;
+  logo_data_url?: string | null;
+  primary_color?: string | null;
+}
+
+export interface OnboardingTestQueryResponse {
+  success: boolean;
+  query: string;
+  answer: string;
+  message_id?: string;
+  session_id?: string;
+}
+
+export const onboardingAPI = {
+  // Get branding (Step 1)
+  getBranding: async (): Promise<OnboardingBrandingResponse> => {
+    console.log('🎨 Onboarding API - Getting branding');
+    try {
+      const response = await apiClient.get('/onboarding/branding');
+      console.log('✅ Branding retrieved successfully:', response.data);
+      return response.data;
+    } catch (error: any) {
+      // If 404, return default branding
+      if (error?.response?.status === 404) {
+        console.log('ℹ️ No branding found, returning defaults');
+        return {
+          message: 'No branding configured',
+          org_name: '',
+          has_logo: false,
+          has_color: false,
+        };
+      }
+      console.error('❌ Get branding failed:', error);
+      throw error;
+    }
+  },
+
+  // Save branding (Step 1)
+  saveBranding: async (branding: OnboardingBranding): Promise<OnboardingBrandingResponse> => {
+    console.log('🎨 Onboarding API - Saving branding:', branding.org_name);
+    try {
+      const response = await apiClient.post('/onboarding/branding', branding);
+      console.log('✅ Branding saved successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Save branding failed:', error);
+      throw error;
+    }
+  },
+
+  // Create onboarding project (Step 2)
+  createProject: async (project: OnboardingProject): Promise<Project> => {
+    console.log('📁 Onboarding API - Creating project:', project.name);
+    try {
+      const response = await apiClient.post('/onboarding/project', project);
+      console.log('✅ Onboarding project created successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Create onboarding project failed:', error);
+      throw error;
+    }
+  },
+
+  // Create onboarding data source (Step 3)
+  createDataSource: async (dataSource: OnboardingDataSource): Promise<CrawlSite> => {
+    console.log('🌐 Onboarding API - Creating data source:', dataSource.base_url);
+    try {
+      const response = await apiClient.post('/onboarding/data-source', dataSource);
+      console.log('✅ Onboarding data source created successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Create onboarding data source failed:', error);
+      throw error;
+    }
+  },
+
+  // Test onboarding query (Step 4)
+  testQuery: async (testData: OnboardingTestQuery): Promise<OnboardingTestQueryResponse> => {
+    console.log('🔍 Onboarding API - Testing query:', testData.query);
+    try {
+      const response = await apiClient.post('/onboarding/test-query', testData);
+      console.log('✅ Test query executed successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Test query failed:', error);
+      throw error;
+    }
+  },
+
+  // Get onboarding status
+  getStatus: async (): Promise<OnboardingStatus> => {
+    console.log('📊 Onboarding API - Getting status');
+    try {
+      const response = await apiClient.get('/onboarding/status');
+      console.log('✅ Onboarding status retrieved successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Get onboarding status failed:', error);
+      throw error;
+    }
+  },
+
+  // Get suggestions
+  getSuggestions: async (projectId: string, limit: number = 4): Promise<SuggestionResponse> => {
+    console.log('💡 Onboarding API - Getting suggestions for project:', projectId);
+    try {
+      const response = await apiClient.get('/onboarding/suggestions', {
+        params: { project_id: projectId, limit },
+      });
+      console.log('✅ Suggestions retrieved successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Get suggestions failed:', error);
+      throw error;
+    }
+  },
+
+  // Get crawl status for onboarding
+  getCrawlStatus: async (): Promise<string> => {
+    console.log('🕷️ Onboarding API - Getting crawl status');
+    try {
+      const response = await apiClient.get('/onboarding/crawl-status');
+      console.log('✅ Crawl status retrieved successfully:', response.data);
+      // Response is a string, return it directly
+      return typeof response.data === 'string' ? response.data : response.data.status || '';
+    } catch (error: any) {
+      // If 404, return empty string
+      if (error?.response?.status === 404) {
+        console.log('ℹ️ No crawl status found');
+        return '';
+      }
+      console.error('❌ Get crawl status failed:', error);
+      throw error;
+    }
+  },
+
+  // Complete onboarding (Final step)
+  completeOnboarding: async (): Promise<{
+    success: boolean;
+    message: string;
+    project: {
+      id: string;
+      name: string;
+      description: string;
+      is_active: boolean;
+      created_at: string | null;
+    };
+    data_source: {
+      id: string;
+      name: string;
+      base_url: string;
+      status: string;
+    };
+    embeddings: {
+      documents_count: number;
+      status: string;
+    };
+    next_steps: string;
+  }> => {
+    console.log('🎉 Onboarding API - Completing onboarding');
+    try {
+      const response = await apiClient.post('/onboarding/complete');
+      console.log('✅ Onboarding completed successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Complete onboarding failed:', error);
+      throw error;
+    }
+  },
+};
+
+// Settings API interfaces
+export interface SettingsResponse {
+  org_name: string;
+  logo_data_url: string | null;
+  primary_color: string;
+}
+
+export interface SettingsRequest {
+  org_name: string;
+  logo_data_url?: string | null;
+  primary_color?: string;
+}
+
+export const settingsAPI = {
+  // Get settings
+  getSettings: async (): Promise<SettingsResponse> => {
+    console.log('⚙️ Settings API - Getting settings');
+    try {
+      const response = await apiClient.get('/settings');
+      console.log('✅ Settings retrieved successfully:', response.data);
+      return response.data;
+    } catch (error: any) {
+      // If 404, return default settings
+      if (error?.response?.status === 404) {
+        console.log('ℹ️ No settings found, returning defaults');
+        return {
+          org_name: 'RAGSuite',
+          logo_data_url: null,
+          primary_color: '#1F6FEB',
+        };
+      }
+      console.error('❌ Get settings failed:', error);
+      throw error;
+    }
+  },
+
+  // Save settings
+  saveSettings: async (settings: SettingsRequest): Promise<SettingsResponse> => {
+    console.log('⚙️ Settings API - Saving settings:', settings.org_name);
+    try {
+      const response = await apiClient.post('/settings', settings);
+      console.log('✅ Settings saved successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Save settings failed:', error);
+      throw error;
+    }
+  },
 };

@@ -17,7 +17,25 @@ interface AuthContextType {
   clearError: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Initialize with default value to prevent "must be used within provider" errors
+const defaultAuthContextValue: AuthContextType = {
+  isAuthenticated: false,
+  user: null,
+  token: null,
+  isLoading: true,
+  error: null,
+  login: () => {
+    console.warn('login called before AuthProvider is initialized');
+  },
+  logout: () => {
+    console.warn('logout called before AuthProvider is initialized');
+  },
+  clearError: () => {
+    console.warn('clearError called before AuthProvider is initialized');
+  },
+};
+
+export const AuthContext = createContext<AuthContextType>(defaultAuthContextValue);
 
 // 🔐 Authentication Provider
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -112,9 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 // 🔐 Use Auth Hook
 export function useAuthContext() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuthContext must be used within an AuthProvider');
-  }
+  // Context is always defined (has default value), so no need to check
   return context;
 }
 

@@ -78,38 +78,40 @@ const CrawlJobs = React.memo(function CrawlJobs({ sites, statusFilter = "all" }:
     };
 
     return (
-      <div className="flex items-center justify-between p-4 border rounded-lg hover-elevate" data-testid={`job-row-${site.id}`}>
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 p-4 border rounded-lg hover-elevate" data-testid={`job-row-${site.id}`}>
+        <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
           <div className="flex-1 min-w-0">
             <h4 className="font-medium truncate">{site.name || 'Unnamed Site'}</h4>
-            <p className="text-sm text-muted-foreground truncate">{site.url || 'No URL'}</p>
+            <p className="text-sm text-muted-foreground truncate break-all sm:break-normal">{site.url || 'No URL'}</p>
           </div>
-          <div className="flex items-center space-x-2">
-            <Badge variant={jobStatus.isRunning ? "default" : "secondary"}>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Badge variant={jobStatus.isRunning ? "default" : "secondary"} className="text-xs whitespace-nowrap">
               {jobStatus.isRunning ? "Running" : "Idle"}
             </Badge>
-            {jobStatus.isRunning && <Loader2 className="h-4 w-4 animate-spin" />}
+            {jobStatus.isRunning && <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />}
           </div>
         </div>
-        <div className="text-right space-y-2 min-w-[140px]">
+        <div className="flex flex-col sm:items-end gap-2 sm:gap-2 sm:text-right sm:min-w-[140px]">
           {/* Progress Bar - Show whenever progress data is available */}
           {site.progress !== undefined && site.progress !== null && (
-            <div className="space-y-1">
-              <div className="flex items-center justify-end gap-2">
-                <Progress value={site.progress} className="h-2 w-24" />
-                <span className="text-sm font-medium text-foreground whitespace-nowrap">
+            <div className="space-y-1 w-full sm:w-auto">
+              <div className="flex items-center justify-between sm:justify-end gap-2">
+                <Progress value={site.progress} className="h-2 flex-1 sm:flex-initial sm:w-24 max-w-[200px]" />
+                <span className="text-sm font-medium text-foreground whitespace-nowrap flex-shrink-0">
                   {Math.round(site.progress)}%
                 </span>
               </div>
             </div>
           )}
-          <p className="text-sm font-medium">
-            {site.pagesCrawled || 0} pages
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {jobStatus.completedAt ? `Finished ${jobStatus.completedAt.toLocaleTimeString()}` : "In progress"}
-            {jobStatus.error ? ` • Error: ${jobStatus.error}` : ""}
-          </p>
+          <div className="flex flex-col sm:items-end gap-1">
+            <p className="text-sm font-medium whitespace-nowrap">
+              {site.pagesCrawled || 0} pages
+            </p>
+            <p className="text-xs text-muted-foreground break-words sm:break-normal sm:text-right">
+              {jobStatus.completedAt ? `Finished ${jobStatus.completedAt.toLocaleTimeString()}` : "In progress"}
+              {jobStatus.error ? ` • Error: ${jobStatus.error}` : ""}
+            </p>
+          </div>
         </div>
       </div>
     );
