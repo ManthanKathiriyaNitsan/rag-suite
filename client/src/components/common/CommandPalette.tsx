@@ -70,14 +70,6 @@ const CommandPalette = React.memo(function CommandPalette({ open, onOpenChange }
       keywords: ["documents", "files", "library"],
     },
     {
-      id: "nav-rag-tuning",
-      title: "Go to RAG Tuning",
-      description: "Configure RAG parameters",
-      icon: Zap,
-      action: () => setLocation("/rag-tuning"),
-      keywords: ["rag", "tuning", "playground", "ai"],
-    },
-    {
       id: "nav-analytics",
       title: "Go to Analytics",
       description: "View performance metrics",
@@ -161,14 +153,6 @@ const CommandPalette = React.memo(function CommandPalette({ open, onOpenChange }
         console.log("Start crawl action triggered");
       },
       keywords: ["start", "crawl", "manual", "trigger"],
-    },
-    {
-      id: "test-rag",
-      title: "Test RAG System",
-      description: "Open RAG tuning playground",
-      icon: Zap,
-      action: () => setLocation("/rag-tuning"),
-      keywords: ["test", "rag", "playground", "query"],
     },
   ], [setLocation]);
 

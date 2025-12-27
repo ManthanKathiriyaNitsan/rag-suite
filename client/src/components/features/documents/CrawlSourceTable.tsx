@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from "react";
-import { MoreHorizontal, Eye, Edit, Play, Trash2, Loader2 } from "lucide-react";
+import { MoreHorizontal, Eye, Edit, Play, Trash2, Loader2, CheckCircle2, Clock } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import {
   Table,
@@ -214,6 +214,7 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
                 <TableHead className="w-[100px]">Cadence</TableHead>
                 <TableHead className="w-[120px]">Headless Mode</TableHead>
                 <TableHead className="w-[100px]">Status</TableHead>
+                <TableHead className="w-[120px]">Training</TableHead>
                 <TableHead className="w-[120px]">Last Crawl</TableHead>
                 <TableHead className="w-[100px]">Links</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
@@ -268,6 +269,24 @@ const CrawlSourceTable = React.memo(function CrawlSourceTable({
                         </div>
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {site.isTrained && site.trainedAt ? (
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                          <span className="text-xs font-medium text-green-600">Trained</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(site.trainedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-yellow-600" />
+                        <span className="text-xs text-muted-foreground">Pending</span>
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="text-sm text-muted-foreground">

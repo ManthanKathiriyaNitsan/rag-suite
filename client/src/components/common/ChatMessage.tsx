@@ -53,6 +53,46 @@ interface ChatMessageProps {
   actualTopK?: number; // Actual TopK used by server
   actualReranker?: boolean; // Actual reranker status from server
   isWidget?: boolean; // 🎨 Whether this is being used in embedded widget (grid layout disabled)
+  // Widget customization props
+  widgetAvatar?: string;
+  widgetAvatarSize?: number;
+  widgetChatbotColor?: string;
+  widgetShowDateTime?: boolean;
+  widgetFontSize?: number;
+  avatarOptions?: Array<{ id: string; emoji: string }>;
+}
+
+// Format timestamp as relative time (e.g., "2 months ago")
+function formatRelativeTime(date: Date): string {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) {
+    return 'just now';
+  }
+  
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+  }
+  
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) {
+    return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+  }
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) {
+    return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+  }
+  
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) {
+    return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
+  }
+  
+  const diffInYears = Math.floor(diffInMonths / 12);
+  return `${diffInYears} year${diffInYears > 1 ? 's' : ''} ago`;
 }
 
 const ChatMessage = React.memo(function ChatMessage({
@@ -69,6 +109,12 @@ const ChatMessage = React.memo(function ChatMessage({
   actualTopK,
   actualReranker,
   isWidget = false,
+  widgetAvatar,
+  widgetAvatarSize,
+  widgetChatbotColor,
+  widgetShowDateTime,
+  widgetFontSize,
+  avatarOptions,
 }: ChatMessageProps) {
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
 
@@ -82,29 +128,16 @@ const ChatMessage = React.memo(function ChatMessage({
   // 🎨 Get citation formatting options
   const { formatting } = useCitationFormatting();
 
-  // Get widget appearance settings from global context
-  const getWidgetAppearance = () => {
-    try {
-      const saved = localStorage.getItem("theme-layout");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return parsed.widgetAppearance || {
-          chatBubbleStyle: "rounded",
-          avatarStyle: "circle",
-          animationsEnabled: true,
-        };
-      }
-    } catch (error) {
-      console.warn("Failed to load widget appearance from localStorage:", error);
-    }
-    return {
-      chatBubbleStyle: "rounded",
-      avatarStyle: "circle",
-      animationsEnabled: true,
-    };
+  // Widget appearance settings (defaults, not persisted in localStorage)
+  const widgetAppearance: {
+    chatBubbleStyle: "rounded" | "sharp" | "minimal";
+    avatarStyle: "circle" | "square" | "rounded";
+    animationsEnabled: boolean;
+  } = {
+    chatBubbleStyle: "rounded",
+    avatarStyle: "circle",
+    animationsEnabled: true,
   };
-
-  const widgetAppearance = getWidgetAppearance();
 
   // 🎨 Citation formatting functions
   const getNumberingStyle = (index: number) => {
@@ -188,7 +221,7 @@ const ChatMessage = React.memo(function ChatMessage({
 
   return (
     <div
-      className={`chat-message flex gap-3 ${type === "user" ? "justify-end" : "justify-start"}`}
+      className={`chat-message flex ${isWidget ? "gap-2" : "gap-3"} ${type === "user" ? "justify-end" : "justify-start"}`}
       data-testid={`message-${type}`}
       role="article"
       aria-label={`${type === "user" ? "User" : "Assistant"} message`}
@@ -196,34 +229,61 @@ const ChatMessage = React.memo(function ChatMessage({
     >
       {type === "assistant" && (
         <Avatar
-          className={`h-8 w-8 mt-1 ${widgetAppearance.avatarStyle === "circle" ? "rounded-full" :
-            widgetAppearance.avatarStyle === "square" ? "rounded-none" :
-              "rounded-md"
-            }`}
+          className={`${isWidget ? "h-6 w-6" : "h-8 w-8"} mt-1 rounded-full flex-shrink-0`}
           aria-label="AI Assistant avatar"
+          style={{
+            width: isWidget && widgetAvatarSize ? `${Math.min(widgetAvatarSize, 24)}px` : undefined,
+            height: isWidget && widgetAvatarSize ? `${Math.min(widgetAvatarSize, 24)}px` : undefined,
+          }}
         >
-          <AvatarFallback className="bg-primary text-primary-foreground">
-            <Bot className="h-4 w-4" aria-hidden="true" />
-          </AvatarFallback>
+          {isWidget && widgetAvatar && (widgetAvatar.startsWith("http") || widgetAvatar.startsWith("data:")) ? (
+            <img
+              src={widgetAvatar}
+              alt="Custom avatar"
+              className="w-full h-full object-cover rounded-full"
+            />
+          ) : (
+            <AvatarFallback className="bg-primary text-primary-foreground">
+              {isWidget && avatarOptions && widgetAvatar ? (
+                <span style={{ fontSize: `${Math.min((widgetAvatarSize || 32) * 0.4, 14)}px` }}>
+                  {avatarOptions.find(a => a.id === widgetAvatar)?.emoji || "🤖"}
+                </span>
+              ) : (
+                <Bot className="h-4 w-4" aria-hidden="true" />
+              )}
+            </AvatarFallback>
+          )}
         </Avatar>
       )}
 
       <div className={`max-w-[80%] min-w-0 ${type === "user" ? "order-first" : ""}`}>
         <Card
-          className={`chat-bubble p-4 ${type === "user"
-            ? "bg-primary ml-auto"
-            : "bg-card"
-            } ${widgetAppearance.chatBubbleStyle === "sharp" ? "rounded-none" :
-              widgetAppearance.chatBubbleStyle === "minimal" ? "rounded-sm" :
-                "rounded-lg"
-            } ${widgetAppearance.animationsEnabled ? "transition-all duration-200 ease-in-out" : ""
-            }`}
+          className={`chat-bubble ${isWidget ? "p-3" : "p-4"} ${type === "user"
+            ? "ml-auto"
+            : ""
+            } ${isWidget ? "rounded-2xl" : "rounded-lg"} ${type === "assistant" && isWidget ? "bg-muted" : ""}`}
+          style={{
+            backgroundColor: type === "assistant" && isWidget
+              ? undefined // Use bg-muted class for theme-aware color
+              : type === "user" && isWidget && widgetChatbotColor 
+              ? (widgetChatbotColor === "gradient" || widgetChatbotColor.startsWith("linear-gradient") ? undefined : widgetChatbotColor)
+              : type === "user" && isWidget
+              ? "#3b82f6" // Default blue for user messages in widget
+              : type === "user" ? undefined : undefined,
+            backgroundImage: type === "user" && isWidget && widgetChatbotColor
+              ? (widgetChatbotColor === "gradient" ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : widgetChatbotColor.startsWith("linear-gradient") ? widgetChatbotColor : undefined)
+              : undefined,
+            fontSize: isWidget ? (widgetFontSize ? `${widgetFontSize}px` : '14px') : undefined,
+            color: type === "user" && isWidget ? "#ffffff" : undefined, // White text for user messages in widget (blue background)
+            lineHeight: isWidget ? '1.5' : undefined,
+            boxShadow: isWidget ? '0 1px 2px rgba(0, 0, 0, 0.1)' : undefined,
+          }}
         >
-          <div className="space-y-3">
-            <div className="opacity-90 w-full min-w-0">
+          <div className={isWidget ? "space-y-0" : "space-y-3"}>
+            <div className={`${isWidget ? "" : "opacity-90"} w-full min-w-0`}>
               {type === "assistant" ? (
                 <div
-                  className="text-sm leading-relaxed  prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground prose-blockquote:text-muted-foreground prose-blockquote:border-l-muted-foreground"
+                  className="text-sm leading-relaxed prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground prose-blockquote:text-muted-foreground prose-blockquote:border-l-muted-foreground"
                   role="text"
                   aria-label="Assistant message content"
                 >
@@ -302,12 +362,13 @@ const ChatMessage = React.memo(function ChatMessage({
                 </div>
               ) : (
                 <p
-                  className="whitespace-pre-wrap break-words overflow-wrap-anywhere hyphens-auto word-break-break-word text-wrap"
+                  className={`whitespace-pre-wrap break-words overflow-wrap-anywhere hyphens-auto word-break-break-word text-wrap ${isWidget ? "text-white text-sm" : ""}`}
                   style={{
                     wordBreak: 'break-word',
                     overflowWrap: 'anywhere',
                     whiteSpace: 'pre-wrap',
-                    hyphens: 'auto'
+                    hyphens: 'auto',
+                    lineHeight: isWidget ? '1.5' : undefined,
                   }}
                   role="text"
                   aria-label="User message content"
@@ -463,9 +524,21 @@ const ChatMessage = React.memo(function ChatMessage({
           </div>
         </Card>
 
-        {timestamp && (
-          <p className="text-xs text-muted-foreground mt-1 px-1">
-            {timestamp.toLocaleTimeString()}
+        {timestamp && (!isWidget || widgetShowDateTime !== false) && (
+          <p 
+            className={`text-xs text-muted-foreground mt-1 ${type === "user" ? "text-right" : "text-left"}`}
+            style={{
+              fontSize: isWidget && widgetFontSize ? `${Math.max((widgetFontSize || 14) - 2, 10)}px` : undefined,
+            }}
+          >
+            {isWidget ? formatRelativeTime(timestamp) : timestamp.toLocaleString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true
+            })}
           </p>
         )}
       </div>
@@ -482,3 +555,4 @@ const ChatMessage = React.memo(function ChatMessage({
 });
 
 export default ChatMessage;
+

@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { MessageCircle, X, Minimize2, Search, MessageSquare, Zap, Loader2, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SearchBar } from "./SearchBar";
-import ChatMessage from "./ChatMessage";
-import { Badge } from "@/components/ui/badge";
-import TypingIndicator from "./TypingIndicator";
+import { X, Mic, Send, Trash2, ThumbsUp, ThumbsDown, Copy } from "lucide-react";
 import { useRAGSettings } from "@/contexts/RAGSettingsContext";
 import { testChatAPIConnection } from "@/services/api/api";
 // 🌐 Import our global API hooks
 import { useSearch } from "@/hooks/useSearch";
-import { useChat } from "@/hooks/useChat";
+import { useChat, useChatFeedback } from "@/hooks/useChat";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useBranding } from "@/contexts/BrandingContext";
+import { cn, copyToClipboard } from "@/lib/utils";
+import "./EmbeddableWidgetStyles.css";
+// 📝 Import markdown support for message rendering
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import { safeStringConversion } from "@/utils/safeStringConversion";
 
 
 interface Message {
@@ -47,9 +47,32 @@ interface WidgetProps {
   onReady?: () => void;
   onAnswer?: (answer: string, query: string) => void;
   onError?: (error: string, context?: string) => void;
+  // 🎨 Preview overrides (for live preview in customization page)
+  previewOverrides?: {
+    widgetLogoUrl?: string | null;
+    widgetAvatar?: string;
+    widgetAvatarSize?: number;
+    widgetChatbotColor?: string;
+    widgetShowLogo?: boolean;
+    widgetShowDateTime?: boolean;
+    widgetBottomSpace?: number;
+    widgetFontSize?: number;
+    widgetTriggerBorderRadius?: number;
+    widgetPosition?: "bottom-right" | "bottom-left" | "top-right" | "top-left";
+    widgetZIndex?: number;
+    widgetOffsetX?: number;
+    widgetOffsetY?: number;
+    orgName?: string;
+    chatbotTitle?: string; // Chatbot title (separate from orgName)
+    bubbleMessage?: string;
+    shortDescription?: string;
+    welcomeMessage?: string;
+  };
+  // Preview mode - prevents loading chat history and keeps messages temporary
+  isPreviewMode?: boolean;
 }
 
-export const EmbeddableWidget = React.memo(function EmbeddableWidget({
+const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
   isOpen = false,
   onToggle,
   title = "AI Assistant",
@@ -58,16 +81,50 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
   onReady,
   onAnswer,
   onError,
+  // 🎨 Preview overrides
+  previewOverrides,
+  // Preview mode - prevents loading chat history
+  isPreviewMode = false,
 }: WidgetProps) {
   // 🎛️ Use global RAG settings
   const { settings } = useRAGSettings();
 
-  // 🎨 Use branding settings for widget positioning
-  const { widgetZIndex, widgetPosition, widgetOffsetX, widgetOffsetY } = useBranding();
+  // 🎨 Use branding settings for widget positioning and customization
+  const branding = useBranding();
+  
+  // 🎨 Use theme for markdown rendering
+  const { theme } = useTheme();
+  
+  // Use preview overrides if provided, otherwise use branding context values
+  const widgetZIndex = previewOverrides?.widgetZIndex !== undefined ? previewOverrides.widgetZIndex : branding.widgetZIndex;
+  const widgetPosition = previewOverrides?.widgetPosition !== undefined ? previewOverrides.widgetPosition : branding.widgetPosition;
+  const widgetOffsetX = previewOverrides?.widgetOffsetX !== undefined ? previewOverrides.widgetOffsetX : branding.widgetOffsetX;
+  const widgetOffsetY = previewOverrides?.widgetOffsetY !== undefined ? previewOverrides.widgetOffsetY : branding.widgetOffsetY;
+  const widgetLogoUrl = previewOverrides?.widgetLogoUrl !== undefined ? previewOverrides.widgetLogoUrl : branding.widgetLogoUrl;
+  const widgetAvatar = previewOverrides?.widgetAvatar !== undefined ? previewOverrides.widgetAvatar : branding.widgetAvatar;
+  const widgetAvatarSize = previewOverrides?.widgetAvatarSize !== undefined ? previewOverrides.widgetAvatarSize : branding.widgetAvatarSize;
+  const widgetChatbotColor = previewOverrides?.widgetChatbotColor !== undefined ? previewOverrides.widgetChatbotColor : branding.widgetChatbotColor;
+  const widgetShowLogo = previewOverrides?.widgetShowLogo !== undefined ? previewOverrides.widgetShowLogo : branding.widgetShowLogo;
+  const widgetShowDateTime = previewOverrides?.widgetShowDateTime !== undefined ? previewOverrides.widgetShowDateTime : branding.widgetShowDateTime;
+  const widgetBottomSpace = previewOverrides?.widgetBottomSpace !== undefined ? previewOverrides.widgetBottomSpace : branding.widgetBottomSpace;
+  const widgetFontSize = previewOverrides?.widgetFontSize !== undefined ? previewOverrides.widgetFontSize : branding.widgetFontSize;
+  const widgetTriggerBorderRadius = previewOverrides?.widgetTriggerBorderRadius !== undefined ? previewOverrides.widgetTriggerBorderRadius : (branding.widgetTriggerBorderRadius ?? 50);
+  const orgName = previewOverrides?.orgName !== undefined ? previewOverrides.orgName : branding.orgName;
+  // Widget title should use chatbotTitle (from Chatbot Configuration) if available, otherwise fall back to orgName (from Settings) or title prop
+  const widgetTitle = previewOverrides?.chatbotTitle !== undefined 
+    ? previewOverrides.chatbotTitle 
+    : (branding.chatbotTitle || orgName || title);
+  const bubbleMessage = previewOverrides?.bubbleMessage !== undefined ? previewOverrides.bubbleMessage : (branding.bubbleMessage || undefined);
+  const shortDescription = previewOverrides?.shortDescription !== undefined ? previewOverrides.shortDescription : (branding.shortDescription || undefined);
+  const welcomeMessage = previewOverrides?.welcomeMessage !== undefined ? previewOverrides.welcomeMessage : (branding.welcomeMessage || "Hello! I can help you search for information or answer questions about your documentation. What would you like to know?");
 
   // 🎭 Animation states
   const [isAnimating, setIsAnimating] = useState(false);
   const [shouldShow, setShouldShow] = useState(isOpen);
+  const [showBubble, setShowBubble] = useState(false);
+  
+  // Ref to ensure border radius persists
+  const triggerButtonRef = useRef<HTMLButtonElement>(null);
 
   // 🎬 Handle smooth open/close animations
   useEffect(() => {
@@ -86,6 +143,23 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
     }
   }, [isOpen, shouldShow, setShouldShow, setIsAnimating]);
 
+  // 🫧 Handle bubble message visibility - show for 2.5 seconds
+  useEffect(() => {
+    if (bubbleMessage && bubbleMessage.trim() !== "") {
+      // Show bubble when it first appears
+      setShowBubble(true);
+      
+      // Hide after 2.5 seconds
+      const timer = setTimeout(() => {
+        setShowBubble(false);
+      }, 2500);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setShowBubble(false);
+    }
+  }, [bubbleMessage]);
+
   // 🎯 Helper function to get position classes
   const getPositionClasses = (position: string) => {
     switch (position) {
@@ -99,88 +173,56 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
 
   const getModalPositionClasses = (position: string) => {
     switch (position) {
-      case 'bottom-right': return 'top-0 left-0 sm:bottom-6 sm:right-6 sm:top-auto sm:left-auto';
-      case 'bottom-left': return 'top-0 left-0 sm:bottom-6 sm:left-6 sm:top-auto sm:right-auto';
-      case 'top-right': return 'top-0 left-0 sm:top-6 sm:right-6 sm:bottom-auto sm:left-auto';
-      case 'top-left': return 'top-0 left-0 sm:top-6 sm:left-6 sm:bottom-auto sm:right-auto';
-      default: return 'top-0 left-0 sm:bottom-6 sm:right-6 sm:top-auto sm:left-auto';
+      case 'bottom-right': return 'top-0 right-0 sm:right-6';
+      case 'bottom-left': return 'top-0 left-0 sm:left-6';
+      case 'top-right': return 'top-0 right-0 sm:right-6';
+      case 'top-left': return 'top-0 left-0 sm:left-6';
+      default: return 'top-0 right-0 sm:right-6';
     }
   };
 
-  // Get widget appearance settings from global context - make it reactive
-  const [widgetAppearance, setWidgetAppearance] = useState({
-    chatBubbleStyle: "rounded",
-    avatarStyle: "circle",
-    animationsEnabled: true,
-  });
-
-  // Update widget appearance when localStorage changes
-  useEffect(() => {
-    const getWidgetAppearance = () => {
-      try {
-        const saved = localStorage.getItem("theme-layout");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          return parsed.widgetAppearance || {
-            chatBubbleStyle: "rounded",
-            avatarStyle: "circle",
+  // Widget appearance settings (defaults, not persisted in localStorage)
+  const widgetAppearance = {
+    chatBubbleStyle: "rounded" as const,
+    avatarStyle: "circle" as const,
             animationsEnabled: true,
           };
-        }
-      } catch (error) {
-        console.warn("Failed to load widget appearance from localStorage:", error);
-      }
-      return {
-        chatBubbleStyle: "rounded",
-        avatarStyle: "circle",
-        animationsEnabled: true,
-      };
-    };
 
-    setWidgetAppearance(getWidgetAppearance());
-
-    // Listen for storage changes
-    const handleStorageChange = () => {
-      const newAppearance = getWidgetAppearance();
-      const hasChanged = JSON.stringify(newAppearance) !== JSON.stringify(widgetAppearance);
-      if (hasChanged) {
-        console.log("🎨 Widget appearance updated");
-        setWidgetAppearance(newAppearance);
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-
-    // Listen for custom theme change events
-    const handleThemeChange = () => {
-      console.log("🎨 Widget theme changed");
-      setWidgetAppearance(getWidgetAppearance());
-    };
-
-    window.addEventListener('theme-changed', handleThemeChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('theme-changed', handleThemeChange);
-    };
-  }, []); // Empty dependency array - run only once
-
-  const [activeTab, setActiveTab] = useState("auto");
+  // Always use chat mode (no tabs)
+  const activeTab = "chat";
 
 
   // 💬 Load messages from API on mount
   const [messages, setMessages] = useState<Message[]>([
     {
       type: "assistant",
-      content: "Hello! I can help you search for information or answer questions about your documentation. What would you like to know?",
+      content: welcomeMessage,
       timestamp: new Date(),
     },
   ]);
 
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
-  // 💬 Load chat history from API on mount
+  // 💬 Load chat history from API on mount (skip in preview mode)
   useEffect(() => {
+    // In preview mode, only show welcome message and a sample user message, don't load chat history
+      if (isPreviewMode) {
+        setMessages([
+          {
+            type: "assistant",
+            content: welcomeMessage,
+            timestamp: new Date(),
+          },
+          {
+            type: "user",
+            content: "hi",
+            timestamp: new Date(),
+          },
+        ]);
+        setIsLoadingHistory(false);
+        return;
+      }
+
     const loadChatHistory = async () => {
       try {
         setIsLoadingHistory(true);
@@ -188,7 +230,13 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
         const history = await chatAPI.getChatHistory();
 
         if (history && history.length > 0) {
-          const convertedMessages: Message[] = [];
+          const convertedMessages: Message[] = [
+            {
+              type: "assistant",
+              content: welcomeMessage,
+              timestamp: new Date(),
+            },
+          ];
 
           [...history].reverse().forEach((item: any) => {
             convertedMessages.push({
@@ -211,13 +259,15 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
             });
           });
 
+          setMessages(convertedMessages);
+        } else {
+          // No history, just show welcome message
           setMessages([
             {
               type: "assistant",
-              content: "Hello! I can help you search for information or answer questions about your documentation. What would you like to know?",
+              content: welcomeMessage,
               timestamp: new Date(),
             },
-            ...convertedMessages
           ]);
         }
       } catch (error) {
@@ -228,7 +278,39 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
     };
 
     loadChatHistory();
-  }, []);
+  }, [welcomeMessage, isPreviewMode]);
+
+  // 💬 Update welcome message when it changes (for preview)
+  useEffect(() => {
+    if (isPreviewMode) {
+      // In preview mode, maintain the static messages (welcome + "hi")
+      setMessages([
+        {
+          type: "assistant",
+          content: welcomeMessage,
+          timestamp: new Date(),
+        },
+        {
+          type: "user",
+          content: "hi",
+          timestamp: new Date(),
+        },
+      ]);
+      return;
+    }
+    if (messages.length > 0 && messages[0].type === "assistant") {
+      setMessages(prev => {
+        const newMessages = [...prev];
+        if (newMessages[0] && newMessages[0].type === "assistant") {
+          newMessages[0] = {
+            ...newMessages[0],
+            content: welcomeMessage,
+          };
+        }
+        return newMessages;
+      });
+    }
+  }, [welcomeMessage, isPreviewMode]);
 
   // 🗑️ Clear chat function with API call
   const clearChat = async () => {
@@ -243,7 +325,7 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
     setMessages([
       {
         type: "assistant",
-        content: "Hello! I can help you search for information or answer questions about your documentation. What would you like to know?",
+        content: welcomeMessage,
         timestamp: new Date(),
       },
     ]);
@@ -254,6 +336,13 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
 
   // 💬 Use our chat hook for enhanced functionality
   const { sendMessageAsync, isSending } = useChat();
+  
+  // 💬 Use feedback hook for like/dislike
+  const { submitFeedback } = useChatFeedback();
+  
+  // 💬 Feedback state for each message
+  const [messageFeedback, setMessageFeedback] = useState<Record<string, "up" | "down" | null>>({});
+  const [copiedMessages, setCopiedMessages] = useState<Record<string, boolean>>({});
   // 🧾 Session history removed per request
 
   // 📋 Current session state
@@ -264,6 +353,12 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [pendingResponse, setPendingResponse] = useState<string | null>(null);
+
+  // 🎤 Voice recognition state
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [inputValue, setInputValue] = useState("");
 
   // 📜 Ref for messages container to auto-scroll
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -282,13 +377,18 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
 
   // 📜 Auto-scroll to bottom when new messages are added
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (isPreviewMode) return; // Don't scroll in preview mode to prevent page scroll
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+    }
   };
 
   // 📜 Auto-scroll when messages change
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+    if (!isPreviewMode) {
+      scrollToBottom();
+    }
+  }, [messages, isPreviewMode]);
 
   // 🎯 onReady callback - trigger when widget is ready
   useEffect(() => {
@@ -436,6 +536,12 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
   const handleChat = useCallback(async (query: string) => {
     console.log("💬 Widget Chat - User submitted message:", query);
 
+    // In preview mode, don't allow sending messages
+    if (isPreviewMode) {
+      console.log("💬 Preview mode: Message submission blocked");
+      return;
+    }
+
     // Add user message immediately
     const userMessage: Message = {
       type: "user",
@@ -568,375 +674,664 @@ export const EmbeddableWidget = React.memo(function EmbeddableWidget({
 
       setMessages(prev => [...prev, errorMsg]);
     }
-  }, [messages, setMessages]);
+  }, [messages, setMessages, isPreviewMode]);
 
-  if (!shouldShow) {
+  // Avatar options (matching ChatbotConfiguration)
+  const avatarOptions = [
+    { id: "default-1", emoji: "🤖" },
+    { id: "default-2", emoji: "👤" },
+    { id: "default-3", emoji: "👨" },
+    { id: "default-4", emoji: "👩" },
+    { id: "default-5", emoji: "🧑" },
+    { id: "default-6", emoji: "👨‍💼" },
+    { id: "default-7", emoji: "👩‍💼" },
+    { id: "default-8", emoji: "👨‍🔬" },
+    { id: "default-9", emoji: "👩‍🔬" },
+    { id: "default-10", emoji: "🤵" },
+    { id: "default-11", emoji: "👰" },
+    { id: "default-12", emoji: "🎭" },
+  ];
+
+  // Check if widgetAvatar is a custom image (URL or data URL) or a default emoji
+  const isCustomAvatarImage = widgetAvatar && !widgetAvatar.startsWith("default-") && (widgetAvatar.startsWith("http") || widgetAvatar.startsWith("data:"));
+  const selectedAvatar = avatarOptions.find(a => a.id === widgetAvatar) || avatarOptions[0];
+  
+  // Check if widgetChatbotColor is a custom gradient
+  const isCustomGradient = widgetChatbotColor && widgetChatbotColor.startsWith("linear-gradient");
+  const isDefaultGradient = widgetChatbotColor === "gradient";
+  
+  // Ensure border radius is applied and persists (reapply after any DOM changes)
+  useEffect(() => {
+    if (triggerButtonRef.current) {
+      triggerButtonRef.current.style.setProperty('border-radius', `${widgetTriggerBorderRadius}px`, 'important');
+    }
+  }, [widgetTriggerBorderRadius, shouldShow, isOpen]);
+
+  // Format timestamp as relative time (e.g., "2 months ago")
+  const formatRelativeTime = (date: Date): string => {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) {
+      return 'Just Now';
+    }
+    
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+    }
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) {
+      return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    }
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 30) {
+      return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    }
+    
+    const diffInMonths = Math.floor(diffInDays / 30);
+    if (diffInMonths < 12) {
+      return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
+    }
+    
+    const diffInYears = Math.floor(diffInMonths / 12);
+    return `${diffInYears} year${diffInYears > 1 ? 's' : ''} ago`;
+  };
+
+  // 🎤 Voice recognition handlers
+  const startRecognition = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      console.log('🎤 Speech recognition not supported');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
+      recognition.lang = (navigator.language || "en-US");
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+      recognition.continuous = false;
+
+      let finalTranscript = "";
+
+      recognition.onstart = () => {
+        console.log('🎤 Speech recognition started');
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        let interimTranscript = "";
+        finalTranscript = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+
+        const combined = finalTranscript || interimTranscript;
+        if (combined) {
+          setInputValue(combined);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('🎤 Speech recognition error:', event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        console.log('🎤 Speech recognition ended');
+        setIsListening(false);
+        if (finalTranscript.trim()) {
+          setInputValue(finalTranscript.trim());
+        }
+      };
+
+      recognition.start();
+    } catch (err: any) {
+      console.error('🎤 Speech recognition error:', err);
+      setIsListening(false);
+    }
+  }, []);
+
+  const stopRecognition = useCallback(() => {
+    const rec = recognitionRef.current;
+    try {
+      if (rec) rec.stop();
+    } catch {
+      // ignore
+    }
+    setIsListening(false);
+  }, []);
+
+  const handleMicClick = useCallback(() => {
+    if (isListening) {
+      stopRecognition();
+    } else {
+      startRecognition();
+    }
+  }, [isListening, startRecognition, stopRecognition]);
+
+  // 🧹 Cleanup recognition on unmount
+  useEffect(() => {
+    return () => {
+      stopRecognition();
+    };
+  }, [stopRecognition]);
+
+  // 📝 Input handlers
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputValue(e.target.value);
+  }, []);
+
+  const handleInputSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    const query = inputValue.trim();
+    if (query && !isPreviewMode) {
+      handleChat(query);
+      setInputValue("");
+    }
+  }, [inputValue, handleChat, isPreviewMode]);
+
+  // 🎯 Handle Enter key to submit message (prevent new line and sidebar)
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      const query = inputValue.trim();
+      if (query && !isPreviewMode) {
+        handleChat(query);
+        setInputValue("");
+      }
+    }
+  }, [inputValue, handleChat, isPreviewMode]);
+
+  // 💬 Handle copy message
+  const handleCopyMessage = useCallback(async (content: string, messageId: string) => {
+    await copyToClipboard(content);
+    setCopiedMessages(prev => ({ ...prev, [messageId]: true }));
+    setTimeout(() => {
+      setCopiedMessages(prev => {
+        const newState = { ...prev };
+        delete newState[messageId];
+        return newState;
+      });
+    }, 2000);
+  }, []);
+
+  // 💬 Handle feedback (like/dislike)
+  const handleFeedback = useCallback((messageId: string, sessionId: string | undefined, type: "up" | "down") => {
+    const currentFeedback = messageFeedback[messageId];
+    const newFeedback = currentFeedback === type ? null : type;
+    
+    setMessageFeedback(prev => ({ ...prev, [messageId]: newFeedback }));
+    
+    if (sessionId && messageId && newFeedback) {
+      submitFeedback({
+        sessionId,
+        messageId,
+        feedback: newFeedback === "up" ? "positive" : "negative"
+      });
+    }
+  }, [messageFeedback, submitFeedback]);
+
+  // Helper function to render a message in the new format
+  const renderMessage = useCallback((message: Message, index: number) => {
+    const isBot = message.type === "assistant";
+    const messageClass = isBot ? "bot-message" : "user-message";
+    
     return (
-      <div className={`fixed ${getPositionClasses(widgetPosition)}`} style={{
-        zIndex: Math.max(widgetZIndex, 9990),
-        transform: `translate(${widgetOffsetX}px, ${widgetOffsetY}px)`
-      }}>
-        <Button
+      <div key={index} className={`chatbot-message ${messageClass}`}>
+        {isBot && (
+          <div className="chatbot-message__avatar">
+            {isCustomAvatarImage ? (
+              <img
+                className="chatbot-avatar-image"
+                src={widgetAvatar}
+                alt="Avatar"
+                width={30}
+                height={30}
+              />
+            ) : (
+              <div
+                style={{
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '50%',
+                  backgroundColor: (isDefaultGradient || isCustomGradient) ? undefined : widgetChatbotColor,
+                  backgroundImage: isDefaultGradient ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : (isCustomGradient ? widgetChatbotColor : undefined),
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '14px',
+                }}
+              >
+                {selectedAvatar.emoji}
+              </div>
+            )}
+          </div>
+        )}
+        <div className="chatbot-message__content">
+          <div 
+            className="chatbot-message-text"
+            style={!isBot ? {
+              backgroundColor: (isDefaultGradient || isCustomGradient) ? undefined : widgetChatbotColor,
+              backgroundImage: isDefaultGradient ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : (isCustomGradient ? widgetChatbotColor : undefined),
+            } : undefined}
+          >
+            {isBot ? (
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
+                components={{
+                  p: ({ children }) => <p>{children}</p>,
+                  a: ({ href, children }) => (
+                    <a href={href} target="_blank" rel="noopener noreferrer">
+                      {children}
+                    </a>
+                  ),
+                }}
+              >
+                {safeStringConversion(message.content)}
+              </ReactMarkdown>
+            ) : (
+              <p>{message.content}</p>
+            )}
+          </div>
+          {/* Like, Dislike, Copy buttons and timestamp on same line */}
+          {isBot && (
+            <div className="chatbot-message-footer">
+              <div className="chatbot-message-actions">
+                <button
+                  type="button"
+                  className="chatbot-message-action-button"
+                  onClick={() => handleCopyMessage(message.content, message.messageId || `msg-${index}`)}
+                  aria-label="Copy message"
+                  title="Copy message"
+                >
+                  <Copy style={{ width: '14px', height: '14px' }} />
+                  {copiedMessages[message.messageId || `msg-${index}`] && (
+                    <span className="chatbot-message-action-text">Copied!</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className={`chatbot-message-action-button ${messageFeedback[message.messageId || `msg-${index}`] === "up" ? "active" : ""}`}
+                  onClick={() => handleFeedback(message.messageId || `msg-${index}`, message.sessionId, "up")}
+                  aria-label="Like message"
+                  title="Like"
+                >
+                  <ThumbsUp style={{ width: '14px', height: '14px' }} />
+                </button>
+                <button
+                  type="button"
+                  className={`chatbot-message-action-button ${messageFeedback[message.messageId || `msg-${index}`] === "down" ? "active" : ""}`}
+                  onClick={() => handleFeedback(message.messageId || `msg-${index}`, message.sessionId, "down")}
+                  aria-label="Dislike message"
+                  title="Dislike"
+                >
+                  <ThumbsDown style={{ width: '14px', height: '14px' }} />
+                </button>
+              </div>
+              {widgetShowDateTime && (
+                <div className={`chatbot-message-time chatbot-message-time--visible`}>
+                  {formatRelativeTime(message.timestamp)}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }, [isCustomAvatarImage, widgetAvatar, widgetChatbotColor, isDefaultGradient, isCustomGradient, selectedAvatar, widgetShowDateTime, messageFeedback, copiedMessages, handleCopyMessage, handleFeedback]);
+
+  // Calculate chat window bottom position to account for trigger button
+  const triggerButtonHeight = widgetAvatarSize;
+  const spacingBetween = 12; // Space between trigger button and chat window
+  const chatWindowBottomOffset = triggerButtonHeight + spacingBetween + widgetBottomSpace;
+  // Calculate widget height to end above trigger button
+  // In preview mode, use container height instead of viewport height
+  const widgetHeight = isPreviewMode 
+    ? '100%' 
+    : `calc(100vh - ${chatWindowBottomOffset}px)`;
+
+  // Helper function to get position modifier class
+  const getPositionModifier = (position: string) => {
+    switch (position) {
+      case 'bottom-left':
+      case 'top-left':
+        return 'chatbot-aside--left';
+      default:
+        return 'chatbot-aside--right';
+    }
+  };
+
+  // Render trigger button component
+  const renderTriggerButton = () => {
+    const positionModifier = getPositionModifier(widgetPosition);
+    
+    return (
+      <aside 
+        id="chatbotAside"
+        className={`chatbot-aside ${positionModifier} ${isOpen ? 'chatbot-open' : ''}`}
+        style={{
+          '--widget-bottom-size': `${widgetBottomSpace}px`,
+          '--avatar-size': `${widgetAvatarSize}px`,
+          '--chatbot-color': widgetChatbotColor,
+        } as React.CSSProperties & { [key: string]: string }}
+      >
+        <button
+          id="chatbot-trigger"
+          ref={triggerButtonRef}
           onClick={onToggle}
-          className="h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg widget-launcher-transition hover:scale-110 animate-widget-launcher-bounce animate-widget-launcher-pulse"
+          className={`chatbot-trigger ${isOpen ? 'chatbot-trigger--active' : ''}`}
+          style={{
+            width: `${widgetAvatarSize}px`,
+            height: `${widgetAvatarSize}px`,
+            borderRadius: `${widgetTriggerBorderRadius}px`,
+            backgroundColor: 'transparent',
+            backgroundImage: 'none',
+          } as React.CSSProperties}
           data-testid="button-widget-launcher"
-          aria-label="Open AI Assistant"
-          aria-expanded="false"
+          aria-label={isOpen ? "Close AI Assistant" : "Open AI Assistant"}
+          aria-expanded={isOpen}
           aria-haspopup="dialog"
           tabIndex={0}
         >
-          <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
-          <span className="sr-only">Open AI Assistant</span>
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <Card
-      className={`widget-container widget-container-elevated fixed ${getModalPositionClasses(widgetPosition)} w-full h-screen sm:w-96 sm:h-[600px] md:w-96 md:h-[600px] shadow-xl flex flex-col ${widgetAppearance.chatBubbleStyle === "sharp" ? "rounded-none" :
-        widgetAppearance.chatBubbleStyle === "minimal" ? "rounded-sm" :
-          "rounded-lg"
-        } ${isAnimating ? (isOpen ? "animate-widget-enter" : "animate-widget-exit") : ""
-        } ${widgetAppearance.animationsEnabled ? "widget-transition" : ""
-        }`}
-      style={{
-        wordBreak: 'break-word',
-        overflowWrap: 'anywhere',
-        zIndex: Math.max(widgetZIndex, 9990),
-        transform: `translate(${widgetOffsetX}px, ${widgetOffsetY}px)`
-      }}
-      role="dialog"
-      aria-label="AI Assistant Chat"
-      aria-modal="true"
-      aria-live="polite"
-    >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 animate-slide-down">
-        <CardTitle className="text-base font-medium">{title}</CardTitle>
-        <div className="flex items-center gap-1 animate-fade-in-scale">
-          <Badge variant="outline" className="text-xs">
-            <div className="w-2 h-2 bg-green-500 rounded-full mr-1" />
-            Online
-          </Badge>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={clearChat}
-            data-testid="button-clear-chat"
-            className="h-8 w-8"
-            title="Clear chat"
-            aria-label="Clear chat history"
-            tabIndex={0}
-          >
-            <Trash2 className="h-4 w-4" aria-hidden="true" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggle}
-            data-testid="button-widget-close"
-            className="h-8 w-8"
-            aria-label="Close AI Assistant"
-            tabIndex={0}
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </Button>
-        </div>
-      </CardHeader>
-
-      <CardContent className="flex-1 flex flex-col p-0">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col animate-slide-up">
-          <div className="px-4 pb-3">
-            <TabsList className="grid w-full grid-cols-3 animate-fade-in-scale h-10" role="tablist" aria-label="Widget navigation">
-              <TabsTrigger
-                value="search"
-                data-testid="tab-search"
-                role="tab"
-                aria-selected={activeTab === "search"}
-                aria-controls="search-panel"
-                tabIndex={0}
-                className="flex items-center justify-center gap-1"
-              >
-                <Search className="h-4 w-4" aria-hidden="true" />
-                Search
-              </TabsTrigger>
-              <TabsTrigger
-                value="chat"
-                data-testid="tab-chat"
-                role="tab"
-                aria-selected={activeTab === "chat"}
-                aria-controls="chat-panel"
-                tabIndex={0}
-                className="flex items-center justify-center gap-1"
-              >
-                <MessageSquare className="h-4 w-4" aria-hidden="true" />
-                Chat
-              </TabsTrigger>
-              <TabsTrigger
-                value="auto"
-                data-testid="tab-auto"
-                role="tab"
-                aria-selected={activeTab === "auto"}
-                aria-controls="auto-panel"
-                tabIndex={0}
-                className="flex items-center justify-center gap-1"
-              >
-                <Zap className="h-4 w-4" aria-hidden="true" />
-                Auto
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent
-            value="search"
-            className="flex-1 flex flex-col px-4 mt-0"
-            role="tabpanel"
-            id="search-panel"
-            aria-labelledby="tab-search"
-            tabIndex={0}
-          >
-            <div
-              className="space-y-3 flex-1 overflow-y-auto min-h-0 max-h-[400px]"
+          {isCustomAvatarImage ? (
+            <img
+              className="chatbot-avatar"
+              id="chatbotAvatar"
+              src={widgetAvatar}
+              alt="Custom avatar"
+              width={widgetAvatarSize}
+              height={widgetAvatarSize}
               style={{
-                scrollbarWidth: 'thin',
-                scrollbarColor: '#d1d5db transparent'
+                borderRadius: `${widgetTriggerBorderRadius}px`,
               }}
-            >
-              <SearchBar
-                placeholder="Search documentation..."
-                onSearch={handleSearch}
-                showSendButton
-                enableHistory={false}
-                enableSuggestions={false}
-              />
-              {/* 🔎 Recent Search History removed */}
-
-              {/* 🔍 Enhanced loading indicator for search */}
-              {isSearching && (
-                <TypingIndicator
-                  message="Searching through documentation..."
-                  variant="wave"
-                  size="md"
-                />
-              )}
-
-              {/* 🎭 Typing Animation for Search */}
-              {isTyping && !isSearching && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <div className="animate-pulse">●</div>
-                  <span>{pendingResponse || "Preparing search..."}</span>
-                </div>
-              )}
-
-              {/* 🌊 Streaming Response for Search */}
-              {isStreaming && streamingContent && (
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <div className="text-sm">
-                    {streamingContent}
-                  </div>
-                </div>
-              )}
-
-              <div className="text-sm text-muted-foreground">
-                Try searching for "API", "getting started", or "troubleshooting"
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent
-            value="chat"
-            className="flex-1 flex flex-col px-4 mt-0"
-            role="tabpanel"
-            id="chat-panel"
-            aria-labelledby="tab-chat"
-            tabIndex={0}
+            />
+          ) : (
+            <span style={{ fontSize: `${Math.min(widgetAvatarSize * 0.6, 32)}px` }}>
+              {selectedAvatar.emoji}
+            </span>
+          )}
+        </button>
+        {/* Hint Bubble */}
+        {bubbleMessage && bubbleMessage.trim() !== "" && showBubble && !isOpen && (
+          <div 
+            id="chatbotBubble"
+            className={`chatbot-hint chatbot-bubble--active ${showBubble ? 'chatbot-hint--visible' : ''}`}
           >
-            <div
-              className="flex-1 overflow-y-auto space-y-4  min-h-0 max-h-[400px] w-full"
-              style={{
-                scrollbarWidth: 'thin',
-                scrollbarColor: '#d1d5db transparent'
-              }}
-            >
-              {messages.map((message, index) => (
-                <ChatMessage
-                  key={index}
-                  type={message.type}
-                  content={message.content}
-                  citations={undefined}
-                  timestamp={message.timestamp}
-                  showFeedback={message.type === "assistant"}
-                  messageId={message.messageId}
-                  sessionId={message.sessionId || currentSessionId}
-                  ragSettings={message.ragSettings}
-                  queryString={message.queryString}
-                  serverMessage={message.serverMessage}
-                  actualTopK={message.actualTopK}
-                  actualReranker={message.actualReranker}
-                  isWidget={true}
-                />
-              ))}
-
-              {/* 🎭 Typing Animation */}
-              {isTyping && (
-                <div className="flex justify-start">
-                  <div className="max-w-[80%]">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <div className="animate-pulse">●</div>
-                      <span>{pendingResponse || "AI is thinking..."}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* 🌊 Streaming Response */}
-              {isStreaming && streamingContent && (
-                <div className="flex justify-start">
-                  <div className="max-w-[80%]">
-                    <div className="bg-muted/50 rounded-lg p-3">
-                      <div className="text-sm">
-                        {streamingContent}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* 📜 Scroll target for auto-scroll */}
-              <div ref={messagesEndRef} />
-            </div>
-
-            <div className="testingvll flex-shrink-0  ">
-              <SearchBar
-                placeholder="Type your message..."
-                onSearch={handleChat}
-                showSendButton
-                enableHistory={false}
-                enableSuggestions={false}
-              />
-              {/* 💬 Recent Chat History removed */}
-
-              {/* 💬 Enhanced loading indicator for chat */}
-              {isSending && (
-                <TypingIndicator
-                  message="Sending message..."
-                  variant="pulse"
-                  size="sm"
-                />
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent
-            value="auto"
-            className="flex-1 flex flex-col px-4 mt-0"
-            role="tabpanel"
-            id="auto-panel"
-            aria-labelledby="tab-auto"
-            tabIndex={0}
-          >
-            <div
-              className="flex-1 overflow-y-auto space-y-4 min-h-0 max-h-[400px] w-full"
-              style={{
-                scrollbarWidth: 'thin',
-                scrollbarColor: '#d1d5db transparent'
-              }}
-            >
-              {messages.map((message, index) => (
-                <ChatMessage
-                  key={index}
-                  type={message.type}
-                  content={message.content}
-                  citations={message.citations}
-                  timestamp={message.timestamp}
-                  showFeedback={message.type === "assistant"}
-                  messageId={message.messageId}
-                  sessionId={message.sessionId || currentSessionId}
-                  ragSettings={message.ragSettings}
-                  queryString={message.queryString}
-                  serverMessage={message.serverMessage}
-                  actualTopK={message.actualTopK}
-                  actualReranker={message.actualReranker}
-                  isWidget={true}
-                />
-              ))}
-
-              {/* 🎭 Typing Animation */}
-              {isTyping && (
-                <div className="flex justify-start">
-                  <div className="max-w-[80%]">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <div className="animate-pulse">●</div>
-                      <span>{pendingResponse || "AI is thinking..."}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* 🌊 Streaming Response */}
-              {isStreaming && streamingContent && (
-                <div className="flex justify-start">
-                  <div className="max-w-[80%]">
-                    <div className="bg-muted/50 rounded-lg p-3">
-                      <div className="text-sm">
-                        {streamingContent}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* 📜 Scroll target for auto-scroll */}
-              <div ref={messagesEndRef} />
-            </div>
-            <div className="flex-shrink-0 ">
-              <SearchBar
-                placeholder="Ask anything or search..."
-                onSearch={handleChat}
-                showSendButton
-                showMicButton
-                enableHistory={false}
-                enableSuggestions={false}
-              />
-
-              {/* 💬 Enhanced loading indicator for auto */}
-              {isSending && (
-                <TypingIndicator
-                  message="Processing..."
-                  variant="wave"
-                  size="sm"
-                />
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {showPoweredBy && (
-          <div className="px-4 py-2 border-t text-center animate-slide-up">
-            <p className="text-xs text-muted-foreground">
-              Powered by <span className="font-medium">RAGSuite</span>
-            </p>
+            {bubbleMessage}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </aside>
+    );
+  };
+
+  // If widget is closed, only show trigger button
+  if (!shouldShow) {
+    return renderTriggerButton();
+  }
+
+  // Determine position classes for window
+  const getWindowPosition = () => {
+    if (isPreviewMode) return { position: 'relative' as const, top: 0, left: 0, right: 0 };
+    const positionModifier = getPositionModifier(widgetPosition);
+    if (positionModifier === 'chatbot-aside--left') {
+      return { position: 'fixed' as const, left: `${20 + widgetOffsetX}px`, right: 'auto', top: 0 };
+    }
+    return { position: 'fixed' as const, right: `${20 + widgetOffsetX}px`, left: 'auto', top: 0 };
+  };
+
+  const windowPosition = getWindowPosition();
+
+  // If widget is open, show both chat window and trigger button
+  return (
+    <React.Fragment>
+      {/* Chat Window */}
+      <div
+        id="chatbot"
+        className={`chatbot-window ${shouldShow ? 'chatbot-window--active' : ''}`}
+        data-preview-mode={isPreviewMode ? 'true' : 'false'}
+        style={{
+          ...windowPosition,
+          bottom: isPreviewMode ? 'auto' : `calc(var(--widget-bottom-size) + 70px)`,
+          width: isPreviewMode ? '100%' : '448px',
+          maxWidth: isPreviewMode ? '100%' : 'calc(100% - 40px)',
+          height: isPreviewMode ? '100%' : widgetHeight,
+          maxHeight: isPreviewMode ? '100%' : `calc(100% - calc(var(--widget-bottom-size) + 72px))`,
+          zIndex: isPreviewMode ? 1 : Math.max(widgetZIndex, 99999),
+          '--widget-bottom-size': `${widgetBottomSpace}px`,
+          '--chatbot-color': widgetChatbotColor,
+          fontSize: widgetFontSize ? `${widgetFontSize}px` : undefined,
+        } as React.CSSProperties & { [key: string]: string | number }}
+        role="dialog"
+        aria-label="AI Assistant Chat"
+        aria-modal={isPreviewMode ? "false" : "true"}
+        aria-live="polite"
+      >
+        {/* Header */}
+        <div
+          className="chatbot-header"
+          style={{
+            backgroundColor: (isDefaultGradient || isCustomGradient) ? undefined : widgetChatbotColor,
+            backgroundImage: isDefaultGradient ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : (isCustomGradient ? widgetChatbotColor : undefined),
+          }}
+        >
+          <div className="chatbot-header-content">
+            {widgetShowLogo && widgetLogoUrl && (
+              <img src={widgetLogoUrl} alt="Logo" className="chatbot-logo" />
+            )}
+            <h3 id="chatbotTitle" className="chatbot-title">{widgetTitle}</h3>
+          </div>
+          <div className="chatbot-header-actions">
+            <button
+              type="button"
+              id="deleteChat"
+              className="chatbot-delete"
+              onClick={clearChat}
+              aria-label="Delete Chat"
+              disabled={isPreviewMode}
+            >
+              <Trash2 style={{ width: '20px', height: '20px' }} />
+            </button>
+            <button
+              type="button"
+              id="closeChat"
+              className="chatbot-close"
+              onClick={onToggle}
+              aria-label="Close Chat"
+            >
+              <X style={{ width: '24px', height: '24px' }} />
+            </button>
+          </div>
+        </div>
+
+        {/* Messages Area */}
+        <div className="chatbot-messages" id="chatMessages">
+          {/* Welcome Message */}
+          <div className="chatbot-welcome">
+            <div className="chatbot-welcome-avatar">
+              {isCustomAvatarImage ? (
+                <img
+                  className="chatbot-avatar"
+                  src={widgetAvatar}
+                  alt={widgetTitle}
+                  width={80}
+                  height={80}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: '50%',
+                    backgroundColor: (isDefaultGradient || isCustomGradient) ? undefined : widgetChatbotColor,
+                    backgroundImage: isDefaultGradient ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : (isCustomGradient ? widgetChatbotColor : undefined),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '40px',
+                  }}
+                >
+                  {selectedAvatar.emoji}
+                </div>
+              )}
+            </div>
+            <div className="chatbot-welcome-text">
+              <div className="chatbot-welcome-title">{widgetTitle}</div>
+              {welcomeMessage && (
+                <div className="chatbot-welcome-subtitle">{welcomeMessage}</div>
+              )}
+            </div>
+          </div>
+
+          {/* Dynamic Messages Container */}
+          <div className="chatbot-conversation" id="chatMessagesContainer">
+            {messages.map((message, index) => renderMessage(message, index))}
+
+            {/* Typing Indicator */}
+            {isTyping && (
+              <div className="chatbot-message bot-message">
+                <div className="chatbot-message__avatar">
+                  {isCustomAvatarImage ? (
+                    <img
+                      className="chatbot-avatar-image"
+                      src={widgetAvatar}
+                      alt="Avatar"
+                      width={30}
+                      height={30}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '30px',
+                        height: '30px',
+                        borderRadius: '50%',
+                        backgroundColor: (isDefaultGradient || isCustomGradient) ? undefined : widgetChatbotColor,
+                        backgroundImage: isDefaultGradient ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : (isCustomGradient ? widgetChatbotColor : undefined),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '14px',
+                      }}
+                    >
+                      {selectedAvatar.emoji}
+                    </div>
+                  )}
+                </div>
+                <div className="chatbot-message__content">
+                  <div className="chatbot-typing-indicator loading">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Streaming Response */}
+            {isStreaming && streamingContent && (
+              <div className="chatbot-message bot-message">
+                <div className="chatbot-message__avatar">
+                  {isCustomAvatarImage ? (
+                    <img
+                      className="chatbot-avatar-image"
+                      src={widgetAvatar}
+                      alt="Avatar"
+                      width={30}
+                      height={30}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '30px',
+                        height: '30px',
+                        borderRadius: '50%',
+                        backgroundColor: (isDefaultGradient || isCustomGradient) ? undefined : widgetChatbotColor,
+                        backgroundImage: isDefaultGradient ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : (isCustomGradient ? widgetChatbotColor : undefined),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '14px',
+                      }}
+                    >
+                      {selectedAvatar.emoji}
+                    </div>
+                  )}
+                </div>
+                <div className="chatbot-message__content">
+                  <div className="chatbot-message-text">
+                    <p>{streamingContent}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Scroll target for auto-scroll */}
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+
+        {/* Input Area */}
+        <div className="chatbot-input">
+          <form id="chatbot_form" className="chatbot-form" onSubmit={handleInputSubmit}>
+            <div className={`chatbot-input-area ${isPreviewMode ? 'disabled' : ''}`}>
+              <textarea
+                ref={textareaRef}
+                className="chatbot-textarea"
+                id="chatbot_prompt"
+                rows={1}
+                placeholder="Message..."
+                value={inputValue}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                aria-label="Type your message"
+                disabled={isPreviewMode}
+              />
+              <div className="chatbot-input-buttons">
+                <button
+                  type="button"
+                  className={`chatbot-voice-button ${isListening ? 'is-listening' : ''}`}
+                  id="speech_chatbot_message_button"
+                  onClick={handleMicClick}
+                  aria-label="Voice Input"
+                  disabled={isPreviewMode}
+                >
+                  <Mic className="chatbot-icon" />
+                </button>
+                <button
+                  type="submit"
+                  className="chatbot-send-button"
+                  id="send_chatbot_message_button"
+                  aria-label="Send message"
+                  disabled={!inputValue.trim() || isPreviewMode}
+                >
+                  <Send className="chatbot-icon" style={{ width: '24px', height: '24px' }} />
+                </button>
+              </div>
+            </div>
+            {showPoweredBy && (
+              <div className="chatbot-input-footer">Generative AI is experimental.</div>
+            )}
+          </form>
+        </div>
+      </div>
+
+      {/* Trigger Button - Always visible at bottom */}
+      {renderTriggerButton()}
+    </React.Fragment>
   );
 });
 
-
-/* Style the widget container */
-// .widget-container {
-//   border: 2px solid #3b82f6 !important;
-//   box-shadow: 0 0 20px rgba(59, 130, 246, 0.3) !important;
-// }
-
-// /* Style chat bubbles */
-// .chat-bubble {
-//   border-radius: 20px !important;
-//   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-// }
-
-// /* Style chat messages */
-// .chat-message {
-//   margin-bottom: 1rem !important;
-// }
+export const EmbeddableWidget = EmbeddableWidgetComponent;

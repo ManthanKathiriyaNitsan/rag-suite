@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 type Theme = "light" | "dark";
 
@@ -132,11 +133,9 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, user } = useAuthContext();
+  
   const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage first
-    const saved = localStorage.getItem("theme");
-    if (saved === "light" || saved === "dark") return saved;
-    
     // Default to dark as per design brief
     return "dark";
   });
@@ -199,18 +198,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
 
   const [themeData, setThemeDataState] = useState<ThemeData>(() => {
-    const saved = localStorage.getItem("themeData");
-    if (saved) {
-      try {
-        return { ...defaultThemeData, ...JSON.parse(saved) };
-      } catch {
-        return defaultThemeData;
-      }
-    }
     return defaultThemeData;
   });
 
-  // NEW: global typography state persisted in localStorage
+  // Global typography state (not persisted in localStorage)
   const [typography, setTypographyState] = useState<{ 
     fontFamily: string; 
     baseFontSize: string;
@@ -223,24 +214,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       "2xl": string;
     };
   }>(() => {
-    try {
-      const saved = localStorage.getItem("theme-typography");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return {
-          fontFamily: parsed.fontFamily || "Inter, system-ui, -apple-system, sans-serif",
-          baseFontSize: parsed.baseFontSize || "16px",
-          fontSize: parsed.fontSize || {
-            xs: "0.75rem",
-            sm: "0.875rem",
-            base: "1rem",
-            lg: "1.125rem",
-            xl: "1.25rem",
-            "2xl": "1.5rem",
-          },
-        };
-      }
-    } catch {}
     return {
       fontFamily: "Inter, system-ui, -apple-system, sans-serif",
       baseFontSize: "16px",
@@ -255,7 +228,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
   });
 
-  // NEW: global layout state persisted in localStorage
+  // Global layout state (not persisted in localStorage)
   const [layout, setLayoutState] = useState<{
     borderRadius: {
       sm: string;
@@ -272,28 +245,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       css: string;
     };
   }>(() => {
-    try {
-      const saved = localStorage.getItem("theme-layout");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return {
-          borderRadius: parsed.borderRadius || {
-            sm: "0.125rem",
-            md: "0.375rem",
-            lg: "0.5rem",
-          },
-          widgetAppearance: parsed.widgetAppearance || {
-            chatBubbleStyle: "rounded",
-            avatarStyle: "circle",
-            animationsEnabled: true,
-          },
-          customCSS: parsed.customCSS || {
-            enabled: false,
-            css: "",
-          },
-        };
-      }
-    } catch {}
     return {
       borderRadius: {
         sm: "0.125rem",
@@ -312,11 +263,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
   });
 
+  // Reset theme to defaults when user changes (logout/login)
+  useEffect(() => {
+    if (!isAuthenticated) {
+      // User logged out - reset to defaults
+      console.log('🔄 User logged out, resetting theme to defaults...');
+      setTheme("dark");
+      // Theme data, typography, and layout will use their default values on next mount
+    }
+  }, [isAuthenticated, user?.id]);
+
   useEffect(() => {
     const root = document.documentElement;
     root.classList.remove("light", "dark");
     root.classList.add(theme);
-    localStorage.setItem("theme", theme);
   }, [theme]);
 
   // Apply global typography to :root CSS variables and html font-size
@@ -334,9 +294,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.style.setProperty("--font-size-lg", typography.fontSize.lg);
     root.style.setProperty("--font-size-xl", typography.fontSize.xl);
     root.style.setProperty("--font-size-2xl", typography.fontSize["2xl"]);
-    
-    // Persist
-    localStorage.setItem("theme-typography", JSON.stringify(typography));
   }, [typography]);
 
   // Apply global layout settings to CSS variables
@@ -372,9 +329,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         customStyleElement.remove();
       }
     }
-    
-    // Persist
-    localStorage.setItem("theme-layout", JSON.stringify(layout));
   }, [layout]);
 
   // Helper: extract primary font family name from CSS font-family string
@@ -510,11 +464,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       infoColor: colors.info ?? prev.infoColor,
     }));
   };
-
-  // Persist theme data to localStorage
-  useEffect(() => {
-    localStorage.setItem("themeData", JSON.stringify(themeData));
-  }, [themeData]);
 
   // Apply theme data to CSS variables
   useEffect(() => {

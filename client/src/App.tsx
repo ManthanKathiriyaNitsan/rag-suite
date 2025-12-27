@@ -70,8 +70,6 @@ const Analytics = lazy(() => import("@/pages/Analytics"));
 
 const Feedback = lazy(() => import("@/pages/Feedback"));
 
-const RAGTuning = lazy(() => import("@/pages/RAGTuning"));
-
 const Settings = lazy(() => import("@/pages/Settings"));
 
 const ApiKeys = lazy(() => import("@/pages/ApiKeys"));
@@ -87,6 +85,10 @@ const Onboarding = lazy(() => import("@/pages/Onboarding"));
 const Profile = lazy(() => import("@/pages/Profile"));
 
 const Projects = lazy(() => import("@/pages/Projects"));
+
+const ChatbotConfiguration = lazy(() => import("@/pages/ChatbotConfiguration"));
+
+const SearchConfiguration = lazy(() => import("@/pages/SearchConfiguration"));
 
 const Signup = lazy(() => import("./pages/Signup"));
 const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
@@ -867,20 +869,6 @@ function Router() {
 
                 </Route>
 
-                <Route path="/rag-tuning">
-
-                  <PageErrorBoundary pageName="RAG Tuning">
-
-                    <PageTransitionWrapper pageName="RAG Tuning">
-
-                      <RAGTuning />
-
-                    </PageTransitionWrapper>
-
-                  </PageErrorBoundary>
-
-                </Route>
-
                 <Route path="/documents">
                   <RedirectToCrawl />
                 </Route>
@@ -948,6 +936,34 @@ function Router() {
                     <PageTransitionWrapper pageName="Settings">
 
                       <Settings />
+
+                    </PageTransitionWrapper>
+
+                  </PageErrorBoundary>
+
+                </Route>
+
+                <Route path="/chatbot-configuration">
+
+                  <PageErrorBoundary pageName="Chatbot Configuration">
+
+                    <PageTransitionWrapper pageName="Chatbot Configuration">
+
+                      <ChatbotConfiguration />
+
+                    </PageTransitionWrapper>
+
+                  </PageErrorBoundary>
+
+                </Route>
+
+                <Route path="/search-configuration">
+
+                  <PageErrorBoundary pageName="Search Configuration">
+
+                    <PageTransitionWrapper pageName="Search Configuration">
+
+                      <SearchConfiguration />
 
                     </PageTransitionWrapper>
 

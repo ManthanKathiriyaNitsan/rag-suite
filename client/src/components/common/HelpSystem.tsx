@@ -91,8 +91,8 @@ const gettingStartedGuides: HelpGuide[] = [
     steps: [
       {
         id: "step-1",
-        title: "Open RAG Tuning",
-        description: "Navigate to the RAG Tuning page from the sidebar.",
+        title: "Open Search Configuration",
+        description: "Navigate to the Search Configuration page from the sidebar.",
       },
       {
         id: "step-2",
@@ -110,7 +110,7 @@ const gettingStartedGuides: HelpGuide[] = [
         description: "Apply the best performing configuration to your integration.",
       },
     ],
-    docsUrl: "https://docs.ragsuite.com/rag-tuning/configuration",
+    docsUrl: "https://docs.ragsuite.com/search-configuration/configuration",
   },
   {
     id: "embed-widget",

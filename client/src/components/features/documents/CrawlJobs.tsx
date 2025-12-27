@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2, Clock } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -9,10 +9,11 @@ import { CrawlSite } from "@/services/api/api";
 interface CrawlJobsProps {
   sites: CrawlSite[];
   statusFilter?: string;
+  searchQuery?: string;
 }
 
-const CrawlJobs = React.memo(function CrawlJobs({ sites, statusFilter = "all" }: CrawlJobsProps) {
-  // 📊 Memoized filtered sites based on status and date
+const CrawlJobs = React.memo(function CrawlJobs({ sites, statusFilter = "all", searchQuery = "" }: CrawlJobsProps) {
+  // 📊 Memoized filtered sites based on status, search query, and date
   const filteredSites = useMemo(() => {
     // Ensure sites is an array before filtering
     if (!sites || !Array.isArray(sites)) {
@@ -23,6 +24,19 @@ const CrawlJobs = React.memo(function CrawlJobs({ sites, statusFilter = "all" }:
       // Ensure site is valid
       if (!site || !site.id) {
         return false;
+      }
+      
+      // Filter by search query
+      if (searchQuery && searchQuery.trim() !== "") {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch =
+          site.name?.toLowerCase().includes(query) ||
+          site.url?.toLowerCase().includes(query) ||
+          site.description?.toLowerCase().includes(query);
+        
+        if (!matchesSearch) {
+          return false;
+        }
       }
       
       // Filter by status
@@ -56,7 +70,7 @@ const CrawlJobs = React.memo(function CrawlJobs({ sites, statusFilter = "all" }:
       
       return true;
     });
-  }, [sites, statusFilter]);
+  }, [sites, statusFilter, searchQuery]);
 
   // 📊 CrawlJobRow component
   function CrawlJobRow({ 
@@ -111,6 +125,18 @@ const CrawlJobs = React.memo(function CrawlJobs({ sites, statusFilter = "all" }:
               {jobStatus.completedAt ? `Finished ${jobStatus.completedAt.toLocaleTimeString()}` : "In progress"}
               {jobStatus.error ? ` • Error: ${jobStatus.error}` : ""}
             </p>
+            {/* Training Status */}
+            {site.isTrained && site.trainedAt ? (
+              <div className="flex items-center gap-1.5 sm:justify-end mt-1">
+                <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                <span className="text-xs text-green-600 font-medium">Trained</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 sm:justify-end mt-1">
+                <Clock className="h-3.5 w-3.5 text-yellow-600" />
+                <span className="text-xs text-muted-foreground">Training...</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

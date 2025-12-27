@@ -42,7 +42,6 @@ import {
   Key,
   Globe,
   Sliders,
-  Palette,
   Server,
   Webhook,
   History,
@@ -59,7 +58,6 @@ import OverviewTab from "@/components/tabs/OverviewTab";
 import EmbedKeysTab from "@/components/tabs/EmbedKeysTab";
 import DomainsTab from "@/components/tabs/DomainsTab";
 import ConfigTab from "@/components/tabs/ConfigTab";
-import ThemeTab from "@/components/tabs/ThemeTab";
 import EnvironmentsTab from "@/components/tabs/EnvironmentsTab";
 import WebhooksTab from "@/components/tabs/WebhooksTab";
 import VersionsTab from "@/components/tabs/VersionsTab";
@@ -83,7 +81,6 @@ const sidebarItems = [
   { id: "embed-keys", label: "Embed & Keys", icon: Key },
   { id: "domains", label: "Domains", icon: Globe },
   { id: "config", label: "Config", icon: Sliders },
-  { id: "theme", label: "Theme", icon: Palette },
   { id: "environments", label: "Environments", icon: Server },
   { id: "webhooks", label: "Webhooks & Events", icon: Webhook },
   { id: "versions", label: "Versions", icon: History },
@@ -110,22 +107,6 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
     status: "active",
     ownerId: "",
     tags: [] as string[],
-    // Theme data
-    primaryColor: "#3b82f6",
-    secondaryColor: "#6b7280",
-    accentColor: "#f59e0b",
-    backgroundColor: "#ffffff",
-    surfaceColor: "#f9fafb",
-    cardColor: "#ffffff",
-    textPrimary: "#111827",
-    textSecondary: "#6b7280",
-    textMuted: "#9ca3af",
-    borderColor: "#e5e7eb",
-    errorColor: "#ef4444",
-    warningColor: "#f59e0b",
-    successColor: "#10b981",
-    infoColor: "#3b82f6",
-    fontFamily: "Inter",
     // Embed keys data
     embedKeys: [],
     // Domains data
@@ -323,14 +304,6 @@ export default function IntegrationCreatePage({ integrationId, mode, onBack, onS
                 maxSize: 1000,
               },
             }}
-            onChange={handleDataChange}
-          />
-        );
-
-      case "theme":
-        return (
-          <ThemeTab
-            data={formData as any}
             onChange={handleDataChange}
           />
         );

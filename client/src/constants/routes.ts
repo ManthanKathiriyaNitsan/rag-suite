@@ -11,7 +11,6 @@ export const ROUTES = {
   DOCUMENTS: '/documents',
   CRAWL: '/crawl',
   ANALYTICS: '/analytics',
-  RAG_TUNING: '/rag-tuning',
   INTEGRATIONS: '/integrations',
   FEEDBACK: '/feedback',
   PROFILE: '/profile',
@@ -19,6 +18,8 @@ export const ROUTES = {
   API_KEYS: '/api-keys',
   SYSTEM_HEALTH: '/system-health',
   PROJECTS: '/projects',
+  CHATBOT_CONFIGURATION: '/chatbot-configuration',
+  SEARCH_CONFIGURATION: '/search-configuration',
 } as const;
 
 export const ROUTE_LABELS = {
@@ -30,7 +31,6 @@ export const ROUTE_LABELS = {
   [ROUTES.DOCUMENTS]: 'Documents',
   [ROUTES.CRAWL]: 'Crawl',
   [ROUTES.ANALYTICS]: 'Analytics',
-  [ROUTES.RAG_TUNING]: 'RAG Tuning',
   [ROUTES.INTEGRATIONS]: 'Integrations',
   [ROUTES.FEEDBACK]: 'Feedback',
   [ROUTES.PROFILE]: 'Profile',
@@ -38,6 +38,8 @@ export const ROUTE_LABELS = {
   [ROUTES.API_KEYS]: 'API Keys',
   [ROUTES.SYSTEM_HEALTH]: 'System Health',
   [ROUTES.PROJECTS]: 'Projects',
+  [ROUTES.CHATBOT_CONFIGURATION]: 'Chatbot Configuration',
+  [ROUTES.SEARCH_CONFIGURATION]: 'Search Configuration',
 } as const;
 
 // Navigation Menu Items
@@ -46,7 +48,6 @@ export const NAVIGATION_ITEMS = [
   { path: ROUTES.DOCUMENTS, label: ROUTE_LABELS[ROUTES.DOCUMENTS], icon: 'FileText' },
   { path: ROUTES.CRAWL, label: ROUTE_LABELS[ROUTES.CRAWL], icon: 'Globe' },
   { path: ROUTES.ANALYTICS, label: ROUTE_LABELS[ROUTES.ANALYTICS], icon: 'BarChart3' },
-  { path: ROUTES.RAG_TUNING, label: ROUTE_LABELS[ROUTES.RAG_TUNING], icon: 'Settings' },
   { path: ROUTES.INTEGRATIONS, label: ROUTE_LABELS[ROUTES.INTEGRATIONS], icon: 'Plug' },
   { path: ROUTES.FEEDBACK, label: ROUTE_LABELS[ROUTES.FEEDBACK], icon: 'MessageSquare' },
 ] as const;

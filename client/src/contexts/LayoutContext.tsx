@@ -96,8 +96,8 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
       const style = document.createElement('style');
       style.id = 'layout-global-styles';
       style.textContent = `
-        /* Global Button Styles */
-        button, [type="button"], [type="submit"], [type="reset"], .btn {
+        /* Global Button Styles - Exclude widget trigger button */
+        button:not([data-widget-trigger="true"]):not(.widget-trigger-button), [type="button"]:not([data-widget-trigger="true"]), [type="submit"]:not([data-widget-trigger="true"]), [type="reset"]:not([data-widget-trigger="true"]), .btn:not(.widget-trigger-button) {
           border-radius: ${layout.components.buttonRadius} !important;
         }
         
@@ -140,7 +140,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     
     // Also apply directly to existing elements for immediate effect
     const applyToExistingElements = () => {
-      const allButtons = document.querySelectorAll('button:not([data-state="checked"]):not([data-state="unchecked"]):not(.peer), [type="button"], [type="submit"], [type="reset"], .btn');
+      const allButtons = document.querySelectorAll('button:not([data-state="checked"]):not([data-state="unchecked"]):not(.peer):not([data-widget-trigger="true"]):not(.widget-trigger-button), [type="button"]:not([data-widget-trigger="true"]), [type="submit"]:not([data-widget-trigger="true"]), [type="reset"]:not([data-widget-trigger="true"]), .btn:not(.widget-trigger-button)');
       allButtons.forEach(button => {
         (button as HTMLElement).style.borderRadius = layout.components.buttonRadius;
       });
@@ -170,8 +170,8 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
           if (node.nodeType === Node.ELEMENT_NODE) {
             const element = node as Element;
             
-            // Apply button styles (exclude switches)
-            if (element.matches('button:not([data-state="checked"]):not([data-state="unchecked"]):not(.peer), [type="button"], [type="submit"], [type="reset"], .btn')) {
+            // Apply button styles (exclude switches and widget trigger)
+            if (element.matches('button:not([data-state="checked"]):not([data-state="unchecked"]):not(.peer):not([data-widget-trigger="true"]):not(.widget-trigger-button), [type="button"]:not([data-widget-trigger="true"]), [type="submit"]:not([data-widget-trigger="true"]), [type="reset"]:not([data-widget-trigger="true"]), .btn:not(.widget-trigger-button)')) {
               (element as HTMLElement).style.borderRadius = layout.components.buttonRadius;
             }
             
@@ -190,8 +190,8 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
               (element as HTMLElement).style.borderRadius = layout.components.modalRadius;
             }
             
-            // Apply to child elements (exclude switches)
-            const buttons = element.querySelectorAll('button:not([data-state="checked"]):not([data-state="unchecked"]):not(.peer), [type="button"], [type="submit"], [type="reset"], .btn');
+            // Apply to child elements (exclude switches and widget trigger)
+            const buttons = element.querySelectorAll('button:not([data-state="checked"]):not([data-state="unchecked"]):not(.peer):not([data-widget-trigger="true"]):not(.widget-trigger-button), [type="button"]:not([data-widget-trigger="true"]), [type="submit"]:not([data-widget-trigger="true"]), [type="reset"]:not([data-widget-trigger="true"]), .btn:not(.widget-trigger-button)');
             buttons.forEach(button => {
               (button as HTMLElement).style.borderRadius = layout.components.buttonRadius;
             });
@@ -314,7 +314,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
       document.head.appendChild(style);
       
       // Also apply directly to existing elements for immediate effect
-      const allButtons = document.querySelectorAll('button:not([data-state="checked"]):not([data-state="unchecked"]):not(.peer), [type="button"], [type="submit"], [type="reset"], .btn');
+      const allButtons = document.querySelectorAll('button:not([data-state="checked"]):not([data-state="unchecked"]):not(.peer):not([data-widget-trigger="true"]):not(.widget-trigger-button), [type="button"]:not([data-widget-trigger="true"]), [type="submit"]:not([data-widget-trigger="true"]), [type="reset"]:not([data-widget-trigger="true"]), .btn:not(.widget-trigger-button)');
       allButtons.forEach(button => {
         (button as HTMLElement).style.borderRadius = DEFAULT_LAYOUT.components.buttonRadius;
       });

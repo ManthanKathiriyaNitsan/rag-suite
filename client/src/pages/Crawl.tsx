@@ -48,6 +48,7 @@ export default function Crawl() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [cadenceFilter, setCadenceFilter] = useState("all");
   const [jobStatusFilter, setJobStatusFilter] = useState("all");
+  const [jobSearchQuery, setJobSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("today");
 
   // ==================== DOCUMENT TAB STATE ====================
@@ -55,7 +56,6 @@ export default function Crawl() {
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [docSearchQuery, setDocSearchQuery] = useState("");
-  const [sourceFilter, setSourceFilter] = useState("all-sources");
   const [typeFilter, setTypeFilter] = useState("all-types");
   const [docStatusFilter, setDocStatusFilter] = useState("all-status");
   const [showUploadForm, setShowUploadForm] = useState(false);
@@ -271,21 +271,6 @@ export default function Crawl() {
         doc.type?.toLowerCase().includes(docSearchQuery.toLowerCase())
       );
     }
-    if (sourceFilter !== "all-sources") {
-      filtered = filtered.filter(doc => {
-        const docSource = doc.source?.toLowerCase() || "";
-        switch (sourceFilter) {
-          case "docs":
-            return docSource.includes("docs.company.com") || docSource.includes("docs");
-          case "api":
-            return docSource.includes("api.company.com") || docSource.includes("api");
-          case "help":
-            return docSource.includes("help.company.com") || docSource.includes("help");
-          default:
-            return true;
-        }
-      });
-    }
     if (typeFilter !== "all-types") {
       filtered = filtered.filter(doc => {
         const docType = doc.type?.toLowerCase() || "";
@@ -319,7 +304,7 @@ export default function Crawl() {
       });
     }
     return filtered;
-  }, [documents, docSearchQuery, sourceFilter, typeFilter, docStatusFilter]);
+  }, [documents, docSearchQuery, typeFilter, docStatusFilter]);
 
   // ==================== DOMAIN TAB FUNCTIONS (Crawl) ====================
   const filteredSites = useMemo(() => {
@@ -346,10 +331,11 @@ export default function Crawl() {
     setStatusFilter("all");
     setCadenceFilter("all");
     setJobStatusFilter("all");
+    setJobSearchQuery("");
     setDateFilter("today");
   };
 
-  const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || cadenceFilter !== "all" || jobStatusFilter !== "all" || dateFilter !== "today";
+  const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || cadenceFilter !== "all" || jobStatusFilter !== "all" || jobSearchQuery !== "" || dateFilter !== "today";
 
   const handleAddSite = async (siteData: CrawlSiteData) => {
     try {
@@ -551,6 +537,17 @@ export default function Crawl() {
 
               <TabsContent value="jobs" className="space-y-4 w-full overflow-hidden">
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 flex-wrap">
+                  <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      type="text"
+                      className="pl-10"
+                      placeholder="Search jobs..."
+                      value={jobSearchQuery}
+                      onChange={(e) => setJobSearchQuery(e.target.value)}
+                      data-testid="input-search-jobs"
+                    />
+                  </div>
                   <Select value={jobStatusFilter} onValueChange={setJobStatusFilter}>
                     <SelectTrigger className="w-full sm:w-40" data-testid="select-job-status-filter">
                       <SelectValue placeholder="Status" />
@@ -564,11 +561,12 @@ export default function Crawl() {
                     </SelectContent>
                   </Select>
 
-                  {jobStatusFilter !== "all" && (
+                  {(jobStatusFilter !== "all" || jobSearchQuery !== "") && (
                     <Button
                       variant="outline"
                       onClick={() => {
                         setJobStatusFilter("all");
+                        setJobSearchQuery("");
                       }}
                       className="flex items-center gap-2 w-full sm:w-auto"
                       data-testid="button-clear-job-filters"
@@ -582,6 +580,7 @@ export default function Crawl() {
                   <CrawlJobs
                     sites={sites || []}
                     statusFilter={jobStatusFilter}
+                    searchQuery={jobSearchQuery}
                   />
                 </Suspense>
               </TabsContent>
@@ -645,18 +644,6 @@ export default function Crawl() {
                   />
                 </div>
 
-                <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                  <SelectTrigger className="w-40" data-testid="select-source-filter">
-                    <SelectValue placeholder="Source" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all-sources">All Sources</SelectItem>
-                    <SelectItem value="docs">docs.company.com</SelectItem>
-                    <SelectItem value="api">api.company.com</SelectItem>
-                    <SelectItem value="help">help.company.com</SelectItem>
-                  </SelectContent>
-                </Select>
-
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
                   <SelectTrigger className="w-32" data-testid="select-type-filter">
                     <SelectValue placeholder="Type" />
@@ -681,11 +668,6 @@ export default function Crawl() {
                     <SelectItem value="error">Error</SelectItem>
                   </SelectContent>
                 </Select>
-
-                <Button variant="outline" data-testid="button-advanced-filters">
-                  <Filter className="h-4 w-4 mr-2" />
-                  More Filters
-                </Button>
               </div>
 
               <div className="flex items-center gap-2">

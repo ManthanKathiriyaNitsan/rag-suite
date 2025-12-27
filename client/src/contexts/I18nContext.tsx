@@ -62,6 +62,8 @@ const translations: Record<string, Record<string, string>> = {
     "nav.integrations": "Integrations",
     "nav.settings": "Settings",
     "nav.rag-tuning": "RAG Tuning",
+    "nav.chatbot-configuration": "Chatbot Configuration",
+    "nav.search-configuration": "Search Configuration",
     
     // Overview
     "overview.description": "Monitor your RAG system performance and user engagement",
@@ -180,6 +182,8 @@ const translations: Record<string, Record<string, string>> = {
     "nav.integrations": "Integraciones",
     "nav.settings": "Configuración",
     "nav.rag-tuning": "Ajuste RAG",
+    "nav.chatbot-configuration": "Configuración del Chatbot",
+    "nav.search-configuration": "Configuración de Búsqueda",
     
     // Overview
     "overview.description": "Monitorea el rendimiento de tu sistema RAG y el compromiso del usuario",
@@ -290,6 +294,8 @@ const translations: Record<string, Record<string, string>> = {
     "nav.integrations": "Intégrations",
     "nav.settings": "Paramètres",
     "nav.rag-tuning": "Réglage RAG",
+    "nav.chatbot-configuration": "Configuration du Chatbot",
+    "nav.search-configuration": "Configuration de Recherche",
     
     // Overview
     "overview.description": "Surveillez les performances de votre système RAG et l'engagement des utilisateurs",
@@ -399,6 +405,8 @@ const translations: Record<string, Record<string, string>> = {
     "nav.integrations": "Integrationen",
     "nav.settings": "Einstellungen",
     "nav.rag-tuning": "RAG-Anpassung",
+    "nav.chatbot-configuration": "Chatbot-Konfiguration",
+    "nav.search-configuration": "Suchkonfiguration",
     
     // Overview
     "overview.description": "Überwachen Sie die Leistung Ihres RAG-Systems und das Nutzerengagement",
@@ -508,6 +516,8 @@ const translations: Record<string, Record<string, string>> = {
     "nav.integrations": "統合",
     "nav.settings": "設定",
     "nav.rag-tuning": "RAG調整",
+    "nav.chatbot-configuration": "チャットボット設定",
+    "nav.search-configuration": "検索設定",
     
     // Overview
     "overview.description": "RAGシステムのパフォーマンスとユーザーエンゲージメントを監視",
@@ -617,6 +627,8 @@ const translations: Record<string, Record<string, string>> = {
     "nav.integrations": "集成",
     "nav.settings": "设置",
     "nav.rag-tuning": "RAG调优",
+    "nav.chatbot-configuration": "聊天机器人配置",
+    "nav.search-configuration": "搜索配置",
     
     // Overview
     "overview.description": "监控RAG系统性能和用户参与度",
@@ -726,6 +738,8 @@ const translations: Record<string, Record<string, string>> = {
     "nav.integrations": "Integrações",
     "nav.settings": "Configurações",
     "nav.rag-tuning": "Ajuste RAG",
+    "nav.chatbot-configuration": "Configuração do Chatbot",
+    "nav.search-configuration": "Configuração de Pesquisa",
     
     // Overview
     "overview.description": "Monitore o desempenho do seu sistema RAG e o engajamento do usuário",
@@ -836,6 +850,8 @@ const translations: Record<string, Record<string, string>> = {
     "nav.integrations": "Integrazioni",
     "nav.settings": "Impostazioni",
     "nav.rag-tuning": "Regolazione RAG",
+    "nav.chatbot-configuration": "Configurazione Chatbot",
+    "nav.search-configuration": "Configurazione Ricerca",
     
     // Overview
     "overview.description": "Monitora le prestazioni del tuo sistema RAG e l'engagement degli utenti",
@@ -946,6 +962,8 @@ const translations: Record<string, Record<string, string>> = {
     "nav.integrations": "Интеграции",
     "nav.settings": "Настройки",
     "nav.rag-tuning": "Настройка RAG",
+    "nav.chatbot-configuration": "Конфигурация чат-бота",
+    "nav.search-configuration": "Конфигурация поиска",
     
     // Overview
     "overview.description": "Отслеживайте производительность вашей RAG-системы и вовлеченность пользователей",
@@ -1056,6 +1074,8 @@ const translations: Record<string, Record<string, string>> = {
     "nav.integrations": "التكاملات",
     "nav.settings": "الإعدادات",
     "nav.rag-tuning": "ضبط RAG",
+    "nav.chatbot-configuration": "تكوين روبوت الدردشة",
+    "nav.search-configuration": "تكوين البحث",
     
     // Overview
     "overview.description": "راقب أداء نظام RAG الخاص بك ومشاركة المستخدمين",
@@ -1166,6 +1186,8 @@ const translations: Record<string, Record<string, string>> = {
     "nav.integrations": "एकीकरण",
     "nav.settings": "सेटिंग्स",
     "nav.rag-tuning": "RAG ट्यूनिंग",
+    "nav.chatbot-configuration": "चैटबॉट कॉन्फ़िगरेशन",
+    "nav.search-configuration": "खोज कॉन्फ़िगरेशन",
     
     // Overview
     "overview.description": "अपने RAG सिस्टम के प्रदर्शन और उपयोगकर्ता जुड़ाव की निगरानी करें",

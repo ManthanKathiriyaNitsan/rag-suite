@@ -12,6 +12,6 @@ export { default as Login } from './Login';
 export { default as Onboarding } from './Onboarding';
 export { default as Overview } from './Overview';
 export { default as Profile } from './Profile';
-export { default as RAGTuning } from './RAGTuning';
+export { default as SearchConfiguration } from './SearchConfiguration';
 export { default as Settings } from './Settings';
 export { default as Signup } from './Signup';

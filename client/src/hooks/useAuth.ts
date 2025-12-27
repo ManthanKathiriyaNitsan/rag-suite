@@ -93,6 +93,9 @@ export const useAuth = () => {
 
       // Invalidate and refetch user queries
       queryClient.invalidateQueries({ queryKey: ['auth-user'] });
+      
+      // Invalidate settings query to refetch branding for new user
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
 
       // Note: Navigation will be handled by the Login component's useEffect
       // No need to reload the page - the auth state is now reactive

@@ -428,6 +428,8 @@ export const crawlAPI = {
       headlessMode: site.headless_mode ?? "AUTO",
       includePatterns: site.allowlist ?? [],
       excludePatterns: site.denylist ?? [],
+      trainedAt: site.trained_at ?? null, // Training timestamp from backend
+      isTrained: !!site.trained_at, // Computed boolean from trainedAt
     }));
   },
 
@@ -1317,6 +1319,8 @@ export interface CrawlSite {
   respectRobotsTxt?: boolean;
   followRedirects?: boolean;
   customHeaders?: Record<string, string>;
+  trainedAt?: string | null; // Timestamp when training completed, null if not trained yet
+  isTrained?: boolean; // Boolean indicating if data is trained (computed from trainedAt)
 }
 
 export interface CrawlStatus {
@@ -1330,6 +1334,8 @@ export interface CrawlStatus {
   completedAt?: string;
   error?: string;
   logs?: string[];
+  isTrained?: boolean; // Boolean indicating if data is trained
+  trainedAt?: string | null; // Timestamp when training completed, null if not trained
 }
 
 export interface UrlPreview {
@@ -1938,6 +1944,779 @@ export const settingsAPI = {
       return response.data;
     } catch (error) {
       console.error('❌ Save settings failed:', error);
+      throw error;
+    }
+  },
+};
+
+// System Health API interfaces
+export interface ServiceHealth {
+  status: string;
+  uptime_percent: number;
+  last_heartbeat_seconds: number;
+  health_score: number;
+  reason: string;
+  predicted_failure_minutes: number;
+}
+
+export interface SystemHealthResponse {
+  services: Record<string, ServiceHealth>;
+  timestamp: string;
+  overall_health_score: number;
+  overall_status: string;
+}
+
+export const systemHealthAPI = {
+  // Get system health
+  getSystemHealth: async (): Promise<SystemHealthResponse> => {
+    console.log('🏥 System Health API - Getting system health');
+    try {
+      const response = await apiClient.get('/system-health');
+      console.log('✅ System health retrieved successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Get system health failed:', error);
+      throw error;
+    }
+  },
+};
+
+// Chatbot Configuration & Customization API interfaces
+export interface ChatbotSettingsResponse {
+  configuration: {
+    chatbot_title: string;
+    short_description: string;
+    bubble_message: string;
+    welcome_message: string;
+    chatbot_language: string;
+  };
+  customization: {
+    widget_logo_url: string;
+    widget_avatar: string;
+    widget_avatar_size: number;
+    widget_chatbot_color: string;
+    widget_show_logo: boolean;
+    widget_show_date_time: boolean;
+    widget_bottom_space: number;
+    widget_font_size: number;
+    widget_trigger_border_radius: number;
+    widget_position: string;
+    widget_z_index: number;
+    widget_offset_x: number;
+    widget_offset_y: number;
+  };
+}
+
+export interface ChatbotConfigurationRequest {
+  chatbot_title: string;
+  short_description: string;
+  bubble_message: string;
+  welcome_message: string;
+  chatbot_language: string;
+}
+
+export interface ChatbotCustomizationRequest {
+  widget_logo_url: string;
+  widget_avatar: string;
+  widget_avatar_size: number;
+  widget_chatbot_color: string;
+  widget_show_logo: boolean;
+  widget_show_date_time: boolean;
+  widget_bottom_space: number;
+  widget_font_size?: number;
+  widget_trigger_border_radius: number;
+  widget_position: string;
+  widget_z_index: number;
+  widget_offset_x: number;
+  widget_offset_y: number;
+}
+
+export const chatbotAPI = {
+  // Get chatbot settings (configuration + customization)
+  getSettings: async (): Promise<ChatbotSettingsResponse> => {
+    console.log('🤖 Chatbot API - Getting settings');
+    try {
+      const response = await apiClient.get('/chatbot/settings');
+      console.log('✅ Chatbot settings retrieved successfully:', response.data);
+      return response.data;
+    } catch (error: any) {
+      // If 404, return default settings
+      if (error?.response?.status === 404) {
+        console.log('ℹ️ No chatbot settings found, returning defaults');
+        return {
+          configuration: {
+            chatbot_title: '',
+            short_description: '',
+            bubble_message: '',
+            welcome_message: '',
+            chatbot_language: 'en',
+          },
+          customization: {
+            widget_logo_url: '',
+            widget_avatar: 'default-1',
+            widget_avatar_size: 15,
+            widget_chatbot_color: '#1F2937',
+            widget_show_logo: true,
+            widget_show_date_time: true,
+            widget_bottom_space: 15,
+            widget_font_size: 12,
+            widget_trigger_border_radius: 50,
+            widget_position: 'bottom-right',
+            widget_z_index: 50,
+            widget_offset_x: 0,
+            widget_offset_y: 0,
+          },
+        };
+      }
+      console.error('❌ Get chatbot settings failed:', error);
+      throw error;
+    }
+  },
+
+  // Save chatbot configuration
+  saveConfiguration: async (config: ChatbotConfigurationRequest): Promise<ChatbotConfigurationRequest> => {
+    console.log('🤖 Chatbot API - Saving configuration:', config);
+    try {
+      const response = await apiClient.post('/chatbot/configuration', config);
+      console.log('✅ Chatbot configuration saved successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Save chatbot configuration failed:', error);
+      throw error;
+    }
+  },
+
+  // Save chatbot customization
+  saveCustomization: async (customization: ChatbotCustomizationRequest): Promise<ChatbotCustomizationRequest> => {
+    console.log('🤖 Chatbot API - Saving customization:', customization);
+    try {
+      const response = await apiClient.post('/chatbot/customization', customization);
+      console.log('✅ Chatbot customization saved successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Save chatbot customization failed:', error);
+      throw error;
+    }
+  },
+
+  // Get chatbot activation status
+  getActivationStatus: async (): Promise<{ success: boolean; is_active: boolean }> => {
+    console.log('⚙️ Chatbot API - Fetching activation status');
+    try {
+      const response = await apiClient.get<{ success: boolean; is_active: boolean }>('/chatbot/activate');
+      console.log('✅ Activation status fetched successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Get activation status failed:', error);
+      throw error;
+    }
+  },
+
+  // Update chatbot activation status
+  updateActivationStatus: async (isActive: boolean): Promise<{ success: boolean; message: string; is_active: boolean }> => {
+    console.log('⚙️ Chatbot API - Updating activation status:', isActive);
+    try {
+      const response = await apiClient.put<{ success: boolean; message: string; is_active: boolean }>('/chatbot/activate', {
+        is_active: isActive
+      });
+      console.log('✅ Activation status updated successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Update activation status failed:', error);
+      throw error;
+    }
+  },
+};
+
+// 🔍 Search Activation API functions
+export const searchActivationAPI = {
+  // Get search activation status
+  getActivationStatus: async (): Promise<string> => {
+    console.log('🔍 Search Activation API - Fetching activation status');
+    try {
+      const response = await apiClient.get<string>('/search/activate');
+      console.log('✅ Search activation status fetched successfully:', response.data);
+      // If response is a string, return it directly; if it's wrapped in an object, extract it
+      return typeof response.data === 'string' ? response.data : (response.data as any).data || response.data;
+    } catch (error) {
+      console.error('❌ Get search activation status failed:', error);
+      throw error;
+    }
+  },
+
+  // Update search activation status
+  updateActivationStatus: async (isActive: boolean): Promise<{ success: boolean; message?: string; data?: string }> => {
+    console.log('🔍 Search Activation API - Updating activation status:', isActive);
+    try {
+      // User specified the body should be { "additionalProp1": {} }
+      // We'll include is_active in the additionalProp1 object
+      const response = await apiClient.put<{ success: boolean; message?: string; data?: string }>('/search/activate', {
+        additionalProp1: { is_active: isActive }
+      });
+      console.log('✅ Search activation status updated successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Update search activation status failed:', error);
+      throw error;
+    }
+  },
+};
+
+// Config Models API types
+export interface ConfigModelsResponse {
+  success: boolean;
+  data: ConfigModelsData | string; // Backend returns string, but we'll parse it to ConfigModelsData
+  message: string;
+}
+
+export interface ConfigModelsData {
+  model_provider: string;
+  chat_model: string;
+  embedding_model: string;
+  api_key: string;
+  chat_temperature?: string | null;
+  chat_top_p?: string | null;
+  chat_best_of?: number | null;
+  chat_frequency_penalty?: string | null;
+  chat_presence_penalty?: string | null;
+  chat_top_k?: number | null;
+  chat_similarity_threshold?: number | null;
+  chat_max_tokens?: number | null;
+  chat_use_reranker?: boolean | null;
+}
+
+export interface ConfigModelsRequest {
+  model_provider: string;
+  chat_model: string;
+  embedding_model: string;
+  api_key: string;
+  chat_temperature?: string | null;
+  chat_top_p?: string | null;
+  chat_best_of?: number | null;
+  chat_frequency_penalty?: string | null;
+  chat_presence_penalty?: string | null;
+  chat_top_k?: number | null;
+  chat_similarity_threshold?: number | null;
+  chat_max_tokens?: number | null;
+  chat_use_reranker?: boolean | null;
+}
+
+export interface AvailableModelsResponse {
+  success: boolean;
+  data: string[]; // Array of model names
+  message: string;
+}
+
+export interface ModelInfo {
+  name: string;
+  value: string;
+}
+
+export interface ProviderModelInfo {
+  provider: string;
+  value: string;
+  chat_models: ModelInfo[];
+  embedding_models: ModelInfo[];
+}
+
+export const configModelsAPI = {
+  // Get config models
+  getConfigModels: async (): Promise<ConfigModelsData> => {
+    console.log('⚙️ Config Models API - Fetching config models');
+    try {
+      const response = await apiClient.get<ConfigModelsResponse>('/config-models/');
+      console.log('✅ Config models fetched successfully:', response.data);
+      
+      // Parse data if it's a string (JSON stringified)
+      let data: ConfigModelsData;
+      if (typeof response.data.data === 'string') {
+        try {
+          data = JSON.parse(response.data.data);
+        } catch {
+          // If parsing fails, return default structure
+          data = {
+            model_provider: '',
+            chat_model: '',
+            embedding_model: '',
+            api_key: '',
+            chat_temperature: null,
+            chat_top_p: null,
+            chat_best_of: null,
+            chat_frequency_penalty: null,
+            chat_presence_penalty: null,
+            chat_top_k: null,
+            chat_similarity_threshold: null,
+            chat_max_tokens: null,
+            chat_use_reranker: null,
+          };
+        }
+      } else {
+        data = response.data.data as ConfigModelsData;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('❌ Get config models failed:', error);
+      throw error;
+    }
+  },
+
+  // Get all available models (providers with their chat and embedding models)
+  getAvailableModels: async (): Promise<ProviderModelInfo[]> => {
+    console.log('⚙️ Config Models API - Fetching available models');
+    try {
+      const response = await apiClient.get<ProviderModelInfo[]>('/config-models/models');
+      console.log('✅ Available models fetched successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Get available models failed:', error);
+      return [];
+    }
+  },
+
+  // Get available chat models for a specific provider
+  getAvailableChatModels: async (provider?: string): Promise<string[]> => {
+    console.log('⚙️ Config Models API - Fetching available chat models for provider:', provider);
+    try {
+      const allModels = await configModelsAPI.getAvailableModels();
+      const providerInfo = allModels.find(p => p.value.toLowerCase() === provider?.toLowerCase());
+      
+      if (providerInfo && providerInfo.chat_models) {
+        return providerInfo.chat_models.map(model => model.value);
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('❌ Get available chat models failed:', error);
+      return [];
+    }
+  },
+
+  // Get available embedding models for a specific provider
+  getAvailableEmbeddingModels: async (provider?: string): Promise<string[]> => {
+    console.log('⚙️ Config Models API - Fetching available embedding models for provider:', provider);
+    try {
+      const allModels = await configModelsAPI.getAvailableModels();
+      const providerInfo = allModels.find(p => p.value.toLowerCase() === provider?.toLowerCase());
+      
+      if (providerInfo && providerInfo.embedding_models) {
+        return providerInfo.embedding_models.map(model => model.value);
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('❌ Get available embedding models failed:', error);
+      return [];
+    }
+  },
+
+  // Save config models
+  saveConfigModels: async (config: ConfigModelsRequest): Promise<ConfigModelsRequest> => {
+    console.log('⚙️ Config Models API - Saving config models:', config);
+    try {
+      const response = await apiClient.post<ConfigModelsResponse>('/config-models/', config);
+      console.log('✅ Config models saved successfully:', response.data);
+      return config; // Return the request data since backend might not return the full object
+    } catch (error) {
+      console.error('❌ Save config models failed:', error);
+      throw error;
+    }
+  },
+};
+
+// Prompt API types
+export interface PromptResponse {
+  success: boolean;
+  data: {
+    system_prompt: string;
+  };
+  message: string;
+}
+
+export interface PromptRequest {
+  system_prompt: string;
+}
+
+// Prompt API
+export const promptAPI = {
+  // Get system prompt
+  getPrompt: async (): Promise<PromptResponse['data']> => {
+    console.log('⚙️ Prompt API - Fetching system prompt');
+    try {
+      const response = await apiClient.get<PromptResponse>('/prompt');
+      console.log('✅ Prompt fetched successfully:', response.data);
+      
+      // Handle response - data could be nested or direct
+      let data: PromptResponse['data'];
+      if (response.data.data) {
+        // If data is nested
+        if (typeof response.data.data === 'string') {
+          // If data is a stringified JSON
+          try {
+            data = JSON.parse(response.data.data);
+          } catch {
+            data = { system_prompt: response.data.data };
+          }
+        } else {
+          data = response.data.data as PromptResponse['data'];
+        }
+      } else {
+        // If data is at root level
+        data = response.data as any;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('❌ Get prompt failed:', error);
+      throw error;
+    }
+  },
+
+  // Save system prompt
+  savePrompt: async (prompt: PromptRequest): Promise<PromptRequest> => {
+    console.log('⚙️ Prompt API - Saving system prompt:', prompt);
+    try {
+      const response = await apiClient.post<PromptResponse>('/prompt', prompt);
+      console.log('✅ Prompt saved successfully:', response.data);
+      return prompt;
+    } catch (error) {
+      console.error('❌ Save prompt failed:', error);
+      throw error;
+    }
+  },
+};
+
+// 🔍 Search Prompt API functions
+export const searchPromptAPI = {
+  // Get search prompt (returns string)
+  getPrompt: async (): Promise<string> => {
+    console.log('🔍 Search Prompt API - Fetching search prompt');
+    try {
+      const response = await apiClient.get('/search/prompt');
+      console.log('✅ Search prompt fetched successfully:', response.data);
+      
+      // Handle different response formats
+      let promptString = '';
+      
+      if (typeof response.data === 'string') {
+        // Direct string response
+        promptString = response.data;
+      } else if (response.data && typeof response.data === 'object') {
+        // Object response - extract string from common fields
+        promptString = (response.data as any).system_prompt || 
+                      (response.data as any).data || 
+                      (response.data as any).prompt ||
+                      (response.data as any).message ||
+                      '';
+      } else {
+        // Fallback: convert to string
+        promptString = String(response.data || '');
+      }
+      
+      return promptString;
+    } catch (error) {
+      console.error('❌ Get search prompt failed:', error);
+      throw error;
+    }
+  },
+
+  // Save search prompt
+  savePrompt: async (prompt: { system_prompt: string }): Promise<string | { system_prompt: string }> => {
+    console.log('🔍 Search Prompt API - Saving search prompt:', prompt);
+    try {
+      const response = await apiClient.post('/search/prompt', prompt);
+      console.log('✅ Search prompt saved successfully:', response.data);
+      
+      // Handle different response formats
+      // API might return string, object, or the prompt we sent
+      if (typeof response.data === 'string') {
+        return response.data;
+      } else if (response.data && typeof response.data === 'object') {
+        // Return object if it has system_prompt, otherwise return what we sent
+        return (response.data as any).system_prompt ? response.data : prompt;
+      } else {
+        // Return the prompt we sent as confirmation
+        return prompt;
+      }
+    } catch (error) {
+      console.error('❌ Save search prompt failed:', error);
+      throw error;
+    }
+  },
+};
+
+// 📊 Analytics API interfaces
+export interface AnalyticsOverviewData {
+  total_queries: number;
+  avg_response_time_ms: number;
+  popular_terms: Array<{
+    term: string;
+    count: number;
+  }>;
+  system_health: {
+    status: string;
+    database: boolean;
+    cache: boolean;
+    version: string;
+    uptime_seconds: number;
+  };
+  crawl_status: {
+    active_jobs: number;
+    failed_jobs: number;
+    completed_jobs: number;
+    pending_jobs: number;
+    total_sources: number;
+    total_documents: number;
+  };
+}
+
+export interface AnalyticsQuery {
+  id: string;
+  query: string;
+  mode: string;
+  p95_latency: number;
+  result_count: number;
+  timestamp: string;
+}
+
+export interface AnalyticsQueriesResponse {
+  queries: AnalyticsQuery[];
+  total: number;
+  limit: number;
+  offset: number;
+  date_range: Record<string, string>;
+}
+
+export interface PopularTerm {
+  term: string;
+  count: number;
+}
+
+export interface AnalyticsPopularResponse {
+  terms: PopularTerm[];
+  total_unique_terms: number;
+  date_range: Record<string, string>;
+}
+
+export interface DailyQuery {
+  date: string;
+  queries: number;
+}
+
+export interface LatencyDataPoint {
+  date: string;
+  p95: number;
+  p50: number;
+}
+
+export interface SatisfactionDataPoint {
+  date: string;
+  satisfaction: number;
+}
+
+export interface SourceCoverageItem {
+  name: string;
+  value: number;
+  color: string;
+}
+
+export interface PopularQuery {
+  query: string;
+  count: number;
+  satisfaction: number;
+}
+
+export interface HardQuery {
+  query: string;
+  attempts: number;
+  satisfaction: number;
+  avgLatency: string;
+  lastAttempt: string;
+}
+
+export interface AnalyticsMetrics {
+  totalQueries: number;
+  totalQueriesChange: number;
+  avgLatencyP95: number;
+  avgLatencyP95Change: number;
+  satisfactionRate: number;
+  satisfactionRateChange: number;
+  dailyAverage: number;
+}
+
+export interface AnalyticsDashboardResponse {
+  metrics: AnalyticsMetrics;
+  dailyQueries: DailyQuery[];
+  latencyData: LatencyDataPoint[];
+  satisfactionData: SatisfactionDataPoint[];
+  sourceCoverage: SourceCoverageItem[];
+  popularQueries: PopularQuery[];
+  hardQueries: HardQuery[];
+  timeRange: string;
+}
+
+export interface SatisfactionTimeSeriesResponse {
+  data: SatisfactionDataPoint[];
+  timeRange: string;
+  averageSatisfaction: number;
+}
+
+export interface SourceCoverageResponse {
+  sources: SourceCoverageItem[];
+  totalSources: number;
+}
+
+export interface PopularQueriesResponse {
+  queries: PopularQuery[];
+  timeRange: string;
+}
+
+export interface HardQueriesResponse {
+  queries: HardQuery[];
+  timeRange: string;
+}
+
+// 📊 Analytics API functions
+export const analyticsAPI = {
+  // Get analytics overview
+  getOverview: async (): Promise<AnalyticsOverviewData> => {
+    console.log('📊 Analytics API - Getting overview');
+    try {
+      const response = await apiClient.get('/analytics/overview');
+      console.log('✅ Analytics API - Overview response:', response.data);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error('❌ Analytics API - Get overview failed:', error);
+      throw error;
+    }
+  },
+
+  // Get queries
+  getQueries: async (params?: { limit?: number; offset?: number; start_date?: string; end_date?: string }): Promise<AnalyticsQueriesResponse> => {
+    console.log('📊 Analytics API - Getting queries', params);
+    try {
+      const response = await apiClient.get('/analytics/queries', { params });
+      console.log('✅ Analytics API - Queries response:', response.data);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error('❌ Analytics API - Get queries failed:', error);
+      throw error;
+    }
+  },
+
+  // Get popular terms
+  getPopular: async (params?: { start_date?: string; end_date?: string }): Promise<AnalyticsPopularResponse> => {
+    console.log('📊 Analytics API - Getting popular terms', params);
+    try {
+      const response = await apiClient.get('/analytics/popular', { params });
+      console.log('✅ Analytics API - Popular response:', response.data);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error('❌ Analytics API - Get popular failed:', error);
+      throw error;
+    }
+  },
+
+  // Get dashboard data
+  getDashboard: async (params?: { time_range?: string }): Promise<AnalyticsDashboardResponse> => {
+    console.log('📊 Analytics API - Getting dashboard', params);
+    try {
+      const response = await apiClient.get('/analytics/dashboard', { params });
+      console.log('✅ Analytics API - Dashboard response:', response.data);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error('❌ Analytics API - Get dashboard failed:', error);
+      throw error;
+    }
+  },
+
+  // Get satisfaction time series
+  getSatisfactionTimeSeries: async (params?: { time_range?: string }): Promise<SatisfactionTimeSeriesResponse> => {
+    console.log('📊 Analytics API - Getting satisfaction time series', params);
+    try {
+      const response = await apiClient.get('/analytics/satisfaction-time-series', { params });
+      console.log('✅ Analytics API - Satisfaction time series response:', response.data);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error('❌ Analytics API - Get satisfaction time series failed:', error);
+      throw error;
+    }
+  },
+
+  // Get source coverage
+  getSourceCoverage: async (): Promise<SourceCoverageResponse> => {
+    console.log('📊 Analytics API - Getting source coverage');
+    try {
+      const response = await apiClient.get('/analytics/source-coverage');
+      console.log('✅ Analytics API - Source coverage response:', response.data);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error('❌ Analytics API - Get source coverage failed:', error);
+      throw error;
+    }
+  },
+
+  // Get popular queries
+  getPopularQueries: async (params?: { time_range?: string }): Promise<PopularQueriesResponse> => {
+    console.log('📊 Analytics API - Getting popular queries', params);
+    try {
+      const response = await apiClient.get('/analytics/popular-queries', { params });
+      console.log('✅ Analytics API - Popular queries response:', response.data);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error('❌ Analytics API - Get popular queries failed:', error);
+      throw error;
+    }
+  },
+
+  // Get hard queries
+  getHardQueries: async (params?: { time_range?: string }): Promise<HardQueriesResponse> => {
+    console.log('📊 Analytics API - Getting hard queries', params);
+    try {
+      const response = await apiClient.get('/analytics/hard-queries', { params });
+      console.log('✅ Analytics API - Hard queries response:', response.data);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error('❌ Analytics API - Get hard queries failed:', error);
+      throw error;
+    }
+  },
+
+  // Get latency time series
+  getLatencyTimeSeries: async (params?: { time_range?: string }): Promise<string> => {
+    console.log('📊 Analytics API - Getting latency time series', params);
+    try {
+      const response = await apiClient.get('/analytics/latency-time-series', { params });
+      console.log('✅ Analytics API - Latency time series response:', response.data);
+      return typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+    } catch (error) {
+      console.error('❌ Analytics API - Get latency time series failed:', error);
+      throw error;
+    }
+  },
+
+  // Export analytics data
+  export: async (params?: { format?: string; time_range?: string }): Promise<string> => {
+    console.log('📊 Analytics API - Exporting analytics', params);
+    try {
+      const response = await apiClient.get('/analytics/export', { params });
+      console.log('✅ Analytics API - Export response:', response.data);
+      return typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+    } catch (error) {
+      console.error('❌ Analytics API - Export failed:', error);
+      throw error;
+    }
+  },
+
+  // Get project analytics
+  getProjectAnalytics: async (projectId: string): Promise<string> => {
+    console.log('📊 Analytics API - Getting project analytics', projectId);
+    try {
+      const response = await apiClient.get(`/analytics/project/${projectId}`);
+      console.log('✅ Analytics API - Project analytics response:', response.data);
+      return typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+    } catch (error) {
+      console.error('❌ Analytics API - Get project analytics failed:', error);
       throw error;
     }
   },

@@ -14,6 +14,8 @@ interface SearchBarProps {
   enableHistory?: boolean;
   className?: string;
   enableSuggestions?: boolean;
+  isWidget?: boolean; // 🎨 Widget-specific styling
+  disabled?: boolean; // Disable input in preview mode
 }
 
 // Add ref interface for clearing
@@ -29,6 +31,8 @@ export const SearchBar = React.forwardRef<SearchBarRef, SearchBarProps>(function
   enableHistory = true,
   className = "",
   enableSuggestions = true,
+  isWidget = false, // 🎨 Widget-specific styling
+  disabled = false, // Disable input in preview mode
 }, ref) {
   const [query, setQuery] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -460,10 +464,24 @@ export const SearchBar = React.forwardRef<SearchBarRef, SearchBarProps>(function
     clear,
   }), [clear]);
 
+  // 🎨 Widget-specific styling classes
+  // Calculate padding: if mic and send buttons, need space for both (40px + 8px gap + 40px + 12px padding = 100px)
+  const widgetInputPadding = isWidget 
+    ? (showMicButton && showSendButton ? "pl-4 pr-[100px]" : showMicButton || showSendButton ? "pl-4 pr-16" : "pl-4 pr-4")
+    : "pl-10 pr-20";
+  const widgetInputHeight = isWidget ? "h-14" : "";
+  // No background for widget input - transparent
+  const widgetInputBg = isWidget ? "bg-transparent dark:bg-transparent border-gray-300 dark:border-gray-700/50 focus:border-gray-400 dark:focus:border-gray-600" : "";
+  const widgetInputText = isWidget ? "text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400" : "";
+  const widgetButtonSize = isWidget ? "h-10 w-10" : "h-8 w-8";
+  const widgetIconSize = isWidget ? "h-5 w-5" : "h-4 w-4";
+  // Button icons - dark in light mode, white in dark mode
+  const widgetButtonText = isWidget ? "text-gray-700 dark:text-white" : "";
+
   return (
     <form onSubmit={handleSubmit} className={`relative ${className}`} data-testid="search-bar-container">
       <div className="relative flex items-center">
-        <Search className="absolute left-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        {!isWidget && <Search className="absolute left-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />}
         <div className="relative w-full">
           <Input
             type="text"
@@ -475,7 +493,28 @@ export const SearchBar = React.forwardRef<SearchBarRef, SearchBarProps>(function
               // Delay closing to allow click
               setTimeout(() => setShowSuggestions(false), 150);
             }}
-            className="pl-10 pr-20"
+            disabled={disabled}
+            className={`${widgetInputPadding} ${widgetInputHeight} ${widgetInputBg} ${widgetInputText} ${isWidget ? "rounded-xl text-base widget-no-hover !transition-none" : ""}`}
+            style={isWidget ? {
+              backgroundColor: 'transparent', // transparent background
+              borderColor: undefined, // Let Tailwind handle border color
+              color: undefined, // Let Tailwind handle text color
+              transition: 'none', // Remove all transitions
+            } : undefined}
+            onMouseEnter={(e) => {
+              if (isWidget) {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                // Let Tailwind handle border color
+              }
+            }}
+            onFocus={(e) => {
+              if (isWidget) {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                // Let Tailwind handle border color
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.outline = 'none';
+              }
+            }}
             data-testid="input-search"
             aria-label="Search input"
             aria-describedby="search-hints"
@@ -485,23 +524,23 @@ export const SearchBar = React.forwardRef<SearchBarRef, SearchBarProps>(function
             aria-activedescendant={highlightedIndex >= 0 ? `suggestion-${highlightedIndex}` : undefined}
           />
         </div>
-        <div className="absolute right-2 flex items-center gap-1">
+        <div className={`absolute ${isWidget ? "right-3" : "right-2"} flex items-center gap-2`}>
           {/* 📚 History Button */}
-          {enableHistory && queryHistory.length > 0 && (
+          {enableHistory && queryHistory.length > 0 && !isWidget && (
             <Button
               type="button"
               variant="ghost"
               size="icon"
               onClick={toggleHistory}
               data-testid="button-history"
-              className="h-8 w-8"
+              className={widgetButtonSize}
               title="Show search history"
               aria-label="Show search history"
               aria-expanded={showHistory}
               aria-controls="history-list"
               tabIndex={0}
             >
-              <History className="h-4 w-4" aria-hidden="true" />
+              <History className={widgetIconSize} aria-hidden="true" />
             </Button>
           )}
           
@@ -512,13 +551,16 @@ export const SearchBar = React.forwardRef<SearchBarRef, SearchBarProps>(function
               size="icon"
               onClick={handleMicClick}
               data-testid="button-mic"
-              className={`h-8 w-8 ${isListening ? "text-red-500 animate-pulse" : ""}`}
+              className={`${widgetButtonSize} ${widgetButtonText} ${isListening ? "!text-red-500 dark:!text-red-400 animate-pulse" : ""} ${isWidget ? "widget-no-hover" : ""}`}
+              style={isWidget ? {
+                color: isListening ? undefined : undefined, // Let Tailwind handle color based on mode
+              } : undefined}
               title={isListening ? "Stop listening" : "Start voice input"}
               aria-label={isListening ? "Stop voice recording" : "Start voice input"}
               aria-pressed={isListening}
               tabIndex={0}
             >
-              <Mic className="h-4 w-4" aria-hidden="true" />
+              <Mic className={widgetIconSize} style={isWidget && isListening ? { color: '#ef4444' } : undefined} aria-hidden="true" />
             </Button>
           )}
           {showSendButton && (
@@ -528,7 +570,8 @@ export const SearchBar = React.forwardRef<SearchBarRef, SearchBarProps>(function
               size="icon"
               disabled={!query.trim()}
               data-testid="button-send"
-              className="h-8 w-8"
+              className={`${widgetButtonSize} ${widgetButtonText} ${isWidget ? "widget-no-hover disabled:opacity-40 disabled:cursor-not-allowed" : ""}`}
+              style={undefined}
               onClick={() => {
                 if (query.trim() && onSearch) {
                   console.log("🧹 Send button clicked, clearing search bar, current query:", query);
@@ -544,7 +587,7 @@ export const SearchBar = React.forwardRef<SearchBarRef, SearchBarProps>(function
               aria-label="Send search query"
               tabIndex={0}
             >
-              <Send className="h-4 w-4" aria-hidden="true" />
+              <Send className={widgetIconSize} aria-hidden="true" />
             </Button>
           )}
         </div>

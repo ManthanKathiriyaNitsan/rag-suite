@@ -7,7 +7,6 @@ import {
   Home,
   MessageSquare,
   Search,
-  Settings,
   Sliders,
   Puzzle,
   ChevronDown,
@@ -18,6 +17,8 @@ import {
   X,
   Trash2,
   Loader2,
+  MessageCircle,
+  BotIcon,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -84,33 +85,34 @@ const menuItems = [
     icon: Search,
   },
   {
-    title: "RAG Tuning",
-    url: "/rag-tuning",
-    icon: Bot,
-  },
-  {
     title: "Analytics",
     url: "/analytics",
     icon: BarChart3,
   },
+  // Temporarily hidden
+  // {
+  //   title: "Feedback",
+  //   url: "/feedback",
+  //   icon: MessageSquare,
+  // },
+  // {
+  //   title: "Integrations",
+  //   url: "/integrations",
+  //   icon: Puzzle,
+  // },
   {
-    title: "Feedback",
-    url: "/feedback",
-    icon: MessageSquare,
+    title: "Chatbot Configuration",
+    url: "/chatbot-configuration",
+    icon: BotIcon,
   },
   {
-    title: "Integrations",
-    url: "/integrations",
-    icon: Puzzle,
+    title: "Search Configuration",
+    url: "/search-configuration",
+    icon: MessageCircle,
   },
 ];
 
 const settingsItems = [
-  {
-    title: "Settings",
-    url: "/settings",
-    icon: Settings,
-  },
   {
     title: "API Keys",
     url: "/api-keys",
@@ -483,7 +485,8 @@ const AppSidebar = React.memo(function AppSidebar() {
                   'Analytics': 'nav.analytics',
                   'Feedback': 'nav.feedback',
                   'Integrations': 'nav.integrations',
-                  'Settings': 'nav.settings'
+                  'Chatbot Configuration': 'nav.chatbot-configuration',
+                  'Search Configuration': 'nav.search-configuration',
                 };
                 const translationKey = translationMap[item.title] || `nav.${item.title.toLowerCase().replace(' ', '-')}`;
 

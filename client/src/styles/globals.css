@@ -407,18 +407,19 @@
 
   /* Global button hover/active styles - only for non-primary buttons */
   /* Primary buttons (with animation) should not change color on hover */
-  button:hover:not(.bg-primary),
-  [type="button"]:hover:not(.bg-primary),
-  [type="submit"]:hover:not(.bg-primary),
-  [type="reset"]:hover:not(.bg-primary) {
+  /* Exclude widget buttons that should not have hover effects */
+  button:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger),
+  [type="button"]:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger),
+  [type="submit"]:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger),
+  [type="reset"]:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger) {
     background-color: hsl(var(--button-hover-bg)) !important;
     border-color: hsl(var(--button-hover-border)) !important;
   }
 
-  button:active:not(.bg-primary),
-  [type="button"]:active:not(.bg-primary),
-  [type="submit"]:active:not(.bg-primary),
-  [type="reset"]:active:not(.bg-primary) {
+  button:active:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button),
+  [type="button"]:active:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button),
+  [type="submit"]:active:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button),
+  [type="reset"]:active:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button) {
     background-color: hsl(var(--button-hover-bg)) !important;
     border-color: hsl(var(--button-hover-border)) !important;
   }
@@ -458,20 +459,20 @@
     transition: background-color 0.2s ease, border-color 0.2s ease;
   }
 
-  input[type="text"]:hover:not(:disabled),
-  input[type="email"]:hover:not(:disabled),
-  input[type="password"]:hover:not(:disabled),
-  input[type="number"]:hover:not(:disabled),
-  input[type="tel"]:hover:not(:disabled),
-  input[type="url"]:hover:not(:disabled),
-  input[type="search"]:hover:not(:disabled),
-  input[type="date"]:hover:not(:disabled),
-  input[type="time"]:hover:not(:disabled),
-  input[type="datetime-local"]:hover:not(:disabled),
-  input[type="month"]:hover:not(:disabled),
-  input[type="week"]:hover:not(:disabled),
-  textarea:hover:not(:disabled),
-  select:hover:not(:disabled) {
+  input[type="text"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  input[type="email"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  input[type="password"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  input[type="number"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  input[type="tel"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  input[type="url"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  input[type="search"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  input[type="date"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  input[type="time"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  input[type="datetime-local"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  input[type="month"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  input[type="week"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  textarea:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  select:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea) {
     background-color: white !important;
     border-color: hsl(var(--input)) !important;
   }
@@ -494,20 +495,20 @@
     background-color: hsl(var(--card));
   }
 
-  .dark input[type="text"]:hover:not(:disabled),
-  .dark input[type="email"]:hover:not(:disabled),
-  .dark input[type="password"]:hover:not(:disabled),
-  .dark input[type="number"]:hover:not(:disabled),
-  .dark input[type="tel"]:hover:not(:disabled),
-  .dark input[type="url"]:hover:not(:disabled),
-  .dark input[type="search"]:hover:not(:disabled),
-  .dark input[type="date"]:hover:not(:disabled),
-  .dark input[type="time"]:hover:not(:disabled),
-  .dark input[type="datetime-local"]:hover:not(:disabled),
-  .dark input[type="month"]:hover:not(:disabled),
-  .dark input[type="week"]:hover:not(:disabled),
-  .dark textarea:hover:not(:disabled),
-  .dark select:hover:not(:disabled) {
+  .dark input[type="text"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  .dark input[type="email"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  .dark input[type="password"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  .dark input[type="number"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  .dark input[type="tel"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  .dark input[type="url"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  .dark input[type="search"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  .dark input[type="date"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  .dark input[type="time"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  .dark input[type="datetime-local"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  .dark input[type="month"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  .dark input[type="week"]:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  .dark textarea:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea),
+  .dark select:hover:not(:disabled):not(.widget-no-hover):not(.chatbot-textarea) {
     background-color: hsl(var(--card)) !important;
     border-color: hsl(var(--input)) !important;
   }
@@ -1129,6 +1130,57 @@ option:hover {
   color: inherit !important;
   opacity: 1 !important;
   transform: none !important;
+}
+
+/* Remove hover effects from embedded widget buttons */
+button.widget-no-hover:hover,
+button.widget-no-hover:active,
+[type="button"].widget-no-hover:hover,
+[type="button"].widget-no-hover:active,
+.chatbot-voice-button:hover,
+.chatbot-voice-button:active,
+.chatbot-send-button:hover,
+.chatbot-send-button:active,
+[type="submit"].chatbot-send-button:hover,
+[type="submit"].chatbot-send-button:active,
+.chatbot-delete:hover,
+.chatbot-delete:active,
+.chatbot-close:hover,
+.chatbot-close:active,
+.chatbot-message-action-button:hover,
+.chatbot-message-action-button:active,
+.chatbot-trigger:hover,
+.chatbot-trigger:active,
+.chatbot-trigger:focus {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  opacity: 1 !important;
+  transform: none !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Remove hover effects from embedded widget input fields */
+input.widget-no-hover,
+input.widget-no-hover:hover,
+input.widget-no-hover:focus,
+input.widget-no-hover:active,
+input.widget-no-hover:focus-visible,
+textarea.widget-no-hover,
+textarea.widget-no-hover:hover,
+textarea.widget-no-hover:focus,
+textarea.widget-no-hover:active,
+textarea.widget-no-hover:focus-visible,
+.chatbot-textarea:hover,
+.chatbot-textarea:focus,
+.chatbot-textarea:active,
+.chatbot-textarea:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-width: 0px !important;
+  transition: none !important;
 }
 
 /* Keep hover effects for Select items/options - allow hover in dropdown menu */

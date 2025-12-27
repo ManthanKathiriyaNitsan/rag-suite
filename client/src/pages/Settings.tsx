@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Upload, Palette, Globe, Activity, FileText, MousePointer, User } from "lucide-react";
+import { Upload, Palette, Globe, FileText, MousePointer, User } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,6 @@ import {
 } from "@/components/ui/dialog";
 import { useI18n } from "@/contexts/I18nContext";
 import { useBranding } from "@/contexts/BrandingContext";
-import { useCitationFormatting } from "@/contexts/CitationFormattingContext";
 import { useBackground } from "@/contexts/BackgroundContext";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Layers } from "lucide-react";
@@ -36,10 +35,6 @@ const Settings = React.memo(function Settings() {
     orgName: orgNameGlobal,
     primaryColor: primaryColorGlobal,
     logoDataUrl: logoGlobal,
-    widgetZIndex: widgetZIndexGlobal,
-    widgetPosition: widgetPositionGlobal,
-    widgetOffsetX: widgetOffsetXGlobal,
-    widgetOffsetY: widgetOffsetYGlobal,
     setBranding,
     resetBranding
   } = useBranding();
@@ -51,17 +46,10 @@ const Settings = React.memo(function Settings() {
   const [primaryColor, setPrimaryColor] = useState(primaryColorGlobal || "#1F5AAD");
   const [retentionDays, setRetentionDays] = useState(90);
 
-  // Widget positioning state
-  const [widgetZIndex, setWidgetZIndex] = useState(widgetZIndexGlobal || 50);
-  const [widgetPosition, setWidgetPosition] = useState(widgetPositionGlobal || "bottom-right");
-  const [widgetOffsetX, setWidgetOffsetX] = useState(widgetOffsetXGlobal || 0);
-  const [widgetOffsetY, setWidgetOffsetY] = useState(widgetOffsetYGlobal || 0);
-
   // Background theme context
   const { backgroundTheme, setBackgroundTheme } = useBackground();
   // const [locale, setLocale] = useState("en");
   const { locale, setLocale, t } = useI18n();
-  const { formatting, updateFormatting, resetFormatting } = useCitationFormatting();
   const { toast } = useToast();
 
   // Branding: logo upload + persistence
@@ -166,25 +154,27 @@ const Settings = React.memo(function Settings() {
 
   return (
     <div className="relative">
-      {/* Content */}
-      <div className="relative z-10 space-y-6 sm:px-6 lg:px-8 p-0 sm:p-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('settings.title')}</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            {t('settings.description')}
-          </p>
+      <div className="relative z-10 space-y-6 w-full max-w-full overflow-hidden min-w-0 p-0 sm:p-6" style={{ maxWidth: '92vw' }}>
+        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 lg:gap-0 lg:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{t('settings.title')}</h1>
+            <p className="text-muted-foreground">
+              {t('settings.description')}
+            </p>
+          </div>
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full h-auto grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            <TabsTrigger value="profile" data-testid="tab-profile" className="text-xs sm:text-sm">{t('settings.profile')}</TabsTrigger>
-            <TabsTrigger value="retention" data-testid="tab-retention" className="text-xs sm:text-sm">{t('settings.data-retention')}</TabsTrigger>
-            <TabsTrigger value="i18n" data-testid="tab-i18n" className="text-xs sm:text-sm">{t('settings.i18n')}</TabsTrigger>
-            <TabsTrigger value="citations" data-testid="tab-citations" className="text-xs sm:text-sm">{t('settings.citation-formatting')}</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto mb-3 pb-1">
+            <TabsList className="inline-flex flex-nowrap">
+              <TabsTrigger value="profile" data-testid="tab-profile" className="flex-shrink-0 whitespace-nowrap">{t('settings.profile')}</TabsTrigger>
+              <TabsTrigger value="retention" data-testid="tab-retention" className="flex-shrink-0 whitespace-nowrap">{t('settings.data-retention')}</TabsTrigger>
+              <TabsTrigger value="i18n" data-testid="tab-i18n" className="flex-shrink-0 whitespace-nowrap">{t('settings.i18n')}</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Profile & Branding */}
-          <TabsContent value="profile" className="space-y-6">
+          <TabsContent value="profile" className="space-y-6 w-full overflow-hidden">
             <GlassCard>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -406,110 +396,10 @@ const Settings = React.memo(function Settings() {
               </CardContent>
             </GlassCard>
 
-
-
-            {/* Widget Positioning Controls */}
-            <GlassCard>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
-                  Widget Positioning
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-6 grid-cols-1 ">
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="widget-position">Widget Position</Label>
-                      <Select
-                        value={widgetPosition}
-                        onValueChange={(value) => {
-                          setWidgetPosition(value as any);
-                          setBranding({ widgetPosition: value as any });
-                        }}
-                      >
-                        <SelectTrigger id="widget-position" className="mt-2"  >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="bottom-right">Bottom Right</SelectItem>
-                          <SelectItem value="bottom-left">Bottom Left</SelectItem>
-                          <SelectItem value="top-right">Top Right</SelectItem>
-                          <SelectItem value="top-left">Top Left</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="widget-zindex">Z-Index Level</Label>
-                      <Input
-                        id="widget-zindex"
-                        type="number"
-                        value={widgetZIndex}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value) || 50;
-                          setWidgetZIndex(value);
-                          setBranding({ widgetZIndex: value });
-                        }}
-                        placeholder="50"
-                        data-testid="input-widget-zindex"
-                        className="mt-2"
-                      />
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Higher values appear above other elements
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="widget-offset-x">X Offset (pixels)</Label>
-                      <Input
-                        id="widget-offset-x"
-                        type="number"
-                        value={widgetOffsetX}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value) || 0;
-                          setWidgetOffsetX(value);
-                          setBranding({ widgetOffsetX: value });
-                        }}
-                        placeholder="0"
-                        data-testid="input-widget-offset-x"
-                        className="mt-2"
-                      />
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Positive = move right, Negative = move left
-                      </p>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="widget-offset-y">Y Offset (pixels)</Label>
-                      <Input
-                        id="widget-offset-y"
-                        type="number"
-                        value={widgetOffsetY}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value) || 0;
-                          setWidgetOffsetY(value);
-                          setBranding({ widgetOffsetY: value });
-                        }}
-                        placeholder="0"
-                        data-testid="input-widget-offset-y"
-                        className="mt-2"
-                      />
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Positive = move down, Negative = move up
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </GlassCard>
-
           </TabsContent>
 
           {/* Data Retention */}
-          <TabsContent value="retention" className="space-y-6">
+          <TabsContent value="retention" className="space-y-6 w-full overflow-hidden">
             <GlassCard>
               <CardHeader>
                 <CardTitle>Data Retention Policy</CardTitle>
@@ -549,7 +439,7 @@ const Settings = React.memo(function Settings() {
           </TabsContent>
 
           {/* Internationalization */}
-          <TabsContent value="i18n" className="space-y-6" >
+          <TabsContent value="i18n" className="space-y-6 w-full overflow-hidden">
             <GlassCard>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -588,212 +478,6 @@ const Settings = React.memo(function Settings() {
                     Reset
                   </Button>
                   <Button data-testid="button-save-locale" onClick={handleSaveLocale} className="w-full sm:w-auto group">
-                    Save Changes
-                  </Button>
-                </div>
-              </CardContent>
-            </GlassCard>
-          </TabsContent>
-
-          {/* Citation Formatting */}
-          <TabsContent value="citations" className="space-y-6">
-            <GlassCard>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Citation Format
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Citation Style */}
-                <div>
-                  <Label htmlFor="citation-style">Citation Style</Label>
-                  <Select
-                    value={formatting.style}
-                    onValueChange={(value: any) => updateFormatting({ style: value })}
-
-                  >
-                    <SelectTrigger className="w-full mt-2">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="compact">Compact</SelectItem>
-                      <SelectItem value="detailed">Detailed</SelectItem>
-                      <SelectItem value="card">Card</SelectItem>
-                      <SelectItem value="minimal">Minimal</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Choose how citations are displayed
-                  </p>
-                </div>
-
-                {/* Layout */}
-                <div>
-                  <Label htmlFor="citation-layout">Layout</Label>
-                  <Select
-                    value={formatting.layout}
-                    onValueChange={(value: any) => updateFormatting({ layout: value })}
-                  >
-                    <SelectTrigger className="w-full mt-2">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="vertical">Vertical</SelectItem>
-                      <SelectItem value="grid">Grid</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    How citations are arranged
-                  </p>
-                </div>
-
-                {/* Numbering Style */}
-                <div>
-                  <Label htmlFor="citation-numbering">Numbering Style</Label>
-                  <Select
-                    value={formatting.numbering}
-                    onValueChange={(value: any) => updateFormatting({ numbering: value })}
-                  >
-                    <SelectTrigger className="w-full mt-2">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="brackets">[1] [2] [3]</SelectItem>
-                      <SelectItem value="parentheses">(1) (2) (3)</SelectItem>
-                      <SelectItem value="dots">1. 2. 3.</SelectItem>
-                      <SelectItem value="numbers">1 2 3</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    How citations are numbered
-                  </p>
-                </div>
-
-                {/* Color Scheme */}
-                <div>
-                  <Label htmlFor="citation-colors">Color Scheme</Label>
-                  <Select
-                    value={formatting.colorScheme}
-                    onValueChange={(value: any) => updateFormatting({ colorScheme: value })}
-                  >
-                    <SelectTrigger className="w-full mt-2">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="default">Default</SelectItem>
-                      <SelectItem value="primary">Primary</SelectItem>
-                      <SelectItem value="muted">Muted</SelectItem>
-                      <SelectItem value="accent">Accent</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Citation color theme
-                  </p>
-                </div>
-
-                {/* Display Options */}
-                <div className="space-y-4">
-                  <h4 className="font-medium">Display Options</h4>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="text-sm font-medium">Show Snippets</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Display content snippets
-                      </p>
-                    </div>
-                    <Switch
-                      checked={formatting.showSnippets}
-                      onCheckedChange={(checked: boolean) => updateFormatting({ showSnippets: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="text-sm font-medium">Show URLs</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Display source links
-                      </p>
-                    </div>
-                    <Switch
-                      checked={formatting.showUrls}
-                      onCheckedChange={(checked: boolean) => updateFormatting({ showUrls: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="text-sm font-medium">Show Source Count</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Display number of sources
-                      </p>
-                    </div>
-                    <Switch
-                      checked={formatting.showSourceCount}
-                      onCheckedChange={(checked: boolean) => updateFormatting({ showSourceCount: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="text-sm font-medium">Enable Hover Effects</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Add hover animations
-                      </p>
-                    </div>
-                    <Switch
-                      checked={formatting.enableHover}
-                      onCheckedChange={(checked: boolean) => updateFormatting({ enableHover: checked })}
-                    />
-                  </div>
-                </div>
-
-                {/* Snippet Length */}
-                <div>
-                  <Label htmlFor="snippet-length">Max Snippet Length</Label>
-                  <div className="flex items-center gap-4 mt-2">
-                    <input
-                      type="range"
-                      min="50"
-                      max="500"
-                      step="25"
-                      value={formatting.maxSnippetLength}
-                      onChange={(e) => updateFormatting({ maxSnippetLength: parseInt(e.target.value) })}
-                      className="flex-1"
-                    />
-                    <span className="text-sm text-muted-foreground w-16">
-                      {formatting.maxSnippetLength} chars
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Maximum length of content snippets
-                  </p>
-
-                  {/* Live Preview */}
-                  <div className="mt-3 p-3 bg-muted rounded-[2px] border">
-                    <p className="text-xs text-muted-foreground mb-2">Preview:</p>
-                    <p className="text-xs text-foreground leading-relaxed">
-                      {`This is a sample citation snippet that demonstrates how the text will be truncated when it exceeds the maximum length you've set. `.repeat(3).substring(0, formatting.maxSnippetLength)}
-                      {formatting.maxSnippetLength < `This is a sample citation snippet that demonstrates how the text will be truncated when it exceeds the maximum length you've set. `.repeat(3).length && "..."}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row justify-end gap-2">
-                  <Button variant="outline" onClick={resetFormatting} className="w-full sm:w-auto">
-                    Reset
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      toast({
-                        title: "Citation settings saved",
-                        description: "Your citation formatting preferences have been saved successfully.",
-                        variant: "success"
-                      });
-                    }}
-                    className="w-full sm:w-auto"
-                  >
                     Save Changes
                   </Button>
                 </div>

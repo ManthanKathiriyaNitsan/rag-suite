@@ -59,27 +59,8 @@ export function useIntegrationForm({ integrationId, mode, onSave }: UseIntegrati
     },
   });
 
-  // Load typography settings from localStorage
-  const loadTypographyFromStorage = useCallback(() => {
-    try {
-      const saved = localStorage.getItem("theme-typography");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return {
-          fontFamily: parsed.fontFamily || "Inter, system-ui, sans-serif",
-          fontSize: parsed.fontSize || {
-            xs: "0.75rem",
-            sm: "0.875rem",
-            base: "1rem",
-            lg: "1.125rem",
-            xl: "1.25rem",
-            "2xl": "1.5rem",
-          },
-        };
-      }
-    } catch (error) {
-      console.warn("Failed to load typography from localStorage:", error);
-    }
+  // Get default typography settings (not from localStorage)
+  const getDefaultTypography = useCallback(() => {
     return {
       fontFamily: "Inter, system-ui, sans-serif",
       fontSize: {
@@ -93,21 +74,8 @@ export function useIntegrationForm({ integrationId, mode, onSave }: UseIntegrati
     };
   }, []);
 
-  // Load layout settings from localStorage
-  const loadLayoutFromStorage = useCallback(() => {
-    try {
-      const saved = localStorage.getItem("theme-layout");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return {
-          sidebarCollapsed: parsed.sidebarCollapsed || false,
-          headerHeight: parsed.headerHeight || 64,
-          contentPadding: parsed.contentPadding || 24,
-        };
-      }
-    } catch (error) {
-      console.warn("Failed to load layout from localStorage:", error);
-    }
+  // Get default layout settings (not from localStorage)
+  const getDefaultLayout = useCallback(() => {
     return {
       sidebarCollapsed: false,
       headerHeight: 64,
@@ -134,18 +102,18 @@ export function useIntegrationForm({ integrationId, mode, onSave }: UseIntegrati
           maxTokens: 1000,
           temperature: 0.7,
         },
-        typography: loadTypographyFromStorage(),
-        layout: loadLayoutFromStorage(),
+        typography: getDefaultTypography(),
+        layout: getDefaultLayout(),
       });
     } else {
       // Initialize with default values for create mode
       setFormData(prev => ({
         ...prev,
-        typography: loadTypographyFromStorage(),
-        layout: loadLayoutFromStorage(),
+        typography: getDefaultTypography(),
+        layout: getDefaultLayout(),
       }));
     }
-  }, [mode, integrationId, loadTypographyFromStorage, loadLayoutFromStorage]);
+  }, [mode, integrationId, getDefaultTypography, getDefaultLayout]);
 
   // Auto-save draft
   useEffect(() => {
@@ -191,7 +159,6 @@ export function useIntegrationForm({ integrationId, mode, onSave }: UseIntegrati
     // Apply to theme context
     if (newTypography) {
       setTypography(newTypography);
-      localStorage.setItem("theme-typography", JSON.stringify(newTypography));
     }
   }, [formData.typography, setTypography]);
 
@@ -222,7 +189,6 @@ export function useIntegrationForm({ integrationId, mode, onSave }: UseIntegrati
       }
     };
     setLayout(themeLayout);
-    localStorage.setItem("theme-layout", JSON.stringify(newLayout));
   }, [formData.layout, setLayout]);
 
   // Save integration
