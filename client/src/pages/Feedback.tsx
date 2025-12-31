@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { copyToClipboard } from "@/lib/utils";
-import { Filter, ExternalLink, Copy, ThumbsUp, ThumbsDown, MessageSquare } from "lucide-react";
+import { Filter, ExternalLink, Copy, ThumbsUp, ThumbsDown, MessageSquare, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
@@ -100,6 +100,7 @@ export default function Feedback() {
   const [timeRange, setTimeRange] = useState("all");
   const [voteFilter, setVoteFilter] = useState("all");
   const [reasonFilter, setReasonFilter] = useState("all");
+  const [copied, setCopied] = useState<"query" | "answer" | "all" | null>(null);
   const { t } = useTranslation();
 
   const getVoteIcon = (vote: string) => {
@@ -116,9 +117,10 @@ export default function Feedback() {
     return true;
   });
 
-  const handleCopyToClipboard = async (text: string) => {
+  const handleCopyToClipboard = async (text: string, type: "query" | "answer" | "all") => {
     await copyToClipboard(text);
-    // Copied to clipboard
+    setCopied(type);
+    setTimeout(() => setCopied(null), 2000);
   };
 
   return (
@@ -297,10 +299,14 @@ export default function Feedback() {
                       variant="ghost"
                       size="sm"
                       className="mt-2"
-                      onClick={() => handleCopyToClipboard(selectedFeedback.query)}
+                      onClick={() => handleCopyToClipboard(selectedFeedback.query, "query")}
                       data-testid="button-copy-query"
                     >
-                      <Copy className="h-4 w-4 mr-2" />
+                      {copied === "query" ? (
+                        <Check className="h-4 w-4 mr-2" />
+                      ) : (
+                        <Copy className="h-4 w-4 mr-2" />
+                      )}
                       Copy Query
                     </Button>
                   </div>
@@ -317,10 +323,14 @@ export default function Feedback() {
                       variant="ghost"
                       size="sm"
                       className="mt-2"
-                      onClick={() => handleCopyToClipboard(selectedFeedback.fullAnswer)}
+                      onClick={() => handleCopyToClipboard(selectedFeedback.fullAnswer, "answer")}
                       data-testid="button-copy-answer"
                     >
-                      <Copy className="h-4 w-4 mr-2" />
+                      {copied === "answer" ? (
+                        <Check className="h-4 w-4 mr-2" />
+                      ) : (
+                        <Copy className="h-4 w-4 mr-2" />
+                      )}
                       Copy Answer
                     </Button>
                   </div>
@@ -393,10 +403,14 @@ export default function Feedback() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleCopyToClipboard(JSON.stringify(selectedFeedback, null, 2))}
+                      onClick={() => handleCopyToClipboard(JSON.stringify(selectedFeedback, null, 2), "all")}
                       data-testid="button-copy-all"
                     >
-                      <Copy className="h-4 w-4 mr-2" />
+                      {copied === "all" ? (
+                        <Check className="h-4 w-4 mr-2" />
+                      ) : (
+                        <Copy className="h-4 w-4 mr-2" />
+                      )}
                       Copy All Data
                     </Button>
                     <Button

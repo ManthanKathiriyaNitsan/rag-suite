@@ -407,7 +407,10 @@ export default function Integrations() {
                   {filteredIntegrations.map((integration) => (
                     <TableRow
                       key={integration.id}
-                      className="hover-elevate cursor-pointer"
+                      className={cn(
+                        "hover-elevate cursor-pointer",
+                        selectedIntegrations.includes(integration.id) && "checkbox-checked"
+                      )}
                       data-testid={`row-integration-${integration.id}`}
                     >
                       <TableCell className="text-center" >

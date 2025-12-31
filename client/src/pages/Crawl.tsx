@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/sheet";
 import { useCrawlSites, useCrawlOperations, useCrawlStats } from "@/hooks/useCrawl";
 import { CrawlSiteData, documentAPI, Document, DocumentMetadata } from "@/services/api/api";
+import { cn } from "@/lib/utils";
 
 export default function Crawl() {
   // Main tab state (Domain or Document)
@@ -865,7 +866,10 @@ export default function Crawl() {
                         {filteredDocuments.map((doc) => (
                           <div
                             key={doc.id}
-                            className="flex items-center justify-between p-4 hover-elevate cursor-pointer"
+                            className={cn(
+                              "flex items-center justify-between p-4 hover-elevate cursor-pointer",
+                              selectedDocs.includes(doc.id) && "checkbox-checked"
+                            )}
                             onClick={() => setSelectedDoc(doc)}
                             data-testid={`row-document-${doc.id}`}
                           >

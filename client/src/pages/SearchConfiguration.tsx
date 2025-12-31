@@ -52,11 +52,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useCitationFormatting } from "@/contexts/CitationFormattingContext";
+import { useSearchCitation } from "@/hooks/useSearchCitation";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useRAGSettings } from "@/contexts/RAGSettingsContext";
 import { useSettingsAPI } from "@/hooks/useSettingsAPI";
 import { useChatbotSettings } from "@/hooks/useChatbotSettings";
-import { useConfigModels, useAvailableChatModels, useAvailableEmbeddingModels, useAvailableModels } from "@/hooks/useConfigModels";
+import { useConfigModels, useSearchConfigModels, useAvailableChatModels, useAvailableEmbeddingModels, useAvailableModels } from "@/hooks/useConfigModels";
 import { useSearchPrompt } from "@/hooks/useSearchPrompt";
 import { useSearchActivation } from "@/hooks/useSearchActivation";
 import { Slider } from "@/components/ui/slider";
@@ -66,7 +67,7 @@ import { SearchBar } from "@/components/common/SearchBar";
 import { EmbeddableWidget } from "@/components/common/EmbeddableWidget";
 import { StickyLivePreview } from "@/components/ui/StickyLivePreview";
 import { cn, copyToClipboard } from "@/lib/utils";
-import { chatAPI, suggestionsAPI } from "@/services/api/api";
+import { chatAPI, suggestionsAPI, searchAPI } from "@/services/api/api";
 import ChatMessage from "@/components/common/ChatMessage";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/ScrollArea";
@@ -77,8 +78,18 @@ import { useSearch } from "@/hooks/useSearch";
 import { useChat, useChatSessions } from "@/hooks/useChat";
 import { usePerformanceMetrics } from "@/contexts/RAGSettingsContext";
 import { Message } from "@/types/components";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import "@/components/common/EmbeddableWidgetStyles.css";
+// 📝 Import markdown support for proper formatting
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import { safeStringConversion } from "@/utils/safeStringConversion";
+// 🎨 Import syntax highlighting
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { useTheme } from "@/contexts/ThemeContext";
 
 // Lazy load heavy chat components for search test tab
 const LazySearchBar = lazy(() => import("@/components/common/SearchBar"));
@@ -104,6 +115,7 @@ interface ConversationMessage {
     url: string;
     snippet: string;
   }>;
+  topK?: number; // Top-K value from API or calculated from citations
 }
 
 interface Conversation {
@@ -218,7 +230,32 @@ function PromptEditTab() {
 
 export default function SearchConfiguration() {
   const { toast } = useToast();
-  const { formatting, updateFormatting, resetFormatting } = useCitationFormatting();
+  const queryClient = useQueryClient();
+  // 🎨 Get theme for syntax highlighting
+  const { theme } = useTheme();
+  
+  // Citation formatting - use search citation API for Search Configuration tab
+  const {
+    formatting: searchCitationFormatting,
+    isLoading: isLoadingSearchCitation,
+    updateFormatting: updateSearchCitation,
+    saveCitationAsync,
+    isSaving: isSavingSearchCitation,
+    refetch: refetchSearchCitation,
+  } = useSearchCitation();
+  
+  // Keep the original context for other uses (like ChatMessage component)
+  const { formatting: contextFormatting, updateFormatting: updateContextFormatting, resetFormatting } = useCitationFormatting();
+  
+  // Use search citation for the Citation Formatting tab, context for other components
+  const formatting = searchCitationFormatting || contextFormatting;
+  const updateFormatting = (newFormatting: any) => {
+    if (searchCitationFormatting) {
+      updateSearchCitation(newFormatting);
+    } else {
+      updateContextFormatting(newFormatting);
+    }
+  };
   const {
     orgName: orgNameGlobal,
     widgetZIndex: widgetZIndexGlobal,
@@ -245,6 +282,7 @@ export default function SearchConfiguration() {
     saveCustomizationAsync,
     isSavingConfiguration,
     isSavingCustomization,
+    refetchSettings,
   } = useChatbotSettings();
   const [activeTab, setActiveTab] = useState("training");
   const [settingsSubTab, setSettingsSubTab] = useState("overview");
@@ -331,12 +369,14 @@ export default function SearchConfiguration() {
     isLoading: isLoadingActivation,
     updateActivationAsync,
     isUpdating: isUpdatingActivation,
+    refetchActivation,
   } = useSearchActivation();
 
   // Search Prompt hook - for Overview tab real-time display
   const {
     promptString,
     isLoading: isLoadingPromptForOverview,
+    refetchPrompt,
   } = useSearchPrompt();
   
   // Get current prompt text for Overview tab - real-time from API
@@ -345,6 +385,27 @@ export default function SearchConfiguration() {
 
   // Training Tab State
   const [responseType, setResponseType] = useState<"long" | "short">("long");
+  
+  // Fetch response config from API
+  const { data: responseConfig, isLoading: isLoadingResponseConfig, refetch: refetchResponseConfig } = useQuery({
+    queryKey: ['responseConfig'],
+    queryFn: async () => {
+      const config = await searchAPI.getResponseConfig();
+      const configValue = typeof config === 'string' ? config : (config as any)?.response_type || 'long';
+      return configValue;
+    },
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+
+  // Sync responseType state with query data whenever it changes
+  useEffect(() => {
+    if (responseConfig) {
+      const configValue = typeof responseConfig === 'string' ? responseConfig : (responseConfig as any)?.response_type || 'long';
+      setResponseType(configValue as "long" | "short");
+    }
+  }, [responseConfig]);
+  
   const [chatHistorySearch, setChatHistorySearch] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -360,15 +421,10 @@ export default function SearchConfiguration() {
   const { metrics, updateMetrics } = usePerformanceMetrics();
   const { searchAsync, isSearching } = useSearch();
   const { sendMessageAsync, isSending } = useChat();
-  const { sessions, deleteSession } = useChatSessions();
+  // Note: useChatSessions is kept for chat functionality, but search uses searchAPI.getSearchHistory
+  // const { sessions, deleteSession } = useChatSessions();
   const [location] = useLocation();
-  const [ragMessages, setRagMessages] = useState<Message[]>([
-    {
-      type: "assistant",
-      content: "Welcome to the Search Test! Ask me anything about your documentation to test different retrieval and generation settings.",
-      timestamp: new Date(),
-    },
-  ]);
+  const [ragMessages, setRagMessages] = useState<Message[]>([]); // Start with empty - only show last query/response
   const [isLoadingRagHistory, setIsLoadingRagHistory] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
@@ -379,13 +435,22 @@ export default function SearchConfiguration() {
 
   // Settings Tab State (CSP removed per user request)
   
-  // Config Models hook
+  // Config Models hook (for chatbot - keep as is)
+  const {
+    configModels: chatbotConfigModels,
+    isLoading: isLoadingChatbotConfigModels,
+    saveConfigModelsAsync: saveChatbotConfigModelsAsync,
+    isSaving: isSavingChatbotConfigModels,
+  } = useConfigModels();
+  
+  // Search Config Models hook (for search configuration)
   const {
     configModels,
     isLoading: isLoadingConfigModels,
     saveConfigModelsAsync,
     isSaving: isSavingConfigModels,
-  } = useConfigModels();
+    refetchConfigModels,
+  } = useSearchConfigModels();
   
   // Model settings state - populated from API
   const [modelProvider, setModelProvider] = useState("openai");
@@ -457,10 +522,10 @@ export default function SearchConfiguration() {
   
   // Avatar options (you can add more or use image URLs)
   const avatarOptions = [
-    { id: "default-1", name: "Default 1", emoji: "🤖" },
-    { id: "default-2", name: "Default 2", emoji: "👤" },
-    { id: "default-3", name: "Default 3", emoji: "👨" },
-    { id: "default-4", name: "Default 4", emoji: "👩" }
+    { id: "default-1", name: "Default 1", image: "/avatars/avatar-1.png" },
+    { id: "default-2", name: "Default 2", image: "/avatars/avatar-2.png" },
+    { id: "default-3", name: "Default 3", image: "/avatars/avatar-3.png" },
+    { id: "default-4", name: "Default 4", image: "/avatars/avatar-4.png" }
   ];
   
   // Chatbot color options
@@ -548,7 +613,7 @@ export default function SearchConfiguration() {
     }
   }, [widgetChatbotColor]);
 
-  // Populate state from API data when chatbotSettings is loaded
+  // Populate state from API data when chatbotSettings is loaded - Real-time sync
   useEffect(() => {
     if (chatbotSettings) {
       // Populate configuration state - ONLY from chatbot settings, never from prompt
@@ -591,18 +656,41 @@ export default function SearchConfiguration() {
       }
     }
   }, [chatbotSettings]);
+  
+  // Refetch chatbot settings when Settings Overview tab becomes active for real-time updates
+  useEffect(() => {
+    if (activeTab === 'settings' && settingsSubTab === 'overview' && refetchSettings) {
+      refetchSettings();
+    }
+  }, [activeTab, settingsSubTab, refetchSettings]);
+  
+  // Refetch all Training Overview data when Training Overview tab becomes active for real-time updates
+  useEffect(() => {
+    if (activeTab === 'training' && trainingSubTab === 'overview') {
+      // Refetch activation status
+      if (refetchActivation) refetchActivation();
+      // Refetch prompt
+      if (refetchPrompt) refetchPrompt();
+      // Refetch response config
+      if (refetchResponseConfig) refetchResponseConfig();
+      // Refetch citation formatting (for Settings Overview, but also available here)
+      if (refetchSearchCitation) refetchSearchCitation();
+    }
+  }, [activeTab, trainingSubTab, refetchActivation, refetchPrompt, refetchResponseConfig, refetchSearchCitation]);
 
-  // Populate state from API data when configModels is loaded
+  // Populate state from API data when configModels is loaded - Real-time sync
   useEffect(() => {
     if (configModels) {
       if (configModels.model_provider) setModelProvider(configModels.model_provider);
       if (configModels.chat_model) setChatModel(configModels.chat_model);
       if (configModels.embedding_model) setEmbeddingModel(configModels.embedding_model);
-      // Populate API key if it exists in the response (only on initial load)
-      if (configModels.api_key && configModels.api_key.trim() !== '' && !hasPopulatedApiKey.current) {
-        // Populate API key from API so user can see it exists
-        setModelApiKey(configModels.api_key);
-        hasPopulatedApiKey.current = true;
+      // Populate API key if it exists in the response (only on initial load, but allow updates if key changes)
+      if (configModels.api_key && configModels.api_key.trim() !== '') {
+        // Only update if the key actually changed to avoid overwriting user edits
+        if (modelApiKey !== configModels.api_key) {
+          setModelApiKey(configModels.api_key);
+          hasPopulatedApiKey.current = true;
+        }
       }
       // Populate new model parameters
       if (configModels.chat_temperature !== undefined) setTemperature(configModels.chat_temperature);
@@ -616,6 +704,13 @@ export default function SearchConfiguration() {
       if (configModels.chat_use_reranker !== undefined) setUseReranker(configModels.chat_use_reranker);
     }
   }, [configModels]);
+  
+  // Refetch model settings when Settings Overview tab becomes active for real-time updates
+  useEffect(() => {
+    if (activeTab === 'settings' && settingsSubTab === 'overview' && refetchConfigModels) {
+      refetchConfigModels();
+    }
+  }, [activeTab, settingsSubTab, refetchConfigModels]);
   
   // Reset chat model when provider changes (if current model is not in the new provider's list)
   useEffect(() => {
@@ -720,13 +815,32 @@ chatbot.init();`);
     return filtered;
   }, [chatHistorySearch, dateFilter, categoryFilter]);
 
-  const handleSaveTraining = useCallback(() => {
-    toast({
-      title: "Training Settings Saved",
-      description: "Your training configuration has been saved successfully.",
-      variant: "success",
-    });
-  }, [toast]);
+  const [isSavingResponseConfig, setIsSavingResponseConfig] = useState(false);
+  
+  const handleSaveTraining = useCallback(async () => {
+    try {
+      setIsSavingResponseConfig(true);
+      await searchAPI.saveResponseConfig(responseType);
+      // Invalidate query cache to force fresh fetch
+      queryClient.invalidateQueries({ queryKey: ['responseConfig'] });
+      // Refetch to update UI
+      await refetchResponseConfig();
+      toast({
+        title: "Response Configuration Saved",
+        description: `Response type set to ${responseType === "long" ? "long" : "short"} responses.`,
+        variant: "success",
+      });
+    } catch (error: any) {
+      console.error("Failed to save response config:", error);
+      toast({
+        title: "Failed to Save",
+        description: error?.response?.data?.message || "Failed to save response configuration. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingResponseConfig(false);
+    }
+  }, [responseType, toast, refetchResponseConfig, queryClient]);
 
   const handleSaveSettings = useCallback(() => {
     toast({
@@ -786,13 +900,13 @@ chatbot.init();`);
   const loadChatHistory = useCallback(async () => {
     try {
       setIsLoadingChatHistory(true);
-      const history = await chatAPI.getChatHistory();
+      const history = await searchAPI.getSearchHistory();
       
       if (history && history.length > 0) {
         // Group messages by sessionId - CRITICAL: Only group messages with matching sessionIds
         const sessionMap = new Map<string, Conversation>();
         
-        console.log('📜 Loading chat history, total items:', history.length);
+        console.log('📜 Loading Search history, total items:', history.length);
         
         history.forEach((item: any) => {
           // Get sessionId - check both camelCase and snake_case formats
@@ -866,6 +980,8 @@ chatbot.init();`);
                   snippet: source.snippet || '',
                 }))
               : undefined,
+            // Store topK from API response (item.topK is already set from API mapping)
+            topK: item.topK || (item.sources?.length || 0),
           });
           conversation.messageCount += 1;
           
@@ -917,10 +1033,10 @@ chatbot.init();`);
         setConversations([]);
       }
     } catch (error) {
-      console.error('Failed to load chat history:', error);
+      console.error('Failed to load Search history:', error);
       toast({
         title: "Error",
-        description: "Failed to load chat history. Please try again.",
+        description: "Failed to load Search history. Please try again.",
         variant: "destructive",
       });
       setConversations([]);
@@ -976,7 +1092,7 @@ chatbot.init();`);
   // Handle delete conversation
   const handleDeleteConversation = useCallback(async (sessionId: string) => {
     try {
-      await chatAPI.deleteSession(sessionId);
+      await chatAPI.deleteSession(sessionId, 'page');  // Pass 'page' for hard delete (permanent)
       toast({
         title: "Deleted",
         description: "Conversation deleted successfully.",
@@ -1116,54 +1232,13 @@ chatbot.init();`);
     };
   };
 
-  // Load RAG chat history
+  // Load RAG chat history - Don't load history, only show last query/response
   useEffect(() => {
     if (activeTab === 'search-test') {
-      const loadChatHistory = async () => {
-        try {
-          setIsLoadingRagHistory(true);
-          const history = await chatAPI.getChatHistory();
-          if (history && history.length > 0) {
-            const convertedMessages: Message[] = [];
-            [...history].reverse().forEach((item: any) => {
-              convertedMessages.push({
-                type: "user",
-                content: item.userMessage,
-                timestamp: new Date(item.createdAt),
-              });
-              convertedMessages.push({
-                type: "assistant",
-                content: item.assistantResponse,
-                timestamp: new Date(item.createdAt),
-                messageId: item.messageId,
-                sessionId: item.sessionId,
-                citations: (Array.isArray(item.sources) && item.sources.length > 0)
-                  ? item.sources
-                      .filter((source: any) => source != null)
-                      .map((source: any) => ({
-                        title: source?.title || 'Untitled',
-                        url: source?.url || '#',
-                        snippet: source?.snippet || ''
-                      }))
-                  : undefined,
-              });
-            });
-            setRagMessages([
-              {
-                type: "assistant",
-                content: "Welcome to the Search Test! Ask me anything about your documentation to test different retrieval and generation settings.",
-                timestamp: new Date(),
-              },
-              ...convertedMessages
-            ]);
-          }
-        } catch (error) {
-          console.warn('Failed to load chat history:', error);
-        } finally {
-          setIsLoadingRagHistory(false);
-        }
-      };
-      loadChatHistory();
+      // Don't load history - start with empty state (only show last query/response)
+      setIsLoadingRagHistory(false);
+      // Reset to empty messages when switching to search-test tab
+      setRagMessages([]);
     }
   }, [activeTab]);
 
@@ -1174,14 +1249,15 @@ chatbot.init();`);
     }
   }, [ragMessages, streamingContent, isStreaming, isTyping]);
 
-  // Handle RAG query
+  // Handle RAG query - Only show last query and response
   const handleRagQuery = useCallback(async (query: string) => {
     const userMessage: Message = {
       type: "user",
       content: query,
       timestamp: new Date(),
     };
-    setRagMessages(prev => [...prev, userMessage]);
+    // Replace all messages with just the new user message (show only last query)
+    setRagMessages([userMessage]);
     setIsTyping(true);
     setPendingResponse("Searching with RAG settings...");
     const startTime = Date.now();
@@ -1234,7 +1310,8 @@ chatbot.init();`);
         sessionId: searchResponse.session_id,
       };
 
-      setRagMessages(prev => [...prev, assistantMessage]);
+      // Replace messages with just user message and new assistant response (show only last response)
+      setRagMessages([userMessage, assistantMessage]);
       setIsStreaming(false);
       setStreamingContent("");
     } catch (error) {
@@ -1247,23 +1324,19 @@ chatbot.init();`);
         content: `Sorry, I encountered an error while searching: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
         timestamp: new Date(),
       };
-      setRagMessages(prev => [...prev, errorMessage]);
+      // Replace messages with just user message and error message (show only last response)
+      setRagMessages([userMessage, errorMessage]);
     }
   }, [ragSettings, searchAsync, updateMetrics]);
 
   const clearRagChat = async () => {
     try {
-      await chatAPI.deleteAllMessages();
+      await chatAPI.deleteAllMessages('page');  // Pass 'page' for hard delete (permanent)
     } catch (error) {
       console.error('Failed to delete messages:', error);
     }
-    setRagMessages([
-      {
-        type: "assistant",
-        content: "Welcome to the Search Test! Ask me anything about your documentation to test different retrieval and generation settings.",
-        timestamp: new Date(),
-      }
-    ]);
+    // Clear messages - start with empty state (only show last query/response)
+    setRagMessages([]);
     setCurrentSessionId(undefined);
   };
 
@@ -1412,7 +1485,7 @@ chatbot.init();`);
                         {...preventScrollOnClick}
                       >
                         <MessageSquare className="h-4 w-4 mr-2" />
-                        Chat History
+                        Search History
                       </Button>
                     </div>
                   </div>
@@ -1552,7 +1625,7 @@ chatbot.init();`);
                                 ) : (
                                   <>
                                     <div className="text-sm line-clamp-2 font-mono">
-                                    image.png                                      {typeof currentPrompt === 'string' ? (currentPrompt || "No prompt set") : "No prompt set"}
+                                      {typeof currentPrompt === 'string' ? (currentPrompt || "No prompt set") : "No prompt set"}
                                     </div>
                                     <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
                                       <div className="flex justify-between">
@@ -1588,7 +1661,7 @@ chatbot.init();`);
 
                               {/* Chat History Preview - Real-time */}
                               <div className="p-4 border rounded-lg bg-muted/50 md:col-span-2 lg:col-span-1">
-                                <div className="text-sm font-medium text-muted-foreground mb-2">Chat History</div>
+                                <div className="text-sm font-medium text-muted-foreground mb-2">Search History</div>
                                 <div className="flex items-center justify-between mb-2">
                                   <span className="text-lg font-semibold">
                                     {filteredConversations.length} conversations
@@ -1696,34 +1769,57 @@ chatbot.init();`);
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="response-type">Response Type</Label>
-                  <Select value={responseType} onValueChange={(value: "long" | "short") => setResponseType(value)}>
-                    <SelectTrigger id="response-type" className="mt-2">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="long">Long Responses</SelectItem>
-                      <SelectItem value="short">Short Responses</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {responseType === "long"
-                      ? "Chatbot will provide detailed, comprehensive responses"
-                      : "Chatbot will provide concise, brief responses"}
-                  </p>
-                </div>
-                <Button 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleSaveTraining();
-                  }}
-                  {...preventScrollOnClick}
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Configuration
-                </Button>
+                {isLoadingResponseConfig ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    <span className="text-sm text-muted-foreground">Loading response configuration...</span>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <Label htmlFor="response-type">Response Type</Label>
+                      <Select 
+                        value={responseType} 
+                        onValueChange={(value: "long" | "short") => setResponseType(value)}
+                        disabled={isSavingResponseConfig}
+                      >
+                        <SelectTrigger id="response-type" className="mt-2">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="long">Long Responses</SelectItem>
+                          <SelectItem value="short">Short Responses</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {responseType === "long"
+                          ? "Chatbot will provide detailed, comprehensive responses"
+                          : "Chatbot will provide concise, brief responses"}
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleSaveTraining();
+                      }}
+                      disabled={isSavingResponseConfig}
+                      {...preventScrollOnClick}
+                    >
+                      {isSavingResponseConfig ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Configuration
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
               </CardContent>
             </GlassCard>
                       </div>
@@ -1738,10 +1834,10 @@ chatbot.init();`);
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       <MessageSquare className="h-5 w-5" />
-                      Chat History
+                      Search History
                     </CardTitle>
                     <CardDescription>
-                      View and filter chat history logs
+                      View and filter Search history logs
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1805,7 +1901,7 @@ chatbot.init();`);
                         {isLoadingChatHistory ? (
                           <div className="flex items-center justify-center py-8 text-muted-foreground">
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Loading chat history...
+                            Loading Search history...
                           </div>
                         ) : filteredConversations.length === 0 ? (
                           <div className="text-center py-8 text-muted-foreground">
@@ -1928,18 +2024,29 @@ chatbot.init();`);
                                 }
                                 return true;
                               })
-                              .map((message: ConversationMessage, index: number) => (
-                              <ChatMessage
-                                key={message.messageId || index}
-                                type={message.type}
-                                content={message.content}
-                                citations={message.citations}
-                                timestamp={message.timestamp}
-                                messageId={message.messageId}
-                                sessionId={message.sessionId}
-                                showFeedback={true}
-                              />
-                            ))}
+                              .map((message: ConversationMessage, index: number) => {
+                                // Use topK from message if available, otherwise calculate from citations length
+                                // This represents the actual Top-K value used when the message was created
+                                const actualTopK = message.type === 'assistant' 
+                                  ? (message.topK || (message.citations ? message.citations.length : undefined))
+                                  : undefined;
+                                
+                                return (
+                                  <ChatMessage
+                                    key={message.messageId || index}
+                                    type={message.type}
+                                    content={message.content}
+                                    citations={message.citations}
+                                    timestamp={message.timestamp}
+                                    messageId={message.messageId}
+                                    sessionId={message.sessionId}
+                                    showFeedback={true}
+                                    ragSettings={ragSettings}
+                                    actualTopK={actualTopK}
+                                    citationFormatting={searchCitationFormatting}
+                                  />
+                                );
+                              })}
                             <div ref={messagesEndRef} />
                           </div>
                         </ScrollArea>
@@ -2590,11 +2697,18 @@ chatbot.init();`);
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {isLoadingSearchCitation ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    <span className="text-sm text-muted-foreground">Loading citation settings...</span>
+                  </div>
+                ) : formatting ? (
+                  <>
                 {/* Citation Style */}
                 <div>
                   <Label htmlFor="citation-style">Citation Style</Label>
                   <Select
-                    value={formatting.style}
+                    value={formatting.style || 'detailed'}
                     onValueChange={(value: any) => updateFormatting({ style: value })}
                   >
                     <SelectTrigger className="w-full mt-2">
@@ -2766,21 +2880,59 @@ chatbot.init();`);
 
                 <div className="flex flex-col sm:flex-row justify-start gap-2">
                   <Button
-                    onClick={() => {
-                      toast({
-                        title: "Citation settings saved",
-                        description: "Your citation formatting preferences have been saved successfully.",
-                        variant: "success"
-                      });
+                    onClick={async () => {
+                      try {
+                        if (formatting) {
+                          await saveCitationAsync(formatting);
+                        }
+                      } catch (error) {
+                        console.error("Failed to save citation settings:", error);
+                        // Error toast is handled in the hook
+                      }
                     }}
+                    disabled={isSavingSearchCitation || !formatting}
                     className="w-full sm:w-auto"
                   >
-                    Save Changes
+                    {isSavingSearchCitation ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Changes
+                      </>
+                    )}
                   </Button>
-                  <Button variant="outline" onClick={resetFormatting} className="w-full sm:w-auto">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      // Reset to default values
+                      updateFormatting({
+                        style: 'detailed',
+                        layout: 'vertical',
+                        numbering: 'brackets',
+                        colorScheme: 'default',
+                        showSnippets: true,
+                        showUrls: true,
+                        showSourceCount: true,
+                        enableHover: true,
+                        maxSnippetLength: 150,
+                      });
+                    }} 
+                    className="w-full sm:w-auto"
+                    disabled={isSavingSearchCitation || !formatting}
+                  >
                     Reset
                   </Button>
                 </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No citation settings available
+                  </div>
+                )}
               </CardContent>
             </GlassCard>
                       </TabsContent>
@@ -3042,7 +3194,15 @@ chatbot.init();`);
                                             e.preventDefault();
                                           }}
                                         >
-                                        <span className="text-2xl">{avatar.emoji}</span>
+                                        {avatar.image ? (
+                                          <img
+                                            src={avatar.image}
+                                            alt={avatar.name || "Avatar"}
+                                            className="w-full h-full object-cover rounded-full"
+                                          />
+                                        ) : (
+                                          <span className="text-2xl">🤖</span>
+                                        )}
                                       </Button>
                                     ))}
                                     {/* Show uploaded custom avatar as a selectable option */}
@@ -3385,7 +3545,7 @@ chatbot.init();`);
                                           // Don't update BrandingContext - only update on save
                                         }}
                                         min={15}
-                                        max={200}
+                                        max={100}
                                         step={1}
                                       />
                                     </div>
@@ -3713,14 +3873,8 @@ chatbot.init();`);
                       <CardContent className="min-h-0 flex-1 flex flex-col p-0">
                         <div
                           data-chat-scroll
-                          className={`space-y-4 flex-1 p-6 ${(isStreaming || isTyping) ? "overflow-hidden" : "overflow-y-auto"}
-    [&::-webkit-scrollbar]:w-2
-    [&::-webkit-scrollbar-track]:rounded-full
-    [&::-webkit-scrollbar-track]:bg-gray-100
-    [&::-webkit-scrollbar-thumb]:rounded-full
-    [&::-webkit-scrollbar-thumb]:bg-gray-300
-    dark:[&::-webkit-scrollbar-track]:bg-neutral-700
-    dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500`}
+                          className={`chatbot-conversation flex-1 ${(isStreaming || isTyping) ? "overflow-hidden" : "overflow-y-auto"}`}
+                          style={{ padding: '15px' }}
                         >
                           {isLoadingRagHistory ? (
                             <div className="flex items-center justify-center p-8">
@@ -3741,28 +3895,147 @@ chatbot.init();`);
                                 ragSettings={message.ragSettings}
                                 queryString={message.queryString}
                                 serverMessage={message.serverMessage}
-                                actualTopK={message.actualTopK}
+                                actualTopK={message.actualTopK || (message.citations ? message.citations.length : undefined)}
                                 actualReranker={message.actualReranker}
+                                isWidget={true}
+                                widgetAvatar={widgetAvatarGlobal}
+                                widgetAvatarSize={widgetAvatarSizeGlobal}
+                                widgetChatbotColor={widgetChatbotColorGlobal}
+                                widgetShowDateTime={widgetShowDateTimeGlobal}
+                                widgetFontSize={widgetFontSizeGlobal}
+                                avatarOptions={avatarOptions}
+                                citationFormatting={searchCitationFormatting}
                               />
                             </Suspense>
                           ))}
 
                           {/* Typing Animation */}
                           {isTyping && (
-                            <div className="flex justify-start">
-                              <div className="max-w-[80%]">
-                                <TypingAnimation message={pendingResponse || "AI is thinking..."} />
+                            <div className="chatbot-message bot-message">
+                              <div className="chatbot-message__avatar">
+                                <div
+                                  style={{
+                                    width: '30px',
+                                    height: '30px',
+                                    borderRadius: '50%',
+                                    backgroundColor: widgetChatbotColorGlobal || '#1F2937',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '14px',
+                                  }}
+                                >
+                                  🤖
+                                </div>
+                              </div>
+                              <div className="chatbot-message__content">
+                                <div className="chatbot-typing-indicator loading">
+                                  <span></span>
+                                  <span></span>
+                                  <span></span>
+                                </div>
                               </div>
                             </div>
                           )}
 
                           {/* Streaming Response */}
                           {isStreaming && streamingContent && (
-                            <div className="flex justify-start">
-                              <div className="max-w-[80%]">
-                                <div className="bg-muted/50 rounded-lg p-3">
-                                  <div className="text-sm">
-                                    {streamingContent}
+                            <div className="chatbot-message bot-message">
+                              <div className="chatbot-message__avatar">
+                                <div
+                                  style={{
+                                    width: '30px',
+                                    height: '30px',
+                                    borderRadius: '50%',
+                                    backgroundColor: widgetChatbotColorGlobal || '#1F2937',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '14px',
+                                  }}
+                                >
+                                  🤖
+                                </div>
+                              </div>
+                              <div className="chatbot-message__content">
+                                <div className="chatbot-message-text">
+                                  <div
+                                    className="text-sm leading-relaxed prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground prose-blockquote:text-muted-foreground prose-blockquote:border-l-muted-foreground"
+                                    role="text"
+                                    aria-label="Assistant message content"
+                                  >
+                                    <ReactMarkdown
+                                      remarkPlugins={[remarkGfm]}
+                                      rehypePlugins={[rehypeRaw]}
+                                      components={{
+                                        // 🎨 Enhanced code blocks with syntax highlighting
+                                        code: ({ node, className, children, ...props }: any) => {
+                                          const isInline = !className?.includes('language-');
+                                          if (isInline) {
+                                            return (
+                                              <code className="bg-muted px-1 py-0.5 rounded text-sm font-mono" {...props}>
+                                                {children}
+                                              </code>
+                                            );
+                                          }
+
+                                          // Extract language from className (e.g., "language-javascript" -> "javascript")
+                                          const match = /language-(\w+)/.exec(className || '');
+                                          const language = match ? match[1] : 'text';
+
+                                          return (
+                                            <div className="my-4">
+                                              <SyntaxHighlighter
+                                                language={language}
+                                                style={theme === 'dark' ? oneDark : oneLight}
+                                                customStyle={{
+                                                  margin: 0,
+                                                  borderRadius: '0.5rem',
+                                                  fontSize: '0.875rem',
+                                                  lineHeight: '1.5',
+                                                }}
+                                                showLineNumbers={false}
+                                                wrapLines={true}
+                                                wrapLongLines={true}
+                                              >
+                                                {safeStringConversion(children).replace(/\n$/, '')}
+                                              </SyntaxHighlighter>
+                                            </div>
+                                          );
+                                        },
+                                        // Custom styling for links
+                                        a: ({ href, children, ...props }) => (
+                                          <a
+                                            href={href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-primary hover:underline"
+                                            {...props}
+                                          >
+                                            {children}
+                                          </a>
+                                        ),
+                                        // Custom styling for lists
+                                        ul: ({ children, ...props }) => (
+                                          <ul className="list-disc list-inside space-y-1" {...props}>
+                                            {children}
+                                          </ul>
+                                        ),
+                                        ol: ({ children, ...props }) => (
+                                          <ol className="list-decimal list-inside space-y-1" {...props}>
+                                            {children}
+                                          </ol>
+                                        ),
+                                        // Custom styling for blockquotes
+                                        blockquote: ({ children, ...props }) => (
+                                          <blockquote className="border-l-4 border-muted-foreground pl-4 italic text-muted-foreground" {...props}>
+                                            {children}
+                                          </blockquote>
+                                        ),
+                                      }}
+                                    >
+                                      {safeStringConversion(streamingContent)}
+                                    </ReactMarkdown>
                                   </div>
                                 </div>
                               </div>
@@ -3776,88 +4049,6 @@ chatbot.init();`);
 
                   {/* Settings Panel */}
                   <div className="space-y-4">
-                    <GlassCard>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Settings className="h-5 w-5" />
-                          RAG Settings
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        {/* Top-K Setting */}
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-sm font-medium">Top-K Results</Label>
-                            <Badge variant="outline" className="text-xs">{ragSettings.topK}</Badge>
-                          </div>
-                          <Slider
-                            value={[ragSettings.topK]}
-                            onValueChange={(value) => updateRAGSettings({ topK: value[0] })}
-                            min={1}
-                            max={20}
-                            step={1}
-                            data-testid="slider-top-k"
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Number of documents to retrieve from the vector database
-                          </p>
-                        </div>
-
-                        {/* Similarity Threshold */}
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-sm font-medium">Similarity Threshold</Label>
-                            <Badge variant="outline" className="text-xs">{ragSettings.similarityThreshold}</Badge>
-                          </div>
-                          <Slider
-                            value={[ragSettings.similarityThreshold]}
-                            onValueChange={(value) => updateRAGSettings({ similarityThreshold: value[0] })}
-                            min={0.1}
-                            max={1.0}
-                            step={0.1}
-                            data-testid="slider-similarity"
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Minimum similarity score for document inclusion
-                          </p>
-                        </div>
-
-                        {/* Max Answer Length */}
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-sm font-medium">Max Tokens</Label>
-                            <Badge variant="outline" className="text-xs">{ragSettings.maxTokens === 0 ? "Unlimited" : ragSettings.maxTokens}</Badge>
-                          </div>
-                          <Slider
-                            value={[ragSettings.maxTokens]}
-                            onValueChange={(value) => updateRAGSettings({ maxTokens: value[0] })}
-                            min={0}
-                            max={1000}
-                            step={50}
-                            data-testid="slider-max-tokens"
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Maximum length of generated responses (0 = unlimited, max 1000)
-                          </p>
-                        </div>
-
-                        {/* Reranker Toggle */}
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label className="text-sm font-medium">Use Reranker</Label>
-                            <p className="text-xs text-muted-foreground">
-                              Improve result relevance with reranking
-                            </p>
-                          </div>
-                          <Switch
-                            checked={ragSettings.useReranker}
-                            onCheckedChange={(checked) => updateRAGSettings({ useReranker: checked })}
-                            data-testid="switch-reranker"
-                          />
-                        </div>
-                      </CardContent>
-                    </GlassCard>
-
                     {/* Performance Stats */}
                     <GlassCard>
                       <CardHeader>

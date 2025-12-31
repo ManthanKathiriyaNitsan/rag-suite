@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState, useCallback } from "react";
-import { Copy, ThumbsUp, ThumbsDown, User, Bot } from "lucide-react";
+import { Copy, ThumbsUp, ThumbsDown, User, Bot, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -15,8 +15,9 @@ import { useChatFeedback } from "@/hooks/useChat";
 import { linkifyTextToNodes } from "@/utils/linkify";
 import { copyToClipboard } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useBranding } from "@/contexts/BrandingContext";
 import { simpleHighlight } from "@/utils/textHighlighting";
-import { useCitationFormatting } from "@/contexts/CitationFormattingContext";
+import { useCitationFormatting, CitationFormattingOptions } from "@/contexts/CitationFormattingContext";
 import { safeStringConversion } from "@/utils/safeStringConversion";
 // 📝 Import markdown support
 import ReactMarkdown from "react-markdown";
@@ -59,7 +60,9 @@ interface ChatMessageProps {
   widgetChatbotColor?: string;
   widgetShowDateTime?: boolean;
   widgetFontSize?: number;
-  avatarOptions?: Array<{ id: string; emoji: string }>;
+  avatarOptions?: Array<{ id: string; emoji?: string; image?: string }>;
+  // 🎨 Citation formatting (optional, falls back to context)
+  citationFormatting?: CitationFormattingOptions;
 }
 
 // Format timestamp as relative time (e.g., "2 months ago")
@@ -115,6 +118,7 @@ const ChatMessage = React.memo(function ChatMessage({
   widgetShowDateTime,
   widgetFontSize,
   avatarOptions,
+  citationFormatting,
 }: ChatMessageProps) {
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
 
@@ -124,9 +128,12 @@ const ChatMessage = React.memo(function ChatMessage({
 
   // 🎨 Get theme for syntax highlighting
   const { theme } = useTheme();
+  // 🎨 Get branding for primary color
+  const { primaryColor } = useBranding();
 
-  // 🎨 Get citation formatting options
-  const { formatting } = useCitationFormatting();
+  // 🎨 Get citation formatting options (use prop if provided, otherwise use context)
+  const contextFormatting = useCitationFormatting();
+  const formatting = citationFormatting || contextFormatting.formatting;
 
   // Widget appearance settings (defaults, not persisted in localStorage)
   const widgetAppearance: {
@@ -168,14 +175,12 @@ const ChatMessage = React.memo(function ChatMessage({
   };
 
   const getLayoutClasses = () => {
-    // 🎨 Grid layout only works in RAGTuning, not in embedded widget
-    if (isWidget && formatting.layout === 'grid') {
-      return "space-y-2"; // Force vertical layout in widget
-    }
-    
+    // 🎨 Grid layout works in Search Test (isWidget=true but not embedded widget)
+    // Only force vertical in actual embedded widget (when used in EmbeddableWidget component)
+    // For Search Test, allow grid layout to work
     switch (formatting.layout) {
       case 'vertical': return "space-y-2";
-      case 'grid': return "grid grid-cols-1 sm:grid-cols-2 gap-2";
+      case 'grid': return "grid grid-cols-1 sm:grid-cols-2 gap-2 items-stretch";
       default: return "space-y-2";
     }
   };
@@ -194,6 +199,81 @@ const ChatMessage = React.memo(function ChatMessage({
     if (snippet.length <= formatting.maxSnippetLength) return snippet;
     return snippet.substring(0, formatting.maxSnippetLength) + "...";
   };
+
+  // 🎨 Render citation card content (reusable for both hover and non-hover states)
+  const renderCitationCard = (source: Citation, index: number) => {
+    const hoverClasses = formatting.enableHover 
+      ? 'cursor-pointer transition-all duration-200 ease-in-out hover:scale-[1.02] hover:shadow-md hover:border-primary/30' 
+      : '';
+    
+    // Ensure cards have equal height in grid layout
+    const heightClasses = formatting.layout === 'grid' ? 'h-full flex flex-col' : '';
+    
+    return (
+      <div
+        className={`${getCitationStyleClasses()} ${getColorSchemeClasses()} ${hoverClasses} ${heightClasses}`}
+      >
+        <div className={`flex items-start gap-2 ${formatting.layout === 'grid' ? 'flex-1' : ''}`}>
+          <Badge
+            variant="outline"
+            className={`text-xs shrink-0 ${formatting.style === 'minimal' ? 'text-xs px-1 py-0' : ''}`}
+          >
+            {getNumberingStyle(index)}
+          </Badge>
+          <div className="flex-1 min-w-0 flex flex-col">
+            <p className={`font-medium text-foreground mb-1 ${formatting.style === 'compact' ? 'text-xs' : 'text-sm'}`}>
+              {source.title || `Source ${index + 1}`}
+            </p>
+            {formatting.showSnippets && truncateSnippet(source.snippet) && (
+              <p className={`text-muted-foreground leading-relaxed flex-1 ${formatting.style === 'compact' ? 'text-xs' : 'text-xs'}`}>
+                {queryString ? simpleHighlight(truncateSnippet(source.snippet), queryString) : truncateSnippet(source.snippet)}
+              </p>
+            )}
+            {formatting.showUrls && source.url && source.url !== "#" && (
+              <a
+                href={source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`text-primary hover:underline mt-1 inline-block ${formatting.style === 'compact' ? 'text-xs' : 'text-xs'}`}
+              >
+                View Source →
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // 🎨 Render hover card content (for the popup)
+  const renderHoverCardContent = (source: Citation, index: number) => (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" className="text-xs">
+          {getNumberingStyle(index)}
+        </Badge>
+        <h4 className="font-semibold text-sm">{source.title || `Source ${index + 1}`}</h4>
+      </div>
+      {source.snippet && (
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          {source.snippet}
+        </p>
+      )}
+      {source.url && source.url !== "#" && (
+        <div className="pt-2 border-t">
+          <a
+            href={source.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-primary hover:underline flex items-center gap-1"
+          >
+            <span className="truncate">{source.url}</span>
+            <Copy className="h-3 w-3 shrink-0" />
+          </a>
+        </div>
+      )}
+    </div>
+  );
 
   const handleCopy = useCallback(async () => {
     await copyToClipboard(content);
@@ -219,9 +299,266 @@ const ChatMessage = React.memo(function ChatMessage({
     }
   }, [feedback, messageId, sessionId, submitFeedback]);
 
+  // Use chatbot widget structure when isWidget is true
+  if (isWidget) {
+    const isBot = type === "assistant";
+    const isUser = type === "user";
+    const messageClass = isBot ? "bot-message" : "user-message";
+    const isCustomAvatarImage = widgetAvatar && (widgetAvatar.startsWith("http") || widgetAvatar.startsWith("data:"));
+    const isDefaultGradient = widgetChatbotColor === "gradient";
+    const isCustomGradient = widgetChatbotColor && widgetChatbotColor.startsWith("linear-gradient");
+    const selectedAvatar = avatarOptions?.find(a => a.id === widgetAvatar) || { image: "/avatars/avatar-1.png" };
+    const isDefaultAvatarImage = selectedAvatar && selectedAvatar.image;
+
+    return (
+      <div className={`chatbot-message ${messageClass}`} data-testid={`message-${type}`}>
+        {isBot && (
+          <div className="chatbot-message__avatar">
+            {isCustomAvatarImage ? (
+              <img
+                className="chatbot-avatar-image"
+                src={widgetAvatar}
+                alt="Avatar"
+                width={30}
+                height={30}
+              />
+            ) : isDefaultAvatarImage ? (
+              <img
+                className="chatbot-avatar-image"
+                src={selectedAvatar.image}
+                alt="Avatar"
+                width={30}
+                height={30}
+                style={{
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '50%',
+                  backgroundColor: (isDefaultGradient || isCustomGradient) ? undefined : widgetChatbotColor || '#1F2937',
+                  backgroundImage: isDefaultGradient ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : (isCustomGradient ? widgetChatbotColor : undefined),
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '14px',
+                }}
+              >
+                🤖
+              </div>
+            )}
+          </div>
+        )}
+        <div className="chatbot-message__content">
+          <div 
+            className="chatbot-message-text"
+            style={isUser ? {
+              // User messages use same color as chatbot header (widgetChatbotColor)
+              // For gradients, set backgroundImage; for solid colors, CSS will use --chatbot-color
+              ...(isDefaultGradient || isCustomGradient ? {
+                backgroundImage: isDefaultGradient ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : widgetChatbotColor,
+              } : {}),
+              color: '#fff',
+              fontSize: widgetFontSize ? `${widgetFontSize}px` : '14px',
+            } : {
+              fontSize: widgetFontSize ? `${widgetFontSize}px` : '14px',
+            }}
+          >
+            {isBot ? (
+              <div
+                className="text-sm leading-relaxed prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground prose-blockquote:text-muted-foreground prose-blockquote:border-l-muted-foreground"
+                role="text"
+                aria-label="Assistant message content"
+              >
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                  components={{
+                    // 🎨 Enhanced code blocks with syntax highlighting
+                    code: ({ node, className, children, ...props }: any) => {
+                      const isInline = !className?.includes('language-');
+                      if (isInline) {
+                        return (
+                          <code className="bg-muted px-1 py-0.5 rounded text-sm font-mono" {...props}>
+                            {children}
+                          </code>
+                        );
+                      }
+
+                      // Extract language from className (e.g., "language-javascript" -> "javascript")
+                      const match = /language-(\w+)/.exec(className || '');
+                      const language = match ? match[1] : 'text';
+
+                      return (
+                        <div className="my-4">
+                          <SyntaxHighlighter
+                            language={language}
+                            style={theme === 'dark' ? oneDark : oneLight}
+                            customStyle={{
+                              margin: 0,
+                              borderRadius: '0.5rem',
+                              fontSize: '0.875rem',
+                              lineHeight: '1.5',
+                            }}
+                            showLineNumbers={false}
+                            wrapLines={true}
+                            wrapLongLines={true}
+                          >
+                            {safeStringConversion(children).replace(/\n$/, '')}
+                          </SyntaxHighlighter>
+                        </div>
+                      );
+                    },
+                    // Custom styling for links
+                    a: ({ href, children, ...props }) => (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                        {...props}
+                      >
+                        {children}
+                      </a>
+                    ),
+                    // Custom styling for lists
+                    ul: ({ children, ...props }) => (
+                      <ul className="list-disc list-inside space-y-1" {...props}>
+                        {children}
+                      </ul>
+                    ),
+                    ol: ({ children, ...props }) => (
+                      <ol className="list-decimal list-inside space-y-1" {...props}>
+                        {children}
+                      </ol>
+                    ),
+                    // Custom styling for blockquotes
+                    blockquote: ({ children, ...props }) => (
+                      <blockquote className="border-l-4 border-muted-foreground pl-4 italic text-muted-foreground" {...props}>
+                        {children}
+                      </blockquote>
+                    ),
+                  }}
+                >
+                  {safeStringConversion(content)}
+                </ReactMarkdown>
+              </div>
+            ) : (
+              <p>{content}</p>
+            )}
+          </div>
+          {/* Citations for bot messages - Use detailed format for Search Test */}
+          {isBot && citations && citations.length > 0 && (() => {
+            // Calculate Top-K value (use actualTopK if available, otherwise ragSettings.topK, or use citations length)
+            const topKValue = actualTopK !== undefined ? actualTopK : (ragSettings?.topK !== undefined ? ragSettings.topK : citations.length);
+            const displayedCitations = topKValue ? citations.slice(0, topKValue) : citations;
+            
+            // Use detailed citation format (same as non-widget) to show "Top-K: X Sources (X):" format
+            return (
+              <div className="space-y-3 pt-3 border-t border-border/20 mt-2 overflow-x-hidden">
+                {/* Display Top-K label before Sources count - controlled by showSourceCount from citation formatting */}
+                {formatting.showSourceCount && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {topKValue !== undefined && topKValue !== null && (
+                      <span className="text-xs font-medium opacity-70">
+                        Top-K: {topKValue}
+                      </span>
+                    )}
+                    <span className="text-xs font-medium opacity-70">
+                      Sources ({displayedCitations.length}):
+                    </span>
+                  </div>
+                )}
+                {/* Always show source cards, even if showSourceCount is false */}
+                <div className={`${getLayoutClasses()} overflow-x-hidden`}>
+                  {displayedCitations.map((source, index) => 
+                    formatting.enableHover ? (
+                      <div key={index} className={formatting.layout === 'grid' ? 'h-full' : ''}>
+                        <HoverCard openDelay={300} closeDelay={100}>
+                          <HoverCardTrigger asChild>
+                            {renderCitationCard(source, index)}
+                          </HoverCardTrigger>
+                          <HoverCardContent
+                            className="w-80 max-h-60 overflow-y-auto"
+                            side="top"
+                            align="start"
+                            sideOffset={5}
+                          >
+                            {renderHoverCardContent(source, index)}
+                          </HoverCardContent>
+                        </HoverCard>
+                      </div>
+                    ) : (
+                      <div key={index} className={formatting.layout === 'grid' ? 'h-full' : ''}>
+                        {renderCitationCard(source, index)}
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+          {/* Message Footer (Actions and Time on same line) */}
+          {isBot && (
+            <div className="chatbot-message-footer">
+              <div className="chatbot-message-actions">
+                <button
+                  className={`chatbot-message-action-button ${copied ? "active" : ""}`}
+                  onClick={handleCopy}
+                  title="Copy message"
+                >
+                  {copied ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </button>
+                {showFeedback && (
+                  <>
+                    <button
+                      className={`chatbot-message-action-button ${feedback === "up" ? "active" : ""}`}
+                      onClick={() => handleFeedback("up")}
+                      disabled={isSubmitting}
+                      title="Thumbs up"
+                    >
+                      <ThumbsUp className="h-3 w-3" />
+                    </button>
+                    <button
+                      className={`chatbot-message-action-button ${feedback === "down" ? "active" : ""}`}
+                      onClick={() => handleFeedback("down")}
+                      disabled={isSubmitting}
+                      title="Thumbs down"
+                    >
+                      <ThumbsDown className="h-3 w-3" />
+                    </button>
+                  </>
+                )}
+              </div>
+              {timestamp && widgetShowDateTime !== false && (
+                <span className={`chatbot-message-time ${widgetShowDateTime ? "chatbot-message-time--visible" : ""}`}>
+                  {formatRelativeTime(timestamp)}
+                </span>
+              )}
+            </div>
+          )}
+          {isUser && timestamp && widgetShowDateTime !== false && (
+            <span className={`chatbot-message-time ${widgetShowDateTime ? "chatbot-message-time--visible" : ""}`}>
+              {formatRelativeTime(timestamp)}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Original non-widget structure
   return (
     <div
-      className={`chat-message flex ${isWidget ? "gap-2" : "gap-3"} ${type === "user" ? "justify-end" : "justify-start"}`}
+      className={`chat-message flex gap-3 ${type === "user" ? "justify-end" : "justify-start"}`}
       data-testid={`message-${type}`}
       role="article"
       aria-label={`${type === "user" ? "User" : "Assistant"} message`}
@@ -229,55 +566,23 @@ const ChatMessage = React.memo(function ChatMessage({
     >
       {type === "assistant" && (
         <Avatar
-          className={`${isWidget ? "h-6 w-6" : "h-8 w-8"} mt-1 rounded-full flex-shrink-0`}
+          className="h-8 w-8 mt-1 rounded-full flex-shrink-0"
           aria-label="AI Assistant avatar"
-          style={{
-            width: isWidget && widgetAvatarSize ? `${Math.min(widgetAvatarSize, 24)}px` : undefined,
-            height: isWidget && widgetAvatarSize ? `${Math.min(widgetAvatarSize, 24)}px` : undefined,
-          }}
         >
-          {isWidget && widgetAvatar && (widgetAvatar.startsWith("http") || widgetAvatar.startsWith("data:")) ? (
-            <img
-              src={widgetAvatar}
-              alt="Custom avatar"
-              className="w-full h-full object-cover rounded-full"
-            />
-          ) : (
-            <AvatarFallback className="bg-primary text-primary-foreground">
-              {isWidget && avatarOptions && widgetAvatar ? (
-                <span style={{ fontSize: `${Math.min((widgetAvatarSize || 32) * 0.4, 14)}px` }}>
-                  {avatarOptions.find(a => a.id === widgetAvatar)?.emoji || "🤖"}
-                </span>
-              ) : (
-                <Bot className="h-4 w-4" aria-hidden="true" />
-              )}
-            </AvatarFallback>
-          )}
+          <AvatarFallback className="bg-primary text-primary-foreground">
+            <Bot className="h-4 w-4" aria-hidden="true" />
+          </AvatarFallback>
         </Avatar>
       )}
 
       <div className={`max-w-[80%] min-w-0 ${type === "user" ? "order-first" : ""}`}>
         <Card
-          className={`chat-bubble ${isWidget ? "p-3" : "p-4"} ${type === "user"
-            ? "ml-auto"
-            : ""
-            } ${isWidget ? "rounded-2xl" : "rounded-lg"} ${type === "assistant" && isWidget ? "bg-muted" : ""}`}
-          style={{
-            backgroundColor: type === "assistant" && isWidget
-              ? undefined // Use bg-muted class for theme-aware color
-              : type === "user" && isWidget && widgetChatbotColor 
-              ? (widgetChatbotColor === "gradient" || widgetChatbotColor.startsWith("linear-gradient") ? undefined : widgetChatbotColor)
-              : type === "user" && isWidget
-              ? "#3b82f6" // Default blue for user messages in widget
-              : type === "user" ? undefined : undefined,
-            backgroundImage: type === "user" && isWidget && widgetChatbotColor
-              ? (widgetChatbotColor === "gradient" ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : widgetChatbotColor.startsWith("linear-gradient") ? widgetChatbotColor : undefined)
-              : undefined,
-            fontSize: isWidget ? (widgetFontSize ? `${widgetFontSize}px` : '14px') : undefined,
-            color: type === "user" && isWidget ? "#ffffff" : undefined, // White text for user messages in widget (blue background)
-            lineHeight: isWidget ? '1.5' : undefined,
-            boxShadow: isWidget ? '0 1px 2px rgba(0, 0, 0, 0.1)' : undefined,
-          }}
+          className={`chat-bubble p-4 ${type === "user" ? "ml-auto user-message-bubble" : ""} rounded-lg`}
+          style={type === "user" && !isWidget ? {
+            '--user-message-bg': primaryColor || '#3b82f6',
+            backgroundColor: primaryColor || '#3b82f6',
+            color: '#ffffff'
+          } as React.CSSProperties & { '--user-message-bg'?: string } : undefined}
         >
           <div className={isWidget ? "space-y-0" : "space-y-3"}>
             <div className={`${isWidget ? "" : "opacity-90"} w-full min-w-0`}>
@@ -379,93 +684,55 @@ const ChatMessage = React.memo(function ChatMessage({
             </div>
 
             {/* 🎨 Enhanced Citation Display with Formatting Options */}
-            {type === "assistant" && citations && citations.length > 0 && (
-              <div className="space-y-3 pt-3 border-t border-border/20">
-                {formatting.showSourceCount && (
-                  <p className="text-xs font-medium opacity-70">
-                    Sources ({citations.length}):
-                  </p>
-                )}
-                <div className={getLayoutClasses()}>
-                  {citations.map((source, index) => (
-                    <HoverCard key={index} openDelay={300} closeDelay={100}>
-                      <HoverCardTrigger asChild>
-                        <div
-                          className={`${getCitationStyleClasses()} ${getColorSchemeClasses()} ${formatting.enableHover ? 'cursor-pointer' : ''
-                            }`}
-                        >
-                          <div className="flex items-start gap-2">
-                            <Badge
-                              variant="outline"
-                              className={`text-xs shrink-0 ${formatting.style === 'minimal' ? 'text-xs px-1 py-0' : ''
-                                }`}
+            {type === "assistant" && citations && citations.length > 0 && (() => {
+              // Calculate Top-K value (use actualTopK if available, otherwise ragSettings.topK, or use citations length)
+              const topKValue = actualTopK !== undefined ? actualTopK : (ragSettings?.topK !== undefined ? ragSettings.topK : citations.length);
+              const displayedCitations = topKValue ? citations.slice(0, topKValue) : citations;
+              
+              return (
+                <div className="space-y-3 pt-3 border-t border-border/20 overflow-x-hidden">
+                  {/* Display Top-K label before Sources count - controlled by showSourceCount from citation formatting */}
+                  {formatting.showSourceCount && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {topKValue !== undefined && topKValue !== null && (
+                        <span className="text-xs font-medium opacity-70">
+                          Top-K: {topKValue}
+                        </span>
+                      )}
+                      <span className="text-xs font-medium opacity-70">
+                        Sources ({displayedCitations.length}):
+                      </span>
+                    </div>
+                  )}
+                  {/* Always show source cards, even if showSourceCount is false */}
+                  <div className={`${getLayoutClasses()} overflow-x-hidden`}>
+                    {displayedCitations.map((source, index) => 
+                      formatting.enableHover ? (
+                        <div key={index} className={formatting.layout === 'grid' ? 'h-full' : ''}>
+                          <HoverCard openDelay={300} closeDelay={100}>
+                            <HoverCardTrigger asChild>
+                              {renderCitationCard(source, index)}
+                            </HoverCardTrigger>
+                            <HoverCardContent
+                              className="w-80 max-h-60 overflow-y-auto"
+                              side="top"
+                              align="start"
+                              sideOffset={5}
                             >
-                              {getNumberingStyle(index)}
-                            </Badge>
-                            <div className="flex-1 min-w-0">
-                              <p className={`font-medium text-foreground mb-1 ${formatting.style === 'compact' ? 'text-xs' : 'text-sm'
-                                }`}>
-                                {source.title || `Source ${index + 1}`}
-                              </p>
-                              {formatting.showSnippets && truncateSnippet(source.snippet) && (
-                                <p className={`text-muted-foreground leading-relaxed ${formatting.style === 'compact' ? 'text-xs' : 'text-xs'
-                                  }`}>
-                                  {queryString ? simpleHighlight(truncateSnippet(source.snippet), queryString) : truncateSnippet(source.snippet)}
-                                </p>
-                              )}
-                              {formatting.showUrls && source.url && source.url !== "#" && (
-                                <a
-                                  href={source.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={`text-primary hover:underline mt-1 inline-block ${formatting.style === 'compact' ? 'text-xs' : 'text-xs'
-                                    }`}
-                                >
-                                  View Source →
-                                </a>
-                              )}
-                            </div>
-                          </div>
+                              {renderHoverCardContent(source, index)}
+                            </HoverCardContent>
+                          </HoverCard>
                         </div>
-                      </HoverCardTrigger>
-                      <HoverCardContent
-                        className="w-80 max-h-60 overflow-y-auto"
-                        side="top"
-                        align="start"
-                        sideOffset={5}
-                      >
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              {getNumberingStyle(index)}
-                            </Badge>
-                            <h4 className="font-semibold text-sm">{source.title || `Source ${index + 1}`}</h4>
-                          </div>
-                          {source.snippet && (
-                            <p className="text-sm text-muted-foreground leading-relaxed">
-                              {source.snippet}
-                            </p>
-                          )}
-                          {source.url && source.url !== "#" && (
-                            <div className="pt-2 border-t">
-                              <a
-                                href={source.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-primary hover:underline flex items-center gap-1"
-                              >
-                                <span className="truncate">{source.url}</span>
-                                <Copy className="h-3 w-3 shrink-0" />
-                              </a>
-                            </div>
-                          )}
+                      ) : (
+                        <div key={index} className={formatting.layout === 'grid' ? 'h-full' : ''}>
+                          {renderCitationCard(source, index)}
                         </div>
-                      </HoverCardContent>
-                    </HoverCard>
-                  ))}
+                      )
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {type === "assistant" && (
               <div className="flex items-center justify-between pt-2 border-t border-border/20">
@@ -477,8 +744,11 @@ const ChatMessage = React.memo(function ChatMessage({
                     data-testid="button-copy"
                     className="h-8 px-2"
                   >
-                    <Copy className="h-3 w-3" />
-                    {copied && <span className="ml-1 text-xs">Copied!</span>}
+                    {copied ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
                   </Button>
                 </div>
 

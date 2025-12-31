@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { X, Mic, Send, Trash2, ThumbsUp, ThumbsDown, Copy } from "lucide-react";
+import { X, Mic, Send, Trash2, ThumbsUp, ThumbsDown, Copy, Check } from "lucide-react";
 import { useRAGSettings } from "@/contexts/RAGSettingsContext";
 import { testChatAPIConnection } from "@/services/api/api";
 // 🌐 Import our global API hooks
@@ -14,6 +14,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { safeStringConversion } from "@/utils/safeStringConversion";
+// 🎨 Import syntax highlighting
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 
 interface Message {
@@ -129,36 +132,72 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
   // 🎬 Handle smooth open/close animations
   useEffect(() => {
     if (isOpen && !shouldShow) {
+      // Opening animation - restore scroll position BEFORE making widget visible
+      if (chatMessagesRef.current && shouldRestoreScrollRef.current && !hasRestoredRef.current && !isPreviewMode) {
+        // Try to restore scroll position immediately before showing widget
+        const tryRestoreBeforeShow = () => {
+          const container = chatMessagesRef.current;
+          if (container && container.scrollHeight > container.clientHeight) {
+            try {
+              const savedPosition = localStorage.getItem(SCROLL_POSITION_KEY);
+              if (savedPosition) {
+                const scrollPosition = parseInt(savedPosition, 10);
+                if (!isNaN(scrollPosition) && scrollPosition >= 0) {
+                  // Temporarily disable smooth scrolling
+                  container.style.scrollBehavior = 'auto';
+                  container.scrollTop = scrollPosition;
+                  container.scrollTo({ top: scrollPosition, behavior: 'auto' });
+                  hasRestoredRef.current = true;
+                  console.log('📜 Pre-restored scroll position before show:', scrollPosition);
+                }
+              }
+            } catch (error) {
+              console.warn('Failed to pre-restore scroll position:', error);
+            }
+          }
+        };
+        // Try immediately and on next frame
+        tryRestoreBeforeShow();
+        requestAnimationFrame(tryRestoreBeforeShow);
+      }
+      
       // Opening animation
       setShouldShow(true);
       setIsAnimating(true);
       setTimeout(() => setIsAnimating(false), 400);
     } else if (!isOpen && shouldShow) {
-      // Closing animation
+      // Closing animation - save scroll position before closing
+      if (chatMessagesRef.current && !isPreviewMode) {
+        const scrollPosition = chatMessagesRef.current.scrollTop;
+        try {
+          localStorage.setItem(SCROLL_POSITION_KEY, scrollPosition.toString());
+          console.log('💾 Saved scroll position before closing:', scrollPosition);
+        } catch (error) {
+          console.warn('Failed to save scroll position:', error);
+        }
+      }
       setIsAnimating(true);
       setTimeout(() => {
         setShouldShow(false);
         setIsAnimating(false);
       }, 300);
     }
-  }, [isOpen, shouldShow, setShouldShow, setIsAnimating]);
+  }, [isOpen, shouldShow, setShouldShow, setIsAnimating, isPreviewMode]);
 
-  // 🫧 Handle bubble message visibility - show for 2.5 seconds
+  // 🫧 Handle bubble message visibility - show after widget closes with 1 second delay
   useEffect(() => {
-    if (bubbleMessage && bubbleMessage.trim() !== "") {
-      // Show bubble when it first appears
-      setShowBubble(true);
-      
-      // Hide after 2.5 seconds
+    if (bubbleMessage && bubbleMessage.trim() !== "" && !isOpen) {
+      // Wait 1 second after widget closes before showing bubble
       const timer = setTimeout(() => {
-        setShowBubble(false);
-      }, 2500);
+        setShowBubble(true);
+      }, 500);
       
       return () => clearTimeout(timer);
     } else {
+      // Hide bubble immediately when widget opens or no message
       setShowBubble(false);
     }
-  }, [bubbleMessage]);
+  }, [bubbleMessage, isOpen]);
 
   // 🎯 Helper function to get position classes
   const getPositionClasses = (position: string) => {
@@ -205,17 +244,12 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
 
   // 💬 Load chat history from API on mount (skip in preview mode)
   useEffect(() => {
-    // In preview mode, only show welcome message and a sample user message, don't load chat history
+    // In preview mode, only show welcome message, don't load chat history
       if (isPreviewMode) {
         setMessages([
           {
             type: "assistant",
             content: welcomeMessage,
-            timestamp: new Date(),
-          },
-          {
-            type: "user",
-            content: "hi",
             timestamp: new Date(),
           },
         ]);
@@ -283,16 +317,11 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
   // 💬 Update welcome message when it changes (for preview)
   useEffect(() => {
     if (isPreviewMode) {
-      // In preview mode, maintain the static messages (welcome + "hi")
+      // In preview mode, maintain the static welcome message
       setMessages([
         {
           type: "assistant",
           content: welcomeMessage,
-          timestamp: new Date(),
-        },
-        {
-          type: "user",
-          content: "hi",
           timestamp: new Date(),
         },
       ]);
@@ -316,10 +345,18 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
   const clearChat = async () => {
     try {
       const { chatAPI } = await import('@/services/api/api');
-      await chatAPI.deleteAllMessages();
-      console.log('✅ All widget messages deleted from database');
+      await chatAPI.deleteAllMessages('widget');  // Pass 'widget' for soft delete (hides from widget, keeps in history)
+      console.log('✅ All widget messages hidden from widget (still visible in history)');
     } catch (error) {
       console.error('❌ Failed to delete widget messages:', error);
+    }
+
+    // Clear saved scroll position when chat is cleared
+    try {
+      localStorage.removeItem(SCROLL_POSITION_KEY);
+      console.log('💾 Cleared saved scroll position');
+    } catch (error) {
+      console.warn('Failed to clear scroll position:', error);
     }
 
     setMessages([
@@ -362,6 +399,11 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
 
   // 📜 Ref for messages container to auto-scroll
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const chatMessagesRef = useRef<HTMLDivElement>(null); // Ref for the actual scrollable container (.chatbot-messages)
+  
+  // 📜 Scroll position persistence key
+  const SCROLL_POSITION_KEY = 'embeddable-widget-scroll-position';
 
   // 🌊 Simulate streaming response
   const simulateStreamingResponse = async (content: string, onUpdate: (content: string) => void) => {
@@ -375,20 +417,187 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
     }
   };
 
-  // 📜 Auto-scroll to bottom when new messages are added
-  const scrollToBottom = () => {
-    if (isPreviewMode) return; // Don't scroll in preview mode to prevent page scroll
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
-    }
-  };
+  // 📜 Smooth scroll function (Lenis-like) using requestAnimationFrame
+  const smoothScrollTo = useCallback((target: number, duration: number = 800) => {
+    // Use chatMessagesRef (the actual scrollable container) instead of messagesContainerRef
+    const scrollContainer = chatMessagesRef.current || messagesContainerRef.current;
+    if (!scrollContainer) return;
+    
+    const start = scrollContainer.scrollTop;
+    const distance = target - start;
+    const startTime = performance.now();
+    
+    const easeInOutCubic = (t: number): number => {
+      return t < 0.5
+        ? 4 * t * t * t
+        : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    };
+    
+    const animateScroll = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = easeInOutCubic(progress);
+      
+      scrollContainer.scrollTop = start + distance * eased;
+      
+      if (progress < 1) {
+        requestAnimationFrame(animateScroll);
+      }
+    };
+    
+    requestAnimationFrame(animateScroll);
+  }, []);
 
-  // 📜 Auto-scroll when messages change
-  useEffect(() => {
-    if (!isPreviewMode) {
-      scrollToBottom();
+  // 📜 Auto-scroll to bottom when new messages are added
+  const scrollToBottom = useCallback(() => {
+    if (isPreviewMode) return; // Don't scroll in preview mode to prevent page scroll
+    // Use chatMessagesRef (the actual scrollable container) for scrolling
+    const scrollContainer = chatMessagesRef.current;
+    if (scrollContainer && messagesEndRef.current) {
+      // Scroll to the bottom of the scrollable container
+      const targetScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+      smoothScrollTo(targetScroll, 600);
     }
-  }, [messages, isPreviewMode]);
+  }, [isPreviewMode, smoothScrollTo]);
+
+  // 📜 Save scroll position when widget closes (save from the actual scrollable container)
+  useEffect(() => {
+    if (!isOpen && chatMessagesRef.current && !isPreviewMode) {
+      const scrollPosition = chatMessagesRef.current.scrollTop;
+      try {
+        localStorage.setItem(SCROLL_POSITION_KEY, scrollPosition.toString());
+        console.log('💾 Saved scroll position:', scrollPosition);
+      } catch (error) {
+        console.warn('Failed to save scroll position:', error);
+      }
+    }
+  }, [isOpen, isPreviewMode]);
+
+  // 📜 Track if we should restore scroll position (only on initial open, not on new messages)
+  const shouldRestoreScrollRef = useRef(false);
+  const hasRestoredRef = useRef(false); // Track if we've already restored for this open session
+  
+  // 📜 Reset restoration flag when widget closes
+  useEffect(() => {
+    if (!isOpen && !isPreviewMode) {
+      shouldRestoreScrollRef.current = false;
+      hasRestoredRef.current = false;
+    }
+  }, [isOpen, isPreviewMode]);
+  
+  // 📜 Set flag to restore scroll when widget opens
+  useEffect(() => {
+    if (isOpen && !isPreviewMode && !hasRestoredRef.current) {
+      shouldRestoreScrollRef.current = true;
+    }
+  }, [isOpen, isPreviewMode]);
+
+  // 📜 Restore scroll position when widget opens (works even if messages are already loaded)
+  useEffect(() => {
+    // Only restore if widget is open, visible, and we haven't restored yet
+    if (isOpen && shouldShow && chatMessagesRef.current && shouldRestoreScrollRef.current && !hasRestoredRef.current && !isPreviewMode) {
+      // Use multiple attempts to ensure DOM is ready
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      const tryRestore = () => {
+        attempts++;
+        const container = chatMessagesRef.current;
+        
+        if (!container) {
+          if (attempts < maxAttempts) {
+            requestAnimationFrame(tryRestore);
+          }
+          return;
+        }
+        
+        // Check if container has content and is scrollable
+        const hasContent = container.scrollHeight > container.clientHeight;
+        
+        if (!hasContent && attempts < maxAttempts) {
+          // Content not ready yet, try again on next frame
+          requestAnimationFrame(tryRestore);
+          return;
+        }
+        
+        try {
+          const savedPosition = localStorage.getItem(SCROLL_POSITION_KEY);
+          if (savedPosition) {
+            const scrollPosition = parseInt(savedPosition, 10);
+            if (!isNaN(scrollPosition) && scrollPosition >= 0) {
+              console.log('📜 Restoring scroll position instantly:', scrollPosition);
+              
+              // Temporarily disable smooth scrolling behavior
+              const originalScrollBehavior = container.style.scrollBehavior;
+              container.style.scrollBehavior = 'auto';
+              
+              // Set scroll position instantly (no animation)
+              container.scrollTop = scrollPosition;
+              
+              // Force immediate update using scrollTo with auto behavior
+              container.scrollTo({
+                top: scrollPosition,
+                behavior: 'auto'
+              });
+              
+              // Restore original scroll behavior after a frame
+              requestAnimationFrame(() => {
+                if (container) {
+                  container.style.scrollBehavior = originalScrollBehavior;
+                }
+              });
+              
+              // Mark as restored
+              hasRestoredRef.current = true;
+              shouldRestoreScrollRef.current = false;
+            } else {
+              // Invalid position, scroll to bottom
+              console.log('📜 Invalid scroll position, scrolling to bottom');
+              scrollToBottom();
+              hasRestoredRef.current = true;
+              shouldRestoreScrollRef.current = false;
+            }
+          } else {
+            // No saved position, scroll to bottom
+            console.log('📜 No saved scroll position, scrolling to bottom');
+            scrollToBottom();
+            hasRestoredRef.current = true;
+            shouldRestoreScrollRef.current = false;
+          }
+        } catch (error) {
+          console.warn('Failed to restore scroll position:', error);
+          hasRestoredRef.current = true;
+          shouldRestoreScrollRef.current = false;
+        }
+      };
+      
+      // Start restoration immediately using requestAnimationFrame for instant positioning
+      requestAnimationFrame(() => {
+        requestAnimationFrame(tryRestore); // Double RAF ensures layout is ready
+      });
+    }
+  }, [isOpen, shouldShow, isPreviewMode, scrollToBottom]);
+
+  // 📜 Track previous message count to detect new messages
+  const prevMessageCountRef = useRef(messages.length);
+  
+  // 📜 Auto-scroll when new messages are added (only if not restoring scroll)
+  useEffect(() => {
+    if (!isPreviewMode && isOpen && !hasRestoredRef.current && !shouldRestoreScrollRef.current) {
+      const currentMessageCount = messages.length;
+      const prevMessageCount = prevMessageCountRef.current;
+      
+      // Only auto-scroll if a new message was added (count increased)
+      if (currentMessageCount > prevMessageCount) {
+        scrollToBottom();
+      }
+      
+      prevMessageCountRef.current = currentMessageCount;
+    } else if (isOpen) {
+      // Update message count even when restoring
+      prevMessageCountRef.current = messages.length;
+    }
+  }, [messages.length, isPreviewMode, isOpen]);
 
   // 🎯 onReady callback - trigger when widget is ready
   useEffect(() => {
@@ -678,23 +887,16 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
 
   // Avatar options (matching ChatbotConfiguration)
   const avatarOptions = [
-    { id: "default-1", emoji: "🤖" },
-    { id: "default-2", emoji: "👤" },
-    { id: "default-3", emoji: "👨" },
-    { id: "default-4", emoji: "👩" },
-    { id: "default-5", emoji: "🧑" },
-    { id: "default-6", emoji: "👨‍💼" },
-    { id: "default-7", emoji: "👩‍💼" },
-    { id: "default-8", emoji: "👨‍🔬" },
-    { id: "default-9", emoji: "👩‍🔬" },
-    { id: "default-10", emoji: "🤵" },
-    { id: "default-11", emoji: "👰" },
-    { id: "default-12", emoji: "🎭" },
+    { id: "default-1", image: "/avatars/avatar-1.png" },
+    { id: "default-2", image: "/avatars/avatar-2.png" },
+    { id: "default-3", image: "/avatars/avatar-3.png" },
+    { id: "default-4", image: "/avatars/avatar-4.png" },
   ];
 
-  // Check if widgetAvatar is a custom image (URL or data URL) or a default emoji
+  // Check if widgetAvatar is a custom image (URL or data URL) or a default avatar
   const isCustomAvatarImage = widgetAvatar && !widgetAvatar.startsWith("default-") && (widgetAvatar.startsWith("http") || widgetAvatar.startsWith("data:"));
   const selectedAvatar = avatarOptions.find(a => a.id === widgetAvatar) || avatarOptions[0];
+  const isDefaultAvatarImage = selectedAvatar && selectedAvatar.image;
   
   // Check if widgetChatbotColor is a custom gradient
   const isCustomGradient = widgetChatbotColor && widgetChatbotColor.startsWith("linear-gradient");
@@ -857,15 +1059,19 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
 
   // 💬 Handle copy message
   const handleCopyMessage = useCallback(async (content: string, messageId: string) => {
-    await copyToClipboard(content);
-    setCopiedMessages(prev => ({ ...prev, [messageId]: true }));
-    setTimeout(() => {
-      setCopiedMessages(prev => {
-        const newState = { ...prev };
-        delete newState[messageId];
-        return newState;
-      });
-    }, 2000);
+    try {
+      await copyToClipboard(content);
+      setCopiedMessages(prev => ({ ...prev, [messageId]: true }));
+      setTimeout(() => {
+        setCopiedMessages(prev => {
+          const newState = { ...prev };
+          delete newState[messageId];
+          return newState;
+        });
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to copy message:', error);
+    }
   }, []);
 
   // 💬 Handle feedback (like/dislike)
@@ -901,6 +1107,18 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                 width={30}
                 height={30}
               />
+            ) : isDefaultAvatarImage ? (
+              <img
+                className="chatbot-avatar-image"
+                src={selectedAvatar.image}
+                alt="Avatar"
+                width={30}
+                height={30}
+                style={{
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                }}
+              />
             ) : (
               <div
                 style={{
@@ -915,7 +1133,7 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                   fontSize: '14px',
                 }}
               >
-                {selectedAvatar.emoji}
+                🤖
               </div>
             )}
           </div>
@@ -929,20 +1147,84 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
             } : undefined}
           >
             {isBot ? (
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw]}
-                components={{
-                  p: ({ children }) => <p>{children}</p>,
-                  a: ({ href, children }) => (
-                    <a href={href} target="_blank" rel="noopener noreferrer">
-                      {children}
-                    </a>
-                  ),
-                }}
+              <div
+                className="text-sm leading-relaxed prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground prose-blockquote:text-muted-foreground prose-blockquote:border-l-muted-foreground"
+                role="text"
+                aria-label="Assistant message content"
               >
-                {safeStringConversion(message.content)}
-              </ReactMarkdown>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                  components={{
+                    // 🎨 Enhanced code blocks with syntax highlighting
+                    code: ({ node, className, children, ...props }: any) => {
+                      const isInline = !className?.includes('language-');
+                      if (isInline) {
+                        return (
+                          <code className="bg-muted px-1 py-0.5 rounded text-sm font-mono" {...props}>
+                            {children}
+                          </code>
+                        );
+                      }
+
+                      // Extract language from className (e.g., "language-javascript" -> "javascript")
+                      const match = /language-(\w+)/.exec(className || '');
+                      const language = match ? match[1] : 'text';
+
+                      return (
+                        <div className="my-4">
+                          <SyntaxHighlighter
+                            language={language}
+                            style={theme === 'dark' ? oneDark : oneLight}
+                            customStyle={{
+                              margin: 0,
+                              borderRadius: '0.5rem',
+                              fontSize: '0.875rem',
+                              lineHeight: '1.5',
+                            }}
+                            showLineNumbers={false}
+                            wrapLines={true}
+                            wrapLongLines={true}
+                          >
+                            {safeStringConversion(children).replace(/\n$/, '')}
+                          </SyntaxHighlighter>
+                        </div>
+                      );
+                    },
+                    // Custom styling for links
+                    a: ({ href, children, ...props }) => (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                        {...props}
+                      >
+                        {children}
+                      </a>
+                    ),
+                    // Custom styling for lists
+                    ul: ({ children, ...props }) => (
+                      <ul className="list-disc list-inside space-y-1" {...props}>
+                        {children}
+                      </ul>
+                    ),
+                    ol: ({ children, ...props }) => (
+                      <ol className="list-decimal list-inside space-y-1" {...props}>
+                        {children}
+                      </ol>
+                    ),
+                    // Custom styling for blockquotes
+                    blockquote: ({ children, ...props }) => (
+                      <blockquote className="border-l-4 border-muted-foreground pl-4 italic text-muted-foreground" {...props}>
+                        {children}
+                      </blockquote>
+                    ),
+                  }}
+                >
+                  {safeStringConversion(message.content)}
+                </ReactMarkdown>
+              </div>
             ) : (
               <p>{message.content}</p>
             )}
@@ -954,13 +1236,17 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                 <button
                   type="button"
                   className="chatbot-message-action-button"
-                  onClick={() => handleCopyMessage(message.content, message.messageId || `msg-${index}`)}
+                  onClick={() => {
+                    const msgId = message.messageId || `msg-${index}`;
+                    handleCopyMessage(message.content, msgId);
+                  }}
                   aria-label="Copy message"
                   title="Copy message"
                 >
-                  <Copy style={{ width: '14px', height: '14px' }} />
-                  {copiedMessages[message.messageId || `msg-${index}`] && (
-                    <span className="chatbot-message-action-text">Copied!</span>
+                  {copiedMessages[message.messageId || `msg-${index}`] ? (
+                    <Check style={{ width: '14px', height: '14px' }} />
+                  ) : (
+                    <Copy style={{ width: '14px', height: '14px' }} />
                   )}
                 </button>
                 <button
@@ -1040,6 +1326,11 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
             borderRadius: `${widgetTriggerBorderRadius}px`,
             backgroundColor: 'transparent',
             backgroundImage: 'none',
+            background: 'transparent',
+            border: 'none',
+            borderColor: 'transparent',
+            outline: 'none',
+            boxShadow: 'none',
           } as React.CSSProperties}
           data-testid="button-widget-launcher"
           aria-label={isOpen ? "Close AI Assistant" : "Open AI Assistant"}
@@ -1059,9 +1350,20 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                 borderRadius: `${widgetTriggerBorderRadius}px`,
               }}
             />
+          ) : isDefaultAvatarImage ? (
+            <img
+              src={selectedAvatar.image}
+              alt="Avatar"
+              width={widgetAvatarSize}
+              height={widgetAvatarSize}
+              style={{
+                borderRadius: `${widgetTriggerBorderRadius}px`,
+                objectFit: 'cover',
+              }}
+            />
           ) : (
             <span style={{ fontSize: `${Math.min(widgetAvatarSize * 0.6, 32)}px` }}>
-              {selectedAvatar.emoji}
+              🤖
             </span>
           )}
         </button>
@@ -1158,7 +1460,7 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
         </div>
 
         {/* Messages Area */}
-        <div className="chatbot-messages" id="chatMessages">
+        <div className="chatbot-messages" id="chatMessages" ref={chatMessagesRef}>
           {/* Welcome Message */}
           <div className="chatbot-welcome">
             <div className="chatbot-welcome-avatar">
@@ -1169,6 +1471,18 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                   alt={widgetTitle}
                   width={80}
                   height={80}
+                />
+              ) : isDefaultAvatarImage ? (
+                <img
+                  className="chatbot-avatar"
+                  src={selectedAvatar.image}
+                  alt={widgetTitle}
+                  width={80}
+                  height={80}
+                  style={{
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                  }}
                 />
               ) : (
                 <div
@@ -1184,7 +1498,7 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                     fontSize: '40px',
                   }}
                 >
-                  {selectedAvatar.emoji}
+                  🤖
                 </div>
               )}
             </div>
@@ -1197,7 +1511,11 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
           </div>
 
           {/* Dynamic Messages Container */}
-          <div className="chatbot-conversation" id="chatMessagesContainer">
+          <div 
+            ref={messagesContainerRef}
+            className="chatbot-conversation" 
+            id="chatMessagesContainer"
+          >
             {messages.map((message, index) => renderMessage(message, index))}
 
             {/* Typing Indicator */}
@@ -1211,6 +1529,18 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                       alt="Avatar"
                       width={30}
                       height={30}
+                    />
+                  ) : isDefaultAvatarImage ? (
+                    <img
+                      className="chatbot-avatar-image"
+                      src={selectedAvatar.image}
+                      alt="Avatar"
+                      width={30}
+                      height={30}
+                      style={{
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                      }}
                     />
                   ) : (
                     <div
@@ -1226,7 +1556,7 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                         fontSize: '14px',
                       }}
                     >
-                      {selectedAvatar.emoji}
+                      🤖
                     </div>
                   )}
                 </div>
@@ -1252,6 +1582,18 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                       width={30}
                       height={30}
                     />
+                  ) : isDefaultAvatarImage ? (
+                    <img
+                      className="chatbot-avatar-image"
+                      src={selectedAvatar.image}
+                      alt="Avatar"
+                      width={30}
+                      height={30}
+                      style={{
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                      }}
+                    />
                   ) : (
                     <div
                       style={{
@@ -1266,13 +1608,90 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                         fontSize: '14px',
                       }}
                     >
-                      {selectedAvatar.emoji}
+                      🤖
                     </div>
                   )}
                 </div>
                 <div className="chatbot-message__content">
                   <div className="chatbot-message-text">
-                    <p>{streamingContent}</p>
+                    <div
+                      className="text-sm leading-relaxed prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground prose-blockquote:text-muted-foreground prose-blockquote:border-l-muted-foreground"
+                      role="text"
+                      aria-label="Assistant message content"
+                    >
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeRaw]}
+                        components={{
+                          // 🎨 Enhanced code blocks with syntax highlighting
+                          code: ({ node, className, children, ...props }: any) => {
+                            const isInline = !className?.includes('language-');
+                            if (isInline) {
+                              return (
+                                <code className="bg-muted px-1 py-0.5 rounded text-sm font-mono" {...props}>
+                                  {children}
+                                </code>
+                              );
+                            }
+
+                            // Extract language from className (e.g., "language-javascript" -> "javascript")
+                            const match = /language-(\w+)/.exec(className || '');
+                            const language = match ? match[1] : 'text';
+
+                            return (
+                              <div className="my-4">
+                                <SyntaxHighlighter
+                                  language={language}
+                                  style={theme === 'dark' ? oneDark : oneLight}
+                                  customStyle={{
+                                    margin: 0,
+                                    borderRadius: '0.5rem',
+                                    fontSize: '0.875rem',
+                                    lineHeight: '1.5',
+                                  }}
+                                  showLineNumbers={false}
+                                  wrapLines={true}
+                                  wrapLongLines={true}
+                                >
+                                  {safeStringConversion(children).replace(/\n$/, '')}
+                                </SyntaxHighlighter>
+                              </div>
+                            );
+                          },
+                          // Custom styling for links
+                          a: ({ href, children, ...props }) => (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                              {...props}
+                            >
+                              {children}
+                            </a>
+                          ),
+                          // Custom styling for lists
+                          ul: ({ children, ...props }) => (
+                            <ul className="list-disc list-inside space-y-1" {...props}>
+                              {children}
+                            </ul>
+                          ),
+                          ol: ({ children, ...props }) => (
+                            <ol className="list-decimal list-inside space-y-1" {...props}>
+                              {children}
+                            </ol>
+                          ),
+                          // Custom styling for blockquotes
+                          blockquote: ({ children, ...props }) => (
+                            <blockquote className="border-l-4 border-muted-foreground pl-4 italic text-muted-foreground" {...props}>
+                              {children}
+                            </blockquote>
+                          ),
+                        }}
+                      >
+                        {safeStringConversion(streamingContent)}
+                      </ReactMarkdown>
+                    </div>
                   </div>
                 </div>
               </div>

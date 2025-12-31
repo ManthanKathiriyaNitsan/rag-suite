@@ -161,15 +161,16 @@
   background: transparent !important;
   background-color: transparent !important;
   border: none !important;
+  border-color: transparent !important;
   /* border-radius is set via inline styles from widgetTriggerBorderRadius - default 50% */
   bottom: var(--widget-bottom-size);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  box-shadow: none !important;
   cursor: pointer;
   display: grid;
   justify-content: center;
   overflow: hidden;
   height: 60px;
-  padding: 0;
+  padding: 0 !important;
   place-items: center;
   align-content: center;
   position: fixed;
@@ -177,17 +178,67 @@
   transition: none !important;
   width: 60px;
   z-index: 99999;
+  outline: none !important;
+}
+
+/* Light mode - Remove ALL edges, borders, and shadows */
+:root:not(.dark) .chatbot-trigger,
+.chatbot-aside:not(.dark) .chatbot-trigger {
+  border: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.chatbot-trigger::before,
+.chatbot-trigger::after {
+  display: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 .chatbot-trigger:hover,
 .chatbot-trigger:active,
-.chatbot-trigger:focus {
+.chatbot-trigger:focus,
+.chatbot-trigger:focus-visible,
+.chatbot-trigger:focus-within,
+.chatbot-trigger:visited {
   background: transparent !important;
   background-color: transparent !important;
   border: none !important;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
   transform: none !important;
   opacity: 1 !important;
+}
+
+/* Light mode - Remove ALL edges on hover, active, focus, click */
+:root:not(.dark) .chatbot-trigger:hover,
+:root:not(.dark) .chatbot-trigger:active,
+:root:not(.dark) .chatbot-trigger:focus,
+:root:not(.dark) .chatbot-trigger:focus-visible,
+:root:not(.dark) .chatbot-trigger:focus-within,
+:root:not(.dark) .chatbot-trigger:visited,
+.chatbot-aside:not(.dark) .chatbot-trigger:hover,
+.chatbot-aside:not(.dark) .chatbot-trigger:active,
+.chatbot-aside:not(.dark) .chatbot-trigger:focus,
+.chatbot-aside:not(.dark) .chatbot-trigger:focus-visible,
+.chatbot-aside:not(.dark) .chatbot-trigger:focus-within,
+.chatbot-aside:not(.dark) .chatbot-trigger:visited,
+button.chatbot-trigger:active,
+button.chatbot-trigger:focus,
+button.chatbot-trigger:hover,
+[type="button"].chatbot-trigger:active,
+[type="button"].chatbot-trigger:focus,
+[type="button"].chatbot-trigger:hover {
+  border: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 .chatbot-trigger img {
@@ -197,6 +248,21 @@
   object-fit: cover;
   transition: opacity 0.3s ease;
   width: var(--avatar-size);
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Light mode - Remove ALL edges from avatar image */
+:root:not(.dark) .chatbot-trigger img,
+.chatbot-aside:not(.dark) .chatbot-trigger img {
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Chatbot Window */
@@ -269,10 +335,28 @@
   cursor: pointer;
   line-height: 1;
   padding: 0;
-  transition: none !important;
+  transition: color 0.2s ease !important;
   opacity: 1 !important;
   transform: none !important;
   box-shadow: none !important;
+}
+
+/* Add hover color to delete and close buttons - black on hover */
+.chatbot-delete:hover,
+.chatbot-close:hover,
+.chatbot-delete:hover *,
+.chatbot-close:hover * {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  color: #000 !important;
+  opacity: 1 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  scale: 1 !important;
+  cursor: pointer !important;
+  transition: color 0.2s ease !important;
 }
 
 .chatbot-delete:disabled {
@@ -288,6 +372,15 @@
   padding: 15px;
   scrollbar-color: #c1c1c1 #f1f1f1;
   scrollbar-width: thin;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scroll-padding-bottom: 20px;
+}
+
+/* Prevent smooth scrolling during initial restoration */
+.chatbot-messages[data-restoring-scroll="true"] {
+  scroll-behavior: auto !important;
 }
 
 .chatbot-messages::-webkit-scrollbar {
@@ -321,7 +414,8 @@
 }
 
 .chatbot-welcome-avatar {
-  border: 3px solid var(--chatbot-color);
+  border: none !important;
+  background-color: transparent !important;
   border-radius: 50%;
   height: 80px;
   margin: 0 auto 20px;
@@ -333,6 +427,8 @@
   height: 100%;
   object-fit: cover;
   width: 100%;
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 .chatbot-welcome-title {
@@ -365,7 +461,7 @@
 }
 
 .chatbot-message__avatar {
-  background-color: var(--chatbot-color);
+  background-color: transparent !important;
   border-radius: 50%;
   flex-shrink: 0;
   height: 30px;
@@ -380,6 +476,8 @@
   height: 100%;
   object-fit: cover;
   width: 100%;
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 .chatbot-message__content {
@@ -396,8 +494,8 @@
 
 .chatbot-message-text {
   border-radius: 12px;
-  font-size: 14px;
-  line-height: 1.4;
+  font-size: 14px !important;
+  line-height: 24px;
   overflow-x: auto;
   padding: 10px 15px;
   position: relative;
@@ -426,19 +524,35 @@
 .bot-message .chatbot-message-text {
   /* Rounded rectangular bubble with less rounded bottom-left corner (near avatar) */
   border-radius: 18px 18px 18px 18px;
-  border-top-left-radius: 6px;
+  border-top-left-radius: 0px;
+  /* Remove white background forcing - use natural card background */
+  color: #ffffff !important;
+}
+
+/* Ensure all text inside bot messages is white */
+.bot-message .chatbot-message-text * {
+  color: #ffffff !important;
 }
 
 .user-message .chatbot-message-text {
   /* Rounded rectangular bubble with less rounded bottom-right corner */
   border-radius: 18px 18px 18px 18px;
-  border-top-right-radius: 6px;
+  border-top-right-radius: 0px;
   color: #fff;
+  /* User messages will use same color as chatbot header (--chatbot-color) */
+  /* Use background-color (not background shorthand) so background-image can work for gradients */
+  background-color: var(--chatbot-color) !important;
+}
+
+/* Allow gradients to work - don't override background-image when it's set inline */
+.user-message .chatbot-message-text[style*="background-image"] {
+  /* Don't override background-image - let inline style work for gradients */
+  background-color: transparent !important;
 }
 
 .chatbot-message-time {
   color: #707070;
-  font-size: 11px;
+  font-size: 11px !important;
   text-align: right;
   display: none;
 }
@@ -471,6 +585,7 @@
   background: transparent !important;
   background-color: transparent !important;
   border: none !important;
+  border-color: transparent !important;
   color: #707070 !important;
   cursor: pointer;
   display: flex;
@@ -484,13 +599,110 @@
   font-size: 12px;
 }
 
+/* Light mode - Remove ALL hover effects completely */
+:root:not(.dark) .chatbot-message-action-button:hover,
+:root:not(.dark) .chatbot-message-action-button:active,
+:root:not(.dark) .chatbot-message-action-button:focus,
+:root:not(.dark) .chatbot-message-action-button:focus-visible,
+:root:not(.dark) .chatbot-message-action-button:focus-within,
+.chatbot-aside:not(.dark) .chatbot-message-action-button:hover,
+.chatbot-aside:not(.dark) .chatbot-message-action-button:active,
+.chatbot-aside:not(.dark) .chatbot-message-action-button:focus,
+button.chatbot-message-action-button:hover,
+button.chatbot-message-action-button:active,
+button.chatbot-message-action-button:focus,
+[type="button"].chatbot-message-action-button:hover,
+[type="button"].chatbot-message-action-button:active,
+[type="button"].chatbot-message-action-button:focus {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  color: #707070 !important;
+  opacity: 1 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  scale: 1 !important;
+  outline: none !important;
+  cursor: pointer !important;
+}
+
+/* General hover rules (for dark mode compatibility) */
+.chatbot-message-action-button:hover,
+.chatbot-message-action-button:active,
+.chatbot-message-action-button:focus,
+.chatbot-message-action-button:focus-visible,
+.chatbot-message-action-button:focus-within {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  color: #707070 !important;
+  opacity: 1 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  scale: 1 !important;
+  outline: none !important;
+  cursor: pointer !important;
+}
+
 .chatbot-message-action-button.active {
   color: var(--chatbot-color, #667eea) !important;
+}
+
+/* Light mode - Remove ALL hover effects from active buttons */
+:root:not(.dark) .chatbot-message-action-button.active:hover,
+:root:not(.dark) .chatbot-message-action-button.active:active,
+:root:not(.dark) .chatbot-message-action-button.active:focus,
+.chatbot-aside:not(.dark) .chatbot-message-action-button.active:hover,
+.chatbot-aside:not(.dark) .chatbot-message-action-button.active:active,
+.chatbot-aside:not(.dark) .chatbot-message-action-button.active:focus,
+button.chatbot-message-action-button.active:hover,
+button.chatbot-message-action-button.active:active,
+button.chatbot-message-action-button.active:focus,
+[type="button"].chatbot-message-action-button.active:hover,
+[type="button"].chatbot-message-action-button.active:active,
+[type="button"].chatbot-message-action-button.active:focus {
+  color: var(--chatbot-color, #667eea) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  opacity: 1 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  scale: 1 !important;
+  outline: none !important;
+}
+
+/* General active button hover rules */
+.chatbot-message-action-button.active:hover,
+.chatbot-message-action-button.active:active,
+.chatbot-message-action-button.active:focus {
+  color: var(--chatbot-color, #667eea) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  opacity: 1 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  scale: 1 !important;
+  outline: none !important;
 }
 
 .chatbot-message-action-text {
   font-size: 11px;
   color: #707070;
+  display: inline-block;
+  margin-left: 4px;
+  white-space: nowrap;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 /* Streaming Indicator for bot messages */
@@ -509,10 +721,16 @@
 .chatbot-message-text > p {
   margin-bottom: 0;
   margin-top: 0;
+  font-size: 14px !important;
 }
 
 .chatbot-message-text > p:not(:last-child) {
   margin-bottom: 10px;
+}
+
+/* Force all direct children and text elements to 14px to override global 16px */
+.chatbot-message-text > * {
+  font-size: 14px !important;
 }
 
 .chatbot-aside--left .chatbot-trigger {
@@ -631,7 +849,7 @@
   color: #666;
   padding: 8px 10px;
   text-align: center;
-  font-size: 12px;
+  font-size: 12px !important;
   line-height: 1;
   margin-bottom: 0;
 }
@@ -659,10 +877,18 @@
   cursor: pointer;
   line-height: 1;
   padding: 8px;
-  transition: none !important;
+  transition: color 0.2s ease !important;
   opacity: 1 !important;
   transform: none !important;
   box-shadow: none !important;
+}
+
+/* Add hover color to voice and send buttons */
+.chatbot-voice-button:hover,
+.chatbot-send-button:hover,
+.chatbot-voice-button:hover *,
+.chatbot-send-button:hover * {
+  color: var(--chatbot-color) !important;
 }
 
 .chatbot-voice-button.disabled,
@@ -707,7 +933,7 @@
   background: #f1f1f1;
   color: #1a1a1a;
   border-radius: 10px;
-  bottom: calc(var(--widget-bottom-size) + 70px);
+  bottom: calc(var(--widget-bottom-size) + var(--avatar-size, 60px) + 12px);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   max-width: 300px;
   opacity: 0;
@@ -760,9 +986,35 @@
     outline: none !important;
   }
 
+  /* Add hover color to delete and close buttons in dark mode - black on hover */
+  .chatbot-delete:hover,
+  .chatbot-close:hover,
+  .chatbot-delete:hover *,
+  .chatbot-close:hover * {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    color: #363636 !important;
+    opacity: 1 !important;
+    transform: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+    scale: 1 !important;
+    cursor: pointer !important;
+    transition: color 0.2s ease !important;
+  }
+
   .chatbot-voice-button,
   .chatbot-send-button {
     color: #ccc !important;
+  }
+
+  /* Add hover color to voice and send buttons in dark mode */
+  .chatbot-voice-button:hover,
+  .chatbot-send-button:hover,
+  .chatbot-voice-button:hover *,
+  .chatbot-send-button:hover * {
+    color: var(--chatbot-color) !important;
   }
 
   .chatbot-messages {
@@ -841,6 +1093,24 @@
     color: #999 !important;
   }
 
+  .dark .chatbot-message-action-button:hover,
+  .dark .chatbot-message-action-button:active,
+  .dark .chatbot-message-action-button:focus,
+  .dark .chatbot-message-action-button:focus-visible,
+  .dark .chatbot-message-action-button:focus-within {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    color: #999 !important;
+    opacity: 1 !important;
+    transform: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+    scale: 1 !important;
+    outline: none !important;
+    cursor: pointer !important;
+  }
+
   .chatbot-message-action-text {
     color: #999;
   }
@@ -859,5 +1129,19 @@
   .chatbot-aside hr {
     border-top-color: #444;
   }
+}
+
+/* Light mode overrides - removed white background forcing */
+/* Bot messages will use natural card background */
+
+:root:not(.dark) .bot-message .chatbot-message-text *,
+:not(.dark) .bot-message .chatbot-message-text * {
+  background-color: transparent !important;
+  color: #ffffff !important;
+}
+
+:root:not(.dark) .chatbot-message-text a,
+:not(.dark) .chatbot-message-text a {
+  color: hsl(var(--primary)) !important;
 }
 

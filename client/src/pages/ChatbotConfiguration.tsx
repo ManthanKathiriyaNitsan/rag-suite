@@ -414,10 +414,10 @@ export default function ChatbotConfiguration() {
   
   // Avatar options (you can add more or use image URLs)
   const avatarOptions = [
-    { id: "default-1", name: "Default 1", emoji: "🤖" },
-    { id: "default-2", name: "Default 2", emoji: "👤" },
-    { id: "default-3", name: "Default 3", emoji: "👨" },
-    { id: "default-4", name: "Default 4", emoji: "👩" }
+    { id: "default-1", name: "Default 1", image: "/avatars/avatar-1.png" },
+    { id: "default-2", name: "Default 2", image: "/avatars/avatar-2.png" },
+    { id: "default-3", name: "Default 3", image: "/avatars/avatar-3.png" },
+    { id: "default-4", name: "Default 4", image: "/avatars/avatar-4.png" }
   ];
   
   // Chatbot color options
@@ -925,7 +925,7 @@ chatbot.init();`);
   // Handle delete conversation
   const handleDeleteConversation = useCallback(async (sessionId: string) => {
     try {
-      await chatAPI.deleteSession(sessionId);
+      await chatAPI.deleteSession(sessionId, 'page');  // Pass 'page' for hard delete (permanent)
       toast({
         title: "Deleted",
         description: "Conversation deleted successfully.",
@@ -956,7 +956,7 @@ chatbot.init();`);
     
     try {
       const deletePromises = Array.from(selectedSessionIds).map(sessionId =>
-        chatAPI.deleteSession(sessionId)
+        chatAPI.deleteSession(sessionId, 'page')  // Pass 'page' for hard delete (permanent)
       );
       await Promise.all(deletePromises);
       toast({
@@ -1477,7 +1477,8 @@ chatbot.init();`);
                                 "p-3 mb-2 cursor-pointer transition-all border hover-elevate",
                                 selectedSessionId === conversation.sessionId
                                   ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
-                                  : "bg-background/30 backdrop-blur-sm border-border/50 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
+                                  : "bg-background/30 backdrop-blur-sm border-border/50 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]",
+                                selectedSessionIds.has(conversation.sessionId) && "checkbox-checked"
                               )}
                               style={{ borderRadius: 'var(--component-cardRadius, 2px)' }}
                               onClick={() => handleSelectConversation(conversation.sessionId)}
@@ -2424,7 +2425,15 @@ chatbot.init();`);
                                             e.preventDefault();
                                           }}
                                         >
-                                        <span className="text-2xl">{avatar.emoji}</span>
+                                        {avatar.image ? (
+                                          <img
+                                            src={avatar.image}
+                                            alt={avatar.name || "Avatar"}
+                                            className="w-full h-full object-cover rounded-full"
+                                          />
+                                        ) : (
+                                          <span className="text-2xl">{avatar.emoji || "🤖"}</span>
+                                        )}
                                       </Button>
                                     ))}
                                     {/* Show uploaded custom avatar as a selectable option */}
@@ -2767,7 +2776,7 @@ chatbot.init();`);
                                           // Don't update BrandingContext - only update on save
                                         }}
                                         min={15}
-                                        max={200}
+                                        max={100}
                                         step={1}
                                       />
                                     </div>

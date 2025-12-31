@@ -32,19 +32,24 @@ function formatToastMessage(title?: string, description?: string): string {
   return title || description || "";
 }
 
+// Common toast options with consistent z-index
+const getToastOptions = (type: "default" | "success" | "error" | "warning" | "info" = "default") => ({
+  type,
+  position: "bottom-right" as const,
+  autoClose: 5000,
+  hideProgressBar: false,
+  closeOnClick: false,
+  pauseOnHover: true,
+  draggable: true,
+  progress: undefined,
+  transition: Bounce,
+  style: { zIndex: 100001 }, // Ensure toasts appear above widget (widget z-index: 99999)
+});
+
 function toast(options: ToastOptions | string) {
   // Handle string-only usage (backward compatibility)
   if (typeof options === "string") {
-    return toastifyToast(options, {
-      position: "bottom-right",
-      autoClose: 5000,
-      hideProgressBar: false,
-      closeOnClick: false,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      transition: Bounce,
-    });
+    return toastifyToast(options, getToastOptions("default"));
   }
 
   const { title, description, variant } = options;
@@ -54,75 +59,29 @@ function toast(options: ToastOptions | string) {
   const finalTitle = (type === "success") ? "Record saved" : title;
   const message = formatToastMessage(finalTitle, description);
 
-  return toastifyToast(message, {
-    type,
-    position: "bottom-right",
-    autoClose: 5000,
-    hideProgressBar: false,
-    closeOnClick: false,
-    pauseOnHover: true,
-    draggable: true,
-    progress: undefined,
-    transition: Bounce,
-  });
+  return toastifyToast(message, getToastOptions(type));
 }
 
 // Export toast functions for direct use
 export const toastSuccess = (message: string, options?: { title?: string }) => {
   // Always use "Record saved" as title for success toasts
   const fullMessage = `Record saved\n${message}`;
-  return toastifyToast(fullMessage, {
-    type: "success",
-    position: "bottom-right",
-    autoClose: 5000,
-    hideProgressBar: false,
-    closeOnClick: false,
-    pauseOnHover: true,
-    draggable: true,
-    transition: Bounce,
-  });
+  return toastifyToast(fullMessage, getToastOptions("success"));
 };
 
 export const toastError = (message: string, options?: { title?: string }) => {
   const fullMessage = options?.title ? `${options.title}\n${message}` : message;
-  return toastifyToast(fullMessage, {
-    type: "error",
-    position: "bottom-right",
-    autoClose: 5000,
-    hideProgressBar: false,
-    closeOnClick: false,
-    pauseOnHover: true,
-    draggable: true,
-    transition: Bounce,
-  });
+  return toastifyToast(fullMessage, getToastOptions("error"));
 };
 
 export const toastWarning = (message: string, options?: { title?: string }) => {
   const fullMessage = options?.title ? `${options.title}\n${message}` : message;
-  return toastifyToast(fullMessage, {
-    type: "warning",
-    position: "bottom-right",
-    autoClose: 5000,
-    hideProgressBar: false,
-    closeOnClick: false,
-    pauseOnHover: true,
-    draggable: true,
-    transition: Bounce,
-  });
+  return toastifyToast(fullMessage, getToastOptions("warning"));
 };
 
 export const toastInfo = (message: string, options?: { title?: string }) => {
   const fullMessage = options?.title ? `${options.title}\n${message}` : message;
-  return toastifyToast(fullMessage, {
-    type: "info",
-    position: "bottom-right",
-    autoClose: 5000,
-    hideProgressBar: false,
-    closeOnClick: false,
-    pauseOnHover: true,
-    draggable: true,
-    transition: Bounce,
-  });
+  return toastifyToast(fullMessage, getToastOptions("info"));
 };
 
 function useToast() {

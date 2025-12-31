@@ -104,6 +104,8 @@ import AppSidebar from "@/components/layout/AppSidebar";
 
 import { EmbeddableWidget } from "@/components/common/EmbeddableWidget";
 
+import { useChatbotActivation } from "@/hooks/useChatbotActivation";
+
 import CommandPalette from "@/components/common/CommandPalette";
 
 import NotificationInbox from "@/components/common/NotificationInbox";
@@ -209,6 +211,9 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
 
   const { theme } = useTheme();
+
+  // Get chatbot activation status - only show widget when active
+  const { isActive: isChatbotActive } = useChatbotActivation();
 
   const mainRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -616,17 +621,20 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       
 
-      <EmbeddableWidget
+      {/* Only show chatbot widget when chatbot is active */}
+      {isChatbotActive && (
+        <EmbeddableWidget
 
-        isOpen={widgetOpen}
+          isOpen={widgetOpen}
 
-        onToggle={() => setWidgetOpen(!widgetOpen)}
+          onToggle={() => setWidgetOpen(!widgetOpen)}
 
-        title="RAGSuite Assistant"
+          title="RAGSuite Assistant"
 
-        showPoweredBy={true}
+          showPoweredBy={true}
 
-      />
+        />
+      )}
 
       
 

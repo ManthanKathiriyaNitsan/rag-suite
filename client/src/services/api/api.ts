@@ -167,6 +167,255 @@ export const searchAPI = {
       throw error;
     }
   },
+  
+  // Get response configuration
+  getResponseConfig: async (): Promise<string> => {
+    console.log('🔍 Search API - Getting response config');
+    try {
+      const response = await apiClient.get<{ success: boolean; data: { response_type: string }; message: string }>('/search/response-config');
+      console.log('✅ Response config retrieved successfully:', response.data);
+      // Server returns: { success: true, data: { response_type: "long" }, message: "..." }
+      // Extract response_type from nested data structure
+      const responseType = response.data?.data?.response_type || 'long';
+      return responseType;
+    } catch (error) {
+      console.error('❌ Get response config failed:', error);
+      throw error;
+    }
+  },
+  
+  // Save response configuration
+  saveResponseConfig: async (responseType: "long" | "short"): Promise<void> => {
+    console.log('🔍 Search API - Saving response config:', responseType);
+    try {
+      await apiClient.post('/search/response-config', {
+        response_type: responseType,
+      });
+      console.log('✅ Response config saved successfully');
+    } catch (error) {
+      console.error('❌ Save response config failed:', error);
+      throw error;
+    }
+  },
+  
+  // Get search models configuration
+  getSearchModels: async (): Promise<ConfigModelsData> => {
+    console.log('🔍 Search API - Getting search models');
+    try {
+      const response = await apiClient.get<ConfigModelsResponse>('/search/models/');
+      console.log('✅ Search models retrieved successfully:', response.data);
+      
+      // Parse data if it's a string (JSON stringified)
+      let data: ConfigModelsData;
+      if (typeof response.data.data === 'string') {
+        try {
+          data = JSON.parse(response.data.data);
+        } catch {
+          // If parsing fails, return default structure
+          data = {
+            model_provider: '',
+            chat_model: '',
+            embedding_model: '',
+            api_key: '',
+            chat_temperature: null,
+            chat_top_p: null,
+            chat_best_of: null,
+            chat_frequency_penalty: null,
+            chat_presence_penalty: null,
+            chat_top_k: null,
+            chat_similarity_threshold: null,
+            chat_max_tokens: null,
+            chat_use_reranker: null,
+          };
+        }
+      } else {
+        data = response.data.data as ConfigModelsData;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('❌ Get search models failed:', error);
+      throw error;
+    }
+  },
+  
+  // Save search models configuration
+  saveSearchModels: async (config: ConfigModelsRequest): Promise<ConfigModelsRequest> => {
+    console.log('🔍 Search API - Saving search models:', config);
+    try {
+      const response = await apiClient.post<ConfigModelsResponse>('/search/models/', config);
+      console.log('✅ Search models saved successfully:', response.data);
+      return config; // Return the request data since backend might not return the full object
+    } catch (error) {
+      console.error('❌ Save search models failed:', error);
+      throw error;
+    }
+  },
+  
+  // Get search citation settings
+  getSearchCitation: async (): Promise<{
+    citation_style: string;
+    layout: string;
+    numbering_style: string;
+    color_scheme: string;
+    show_snippets: boolean;
+    show_urls: boolean;
+    show_source_count: boolean;
+    enable_hover_effects: boolean;
+    max_snippet_length: number;
+  }> => {
+    console.log('🔍 Search API - Getting search citation settings');
+    try {
+      const response = await apiClient.get('/search/citation/');
+      console.log('✅ Search citation settings retrieved successfully');
+      console.log('🔍 Full response:', response);
+      console.log('🔍 Response.data:', response.data);
+      console.log('🔍 Response.data.data:', response.data?.data);
+      console.log('🔍 Response.data.data type:', typeof response.data?.data);
+      
+      // Handle different response structures
+      let rawData: any = null;
+      
+      // Check if response.data.data exists (nested structure)
+      if (response.data?.data !== undefined) {
+        rawData = response.data.data;
+        console.log('🔍 Using nested response.data.data');
+      } 
+      // Check if response.data is the data directly
+      else if (response.data && typeof response.data === 'object' && !response.data.success) {
+        rawData = response.data;
+        console.log('🔍 Using response.data directly');
+      }
+      // Check if response.data is a string
+      else if (typeof response.data === 'string') {
+        rawData = response.data;
+        console.log('🔍 Response.data is a string');
+      }
+      
+      console.log('🔍 Raw data to parse:', rawData);
+      console.log('🔍 Raw data type:', typeof rawData);
+      
+      // Parse data if it's a string (JSON stringified)
+      let data: any;
+      if (typeof rawData === 'string') {
+        try {
+          const parsed = JSON.parse(rawData);
+          console.log('🔍 Parsed citation data from string:', parsed);
+          data = parsed;
+        } catch (parseError) {
+          console.error('❌ Failed to parse citation data as JSON:', parseError);
+          console.log('🔍 Raw data string that failed to parse:', rawData);
+          // If parsing fails, return default structure
+          data = {
+            citation_style: 'detailed',
+            layout: 'vertical',
+            numbering_style: 'brackets',
+            color_scheme: 'default',
+            show_snippets: true,
+            show_urls: true,
+            show_source_count: true,
+            enable_hover_effects: true,
+            max_snippet_length: 150,
+          };
+        }
+      } else if (rawData && typeof rawData === 'object') {
+        // If data is already an object, use it directly
+        console.log('🔍 Data is already an object, using directly:', rawData);
+        data = rawData;
+      } else {
+        // Fallback to defaults if data structure is unexpected
+        console.warn('⚠️ Unexpected data structure, using defaults. Raw data:', rawData);
+        data = {
+          citation_style: 'detailed',
+          layout: 'vertical',
+          numbering_style: 'brackets',
+          color_scheme: 'default',
+          show_snippets: true,
+          show_urls: true,
+          show_source_count: true,
+          enable_hover_effects: true,
+          max_snippet_length: 150,
+        };
+      }
+      
+      // Ensure all required fields are present with defaults
+      const finalData = {
+        citation_style: data.citation_style || 'detailed',
+        layout: data.layout || 'vertical',
+        numbering_style: data.numbering_style || 'brackets',
+        color_scheme: data.color_scheme || 'default',
+        show_snippets: data.show_snippets !== undefined ? data.show_snippets : true,
+        show_urls: data.show_urls !== undefined ? data.show_urls : true,
+        show_source_count: data.show_source_count !== undefined ? data.show_source_count : true,
+        enable_hover_effects: data.enable_hover_effects !== undefined ? data.enable_hover_effects : true,
+        max_snippet_length: data.max_snippet_length || 150,
+      };
+      
+      console.log('🔍 Final citation data to return:', finalData);
+      return finalData;
+    } catch (error: any) {
+      console.error('❌ Get search citation failed:', error);
+      console.error('❌ Error details:', {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status,
+        config: error?.config,
+      });
+      throw error;
+    }
+  },
+  
+  // Save search citation settings
+  saveSearchCitation: async (config: {
+    citation_style: string;
+    layout: string;
+    numbering_style: string;
+    color_scheme: string;
+    show_snippets: boolean;
+    show_urls: boolean;
+    show_source_count: boolean;
+    enable_hover_effects: boolean;
+    max_snippet_length: number;
+  }): Promise<void> => {
+    console.log('🔍 Search API - Saving search citation settings:', config);
+    try {
+      await apiClient.post('/search/citation/', config);
+      console.log('✅ Search citation settings saved successfully');
+    } catch (error) {
+      console.error('❌ Save search citation failed:', error);
+      throw error;
+    }
+  },
+
+  // Get search history
+  getSearchHistory: async () => {
+    console.log('📜 Search API - Getting search history');
+
+    try {
+      const response = await apiClient.get('/search/history');
+      console.log('✅ Search History Response:', response.data);
+
+      // Backend returns array of search history items
+      const history = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+
+      return history.map((item: any) => ({
+        id: item.id,
+        sessionId: item.session_id,
+        messageId: item.message_id,
+        userMessage: item.user_message,
+        assistantResponse: item.assistant_response,
+        messageType: item.message_type,
+        feedback: item.feedback,
+        sources: item.sources || [],
+        createdAt: item.created_at,
+        // Use top_k from API if available, otherwise calculate from sources length
+        topK: item.top_k || item.topK || (item.sources?.length || 0),
+      }));
+    } catch (error) {
+      console.error('❌ Search History Error:', error);
+      throw error;
+    }
+  },
 };
 
 // 💬 Chat API functions - This handles chat functionality
@@ -234,11 +483,13 @@ export const chatAPI = {
   },
 
   // Delete a chat session
-  deleteSession: async (sessionId: string) => {
-    console.log('🗑️ Chat API - Deleting session:', sessionId);
+  deleteSession: async (sessionId: string, source: 'widget' | 'page' = 'widget') => {
+    console.log('🗑️ Chat API - Deleting session:', sessionId, 'source:', source);
 
     try {
-      const response = await apiClient.delete(`/chat/sessions/${sessionId}`);
+      const response = await apiClient.delete(`/chat/sessions/${sessionId}`, {
+        params: { source }  // Pass source as query parameter
+      });
       console.log('✅ Delete Session Response:', response.data);
       return response.data;
     } catch (error) {
@@ -295,11 +546,13 @@ export const chatAPI = {
   },
 
   // Delete all chat messages
-  deleteAllMessages: async () => {
-    console.log('🗑️ Chat API - Deleting all messages');
+  deleteAllMessages: async (source: 'widget' | 'page' = 'widget') => {
+    console.log('🗑️ Chat API - Deleting all messages, source:', source);
 
     try {
-      const response = await apiClient.delete('/chat/messages');
+      const response = await apiClient.delete('/chat/messages', {
+        params: { source }  // Pass source as query parameter
+      });
       console.log('✅ Delete All Messages Response:', response.data);
       return response.data;
     } catch (error) {
@@ -2131,13 +2384,15 @@ export const chatbotAPI = {
 // 🔍 Search Activation API functions
 export const searchActivationAPI = {
   // Get search activation status
-  getActivationStatus: async (): Promise<string> => {
+  getActivationStatus: async (): Promise<{ is_active: boolean }> => {
     console.log('🔍 Search Activation API - Fetching activation status');
     try {
-      const response = await apiClient.get<string>('/search/activate');
+      const response = await apiClient.get<{ success: boolean; data: { is_active: boolean }; message: string }>('/search/activate');
       console.log('✅ Search activation status fetched successfully:', response.data);
-      // If response is a string, return it directly; if it's wrapped in an object, extract it
-      return typeof response.data === 'string' ? response.data : (response.data as any).data || response.data;
+      // Server returns: { success: true, data: { is_active: true/false }, message: "..." }
+      // Extract the data object which contains is_active
+      const responseData = response.data.data || { is_active: true };
+      return responseData;
     } catch (error) {
       console.error('❌ Get search activation status failed:', error);
       throw error;
@@ -2145,13 +2400,12 @@ export const searchActivationAPI = {
   },
 
   // Update search activation status
-  updateActivationStatus: async (isActive: boolean): Promise<{ success: boolean; message?: string; data?: string }> => {
+  updateActivationStatus: async (isActive: boolean): Promise<{ success: boolean; message?: string; data?: { is_active: boolean } }> => {
     console.log('🔍 Search Activation API - Updating activation status:', isActive);
     try {
-      // User specified the body should be { "additionalProp1": {} }
-      // We'll include is_active in the additionalProp1 object
-      const response = await apiClient.put<{ success: boolean; message?: string; data?: string }>('/search/activate', {
-        additionalProp1: { is_active: isActive }
+      // Server expects: { "is_active": true/false } directly in the body
+      const response = await apiClient.put<{ success: boolean; message?: string; data?: { is_active: boolean } }>('/search/activate', {
+        is_active: isActive
       });
       console.log('✅ Search activation status updated successfully:', response.data);
       return response.data;

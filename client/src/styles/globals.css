@@ -408,18 +408,20 @@
   /* Global button hover/active styles - only for non-primary buttons */
   /* Primary buttons (with animation) should not change color on hover */
   /* Exclude widget buttons that should not have hover effects */
-  button:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger),
-  [type="button"]:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger),
-  [type="submit"]:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger),
-  [type="reset"]:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger) {
+  /* Exclude switch/toggle buttons - they should have no hover effects */
+  /* Exclude checkboxes from global button hover rules */
+  button:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger):not([data-radix-switch-root]):not([role="switch"]):not([data-radix-checkbox-root]):not([role="checkbox"]),
+  [type="button"]:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger):not([data-radix-switch-root]):not([role="switch"]):not([data-radix-checkbox-root]):not([role="checkbox"]),
+  [type="submit"]:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger):not([data-radix-switch-root]):not([role="switch"]):not([data-radix-checkbox-root]):not([role="checkbox"]),
+  [type="reset"]:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger):not([data-radix-switch-root]):not([role="switch"]):not([data-radix-checkbox-root]):not([role="checkbox"]) {
     background-color: hsl(var(--button-hover-bg)) !important;
     border-color: hsl(var(--button-hover-border)) !important;
   }
 
-  button:active:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button),
-  [type="button"]:active:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button),
-  [type="submit"]:active:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button),
-  [type="reset"]:active:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button) {
+  button:active:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not([data-radix-switch-root]):not([role="switch"]):not([data-radix-checkbox-root]):not([role="checkbox"]),
+  [type="button"]:active:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not([data-radix-switch-root]):not([role="switch"]):not([data-radix-checkbox-root]):not([role="checkbox"]),
+  [type="submit"]:active:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not([data-radix-switch-root]):not([role="switch"]):not([data-radix-checkbox-root]):not([role="checkbox"]),
+  [type="reset"]:active:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not([data-radix-switch-root]):not([role="switch"]):not([data-radix-checkbox-root]):not([role="checkbox"]) {
     background-color: hsl(var(--button-hover-bg)) !important;
     border-color: hsl(var(--button-hover-border)) !important;
   }
@@ -997,85 +999,462 @@ input[type="color"]:hover:not(:disabled) {
   border-color: inherit !important;
 }
 
-/* Remove hover effects from Switch components (but NOT theme toggle) */
-/* Preserve original background colors - unchecked stays bg-input, checked stays bg-primary */
+/* Completely remove all hover effects from Switch/Toggle components (but NOT theme toggle) */
+/* Use higher specificity to override all other hover rules */
 button[data-radix-switch-root]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
+button[role="switch"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
 [data-radix-switch-root]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
 [role="switch"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper) {
-  border-color: transparent !important;
-  opacity: 1 !important;
+  background-color: inherit !important;
+  border-color: inherit !important;
+  opacity: inherit !important;
+  transform: none !important;
+  box-shadow: inherit !important;
+  filter: none !important;
+  transition: none !important;
+  outline: none !important;
 }
 
 button[data-radix-switch-root][data-state="unchecked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
+button[role="switch"][data-state="unchecked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
 [data-radix-switch-root][data-state="unchecked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
 [role="switch"][data-state="unchecked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper) {
   background-color: hsl(var(--input)) !important;
+  border-color: transparent !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  transition: none !important;
+  outline: none !important;
 }
 
 button[data-radix-switch-root][data-state="checked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
+button[role="switch"][data-state="checked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
 [data-radix-switch-root][data-state="checked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
 [role="switch"][data-state="checked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper) {
   background-color: hsl(var(--primary)) !important;
+  border-color: transparent !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  transition: none !important;
+  outline: none !important;
 }
 
 .dark button[data-radix-switch-root]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
+.dark button[role="switch"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
 .dark [data-radix-switch-root]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
 .dark [role="switch"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper) {
-  border-color: transparent !important;
-  opacity: 1 !important;
+  background-color: inherit !important;
+  border-color: inherit !important;
+  opacity: inherit !important;
+  transform: none !important;
+  box-shadow: inherit !important;
+  filter: none !important;
+  transition: none !important;
+  outline: none !important;
 }
 
 .dark button[data-radix-switch-root][data-state="unchecked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
+.dark button[role="switch"][data-state="unchecked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
 .dark [data-radix-switch-root][data-state="unchecked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
 .dark [role="switch"][data-state="unchecked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper) {
   background-color: hsl(var(--input)) !important;
+  border-color: transparent !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  transition: none !important;
+  outline: none !important;
 }
 
 .dark button[data-radix-switch-root][data-state="checked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
+.dark button[role="switch"][data-state="checked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
 .dark [data-radix-switch-root][data-state="checked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper),
 .dark [role="switch"][data-state="checked"]:hover:not(.theme-toggle-wrapper *):not(.theme-toggle-wrapper) {
   background-color: hsl(var(--primary)) !important;
+  border-color: transparent !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  transition: none !important;
+  outline: none !important;
 }
 
-/* Remove all hover effects from Checkboxes - no visual changes on hover */
-[data-radix-checkbox-root]:hover,
-[role="checkbox"]:hover,
-button[data-radix-checkbox-root]:hover,
-button[role="checkbox"]:hover {
+/* Remove background from checkboxes - always transparent, EXCEPT when checked */
+[data-radix-checkbox-root]:not([data-state="checked"]),
+[role="checkbox"]:not([data-state="checked"]),
+button[data-radix-checkbox-root]:not([data-state="checked"]),
+button[role="checkbox"]:not([data-state="checked"]) {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Checked checkboxes get primary background - NO transitions */
+[data-radix-checkbox-root][data-state="checked"],
+[role="checkbox"][data-state="checked"],
+button[data-radix-checkbox-root][data-state="checked"],
+button[role="checkbox"][data-state="checked"] {
+  background-color: hsl(var(--primary)) !important;
+  background: hsl(var(--primary)) !important;
+  background-image: none !important;
+  border-color: hsl(var(--primary)) !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  color: hsl(var(--primary-foreground)) !important;
+  transition: none !important;
+  --tw-ring-width: 0 !important;
+  --tw-ring-offset-width: 0 !important;
+  --tw-ring-color: transparent !important;
+}
+
+/* Lock checkmark icon size in normal state - prevent any size changes */
+[data-radix-checkbox-root][data-state="checked"] svg,
+[data-radix-checkbox-root][data-state="checked"] [data-radix-checkbox-indicator] svg,
+[role="checkbox"][data-state="checked"] svg,
+[role="checkbox"][data-state="checked"] [data-radix-checkbox-indicator] svg,
+button[data-radix-checkbox-root][data-state="checked"] svg,
+button[data-radix-checkbox-root][data-state="checked"] [data-radix-checkbox-indicator] svg,
+button[role="checkbox"][data-state="checked"] svg,
+button[role="checkbox"][data-state="checked"] [data-radix-checkbox-indicator] svg {
+  width: 1rem !important;
+  height: 1rem !important;
+  min-width: 1rem !important;
+  min-height: 1rem !important;
+  max-width: 1rem !important;
+  max-height: 1rem !important;
+  transform: none !important;
+  scale: 1 !important;
+  zoom: 1 !important;
+}
+
+/* Completely remove all hover effects from UNCHECKED Checkboxes - no visual changes whatsoever */
+[data-radix-checkbox-root]:not([data-state="checked"]):hover,
+[role="checkbox"]:not([data-state="checked"]):hover,
+button[data-radix-checkbox-root]:not([data-state="checked"]):hover,
+button[role="checkbox"]:not([data-state="checked"]):hover,
+[data-radix-checkbox-root]:not([data-state="checked"]):hover *,
+[role="checkbox"]:not([data-state="checked"]):hover *,
+button[data-radix-checkbox-root]:not([data-state="checked"]):hover *,
+button[role="checkbox"]:not([data-state="checked"]):hover * {
   background-color: transparent !important;
   border-color: hsl(var(--primary)) !important;
   opacity: 1 !important;
   transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transition: none !important;
+  outline: none !important;
+  scale: 1 !important;
+  cursor: default !important;
 }
 
+/* Checked checkboxes - NO hover/active/focus effects, stay exactly the same - HIGHEST PRIORITY */
 [data-radix-checkbox-root][data-state="checked"]:hover,
+[data-radix-checkbox-root][data-state="checked"]:active,
+[data-radix-checkbox-root][data-state="checked"]:focus,
+[data-radix-checkbox-root][data-state="checked"]:focus-visible,
+[data-radix-checkbox-root][data-state="checked"]:focus-within,
 [role="checkbox"][data-state="checked"]:hover,
+[role="checkbox"][data-state="checked"]:active,
+[role="checkbox"][data-state="checked"]:focus,
+[role="checkbox"][data-state="checked"]:focus-visible,
+[role="checkbox"][data-state="checked"]:focus-within,
 button[data-radix-checkbox-root][data-state="checked"]:hover,
-button[role="checkbox"][data-state="checked"]:hover {
+button[data-radix-checkbox-root][data-state="checked"]:active,
+button[data-radix-checkbox-root][data-state="checked"]:focus,
+button[data-radix-checkbox-root][data-state="checked"]:focus-visible,
+button[data-radix-checkbox-root][data-state="checked"]:focus-within,
+button[role="checkbox"][data-state="checked"]:hover,
+button[role="checkbox"][data-state="checked"]:active,
+button[role="checkbox"][data-state="checked"]:focus,
+button[role="checkbox"][data-state="checked"]:focus-visible,
+button[role="checkbox"][data-state="checked"]:focus-within {
   background-color: hsl(var(--primary)) !important;
+  background: hsl(var(--primary)) !important;
+  background-image: none !important;
   border-color: hsl(var(--primary)) !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  color: hsl(var(--primary-foreground)) !important;
   opacity: 1 !important;
   transform: none !important;
+  box-shadow: none !important;
+  --tw-ring-width: 0 !important;
+  --tw-ring-offset-width: 0 !important;
+  --tw-ring-color: transparent !important;
+  filter: none !important;
+  transition: none !important;
+  outline: none !important;
+  scale: 1 !important;
+  cursor: default !important;
 }
 
-.dark [data-radix-checkbox-root]:hover,
-.dark [role="checkbox"]:hover,
-.dark button[data-radix-checkbox-root]:hover,
-.dark button[role="checkbox"]:hover {
+/* Prevent checkmark icon from changing size on hover/active/focus - ALL STATES */
+[data-radix-checkbox-root][data-state="checked"]:hover *,
+[data-radix-checkbox-root][data-state="checked"]:active *,
+[data-radix-checkbox-root][data-state="checked"]:focus *,
+[data-radix-checkbox-root][data-state="checked"]:focus-visible *,
+[role="checkbox"][data-state="checked"]:hover *,
+[role="checkbox"][data-state="checked"]:active *,
+[role="checkbox"][data-state="checked"]:focus *,
+[role="checkbox"][data-state="checked"]:focus-visible *,
+button[data-radix-checkbox-root][data-state="checked"]:hover *,
+button[data-radix-checkbox-root][data-state="checked"]:active *,
+button[data-radix-checkbox-root][data-state="checked"]:focus *,
+button[data-radix-checkbox-root][data-state="checked"]:focus-visible *,
+button[role="checkbox"][data-state="checked"]:hover *,
+button[role="checkbox"][data-state="checked"]:active *,
+button[role="checkbox"][data-state="checked"]:focus *,
+button[role="checkbox"][data-state="checked"]:focus-visible * {
+  color: hsl(var(--primary-foreground)) !important;
+  transform: none !important;
+  scale: 1 !important;
+  zoom: 1 !important;
+}
+
+/* Prevent checkmark icon (SVG) from scaling on hover/active/focus - ALL STATES */
+[data-radix-checkbox-root][data-state="checked"]:hover svg,
+[data-radix-checkbox-root][data-state="checked"]:active svg,
+[data-radix-checkbox-root][data-state="checked"]:focus svg,
+[data-radix-checkbox-root][data-state="checked"]:focus-visible svg,
+[data-radix-checkbox-root][data-state="checked"]:hover [data-radix-checkbox-indicator],
+[data-radix-checkbox-root][data-state="checked"]:active [data-radix-checkbox-indicator],
+[data-radix-checkbox-root][data-state="checked"]:focus [data-radix-checkbox-indicator],
+[data-radix-checkbox-root][data-state="checked"]:focus-visible [data-radix-checkbox-indicator],
+[role="checkbox"][data-state="checked"]:hover svg,
+[role="checkbox"][data-state="checked"]:active svg,
+[role="checkbox"][data-state="checked"]:focus svg,
+[role="checkbox"][data-state="checked"]:focus-visible svg,
+[role="checkbox"][data-state="checked"]:hover [data-radix-checkbox-indicator],
+[role="checkbox"][data-state="checked"]:active [data-radix-checkbox-indicator],
+[role="checkbox"][data-state="checked"]:focus [data-radix-checkbox-indicator],
+[role="checkbox"][data-state="checked"]:focus-visible [data-radix-checkbox-indicator],
+button[data-radix-checkbox-root][data-state="checked"]:hover svg,
+button[data-radix-checkbox-root][data-state="checked"]:active svg,
+button[data-radix-checkbox-root][data-state="checked"]:focus svg,
+button[data-radix-checkbox-root][data-state="checked"]:focus-visible svg,
+button[data-radix-checkbox-root][data-state="checked"]:hover [data-radix-checkbox-indicator],
+button[data-radix-checkbox-root][data-state="checked"]:active [data-radix-checkbox-indicator],
+button[data-radix-checkbox-root][data-state="checked"]:focus [data-radix-checkbox-indicator],
+button[data-radix-checkbox-root][data-state="checked"]:focus-visible [data-radix-checkbox-indicator],
+button[role="checkbox"][data-state="checked"]:hover svg,
+button[role="checkbox"][data-state="checked"]:active svg,
+button[role="checkbox"][data-state="checked"]:focus svg,
+button[role="checkbox"][data-state="checked"]:focus-visible svg,
+button[role="checkbox"][data-state="checked"]:hover [data-radix-checkbox-indicator],
+button[role="checkbox"][data-state="checked"]:active [data-radix-checkbox-indicator],
+button[role="checkbox"][data-state="checked"]:focus [data-radix-checkbox-indicator],
+button[role="checkbox"][data-state="checked"]:focus-visible [data-radix-checkbox-indicator] {
+  width: 1rem !important;
+  height: 1rem !important;
+  min-width: 1rem !important;
+  min-height: 1rem !important;
+  max-width: 1rem !important;
+  max-height: 1rem !important;
+  transform: none !important;
+  scale: 1 !important;
+  zoom: 1 !important;
+  font-size: 1rem !important;
+  line-height: 1 !important;
+}
+
+/* Also target the Indicator container to prevent scaling */
+[data-radix-checkbox-root][data-state="checked"]:hover [data-radix-checkbox-indicator],
+[data-radix-checkbox-root][data-state="checked"]:active [data-radix-checkbox-indicator],
+[data-radix-checkbox-root][data-state="checked"]:focus [data-radix-checkbox-indicator],
+[data-radix-checkbox-root][data-state="checked"]:focus-visible [data-radix-checkbox-indicator],
+[role="checkbox"][data-state="checked"]:hover [data-radix-checkbox-indicator],
+[role="checkbox"][data-state="checked"]:active [data-radix-checkbox-indicator],
+[role="checkbox"][data-state="checked"]:focus [data-radix-checkbox-indicator],
+[role="checkbox"][data-state="checked"]:focus-visible [data-radix-checkbox-indicator],
+button[data-radix-checkbox-root][data-state="checked"]:hover [data-radix-checkbox-indicator],
+button[data-radix-checkbox-root][data-state="checked"]:active [data-radix-checkbox-indicator],
+button[data-radix-checkbox-root][data-state="checked"]:focus [data-radix-checkbox-indicator],
+button[data-radix-checkbox-root][data-state="checked"]:focus-visible [data-radix-checkbox-indicator],
+button[role="checkbox"][data-state="checked"]:hover [data-radix-checkbox-indicator],
+button[role="checkbox"][data-state="checked"]:active [data-radix-checkbox-indicator],
+button[role="checkbox"][data-state="checked"]:focus [data-radix-checkbox-indicator],
+button[role="checkbox"][data-state="checked"]:focus-visible [data-radix-checkbox-indicator] {
+  width: auto !important;
+  height: auto !important;
+  min-width: auto !important;
+  min-height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  transform: none !important;
+  scale: 1 !important;
+  zoom: 1 !important;
+}
+
+/* Dark mode - remove hover effects from UNCHECKED checkboxes only */
+.dark [data-radix-checkbox-root]:not([data-state="checked"]):hover,
+.dark [role="checkbox"]:not([data-state="checked"]):hover,
+.dark button[data-radix-checkbox-root]:not([data-state="checked"]):hover,
+.dark button[role="checkbox"]:not([data-state="checked"]):hover,
+.dark [data-radix-checkbox-root]:not([data-state="checked"]):hover *,
+.dark [role="checkbox"]:not([data-state="checked"]):hover *,
+.dark button[data-radix-checkbox-root]:not([data-state="checked"]):hover *,
+.dark button[role="checkbox"]:not([data-state="checked"]):hover * {
   background-color: transparent !important;
   border-color: hsl(var(--primary)) !important;
   opacity: 1 !important;
   transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transition: none !important;
+  outline: none !important;
+  scale: 1 !important;
+  cursor: default !important;
 }
 
+/* Dark mode - checked checkboxes NO hover/active/focus effects, stay exactly the same */
 .dark [data-radix-checkbox-root][data-state="checked"]:hover,
+.dark [data-radix-checkbox-root][data-state="checked"]:active,
+.dark [data-radix-checkbox-root][data-state="checked"]:focus,
+.dark [data-radix-checkbox-root][data-state="checked"]:focus-visible,
+.dark [data-radix-checkbox-root][data-state="checked"]:focus-within,
 .dark [role="checkbox"][data-state="checked"]:hover,
+.dark [role="checkbox"][data-state="checked"]:active,
+.dark [role="checkbox"][data-state="checked"]:focus,
+.dark [role="checkbox"][data-state="checked"]:focus-visible,
+.dark [role="checkbox"][data-state="checked"]:focus-within,
 .dark button[data-radix-checkbox-root][data-state="checked"]:hover,
-.dark button[role="checkbox"][data-state="checked"]:hover {
+.dark button[data-radix-checkbox-root][data-state="checked"]:active,
+.dark button[data-radix-checkbox-root][data-state="checked"]:focus,
+.dark button[data-radix-checkbox-root][data-state="checked"]:focus-visible,
+.dark button[data-radix-checkbox-root][data-state="checked"]:focus-within,
+.dark button[role="checkbox"][data-state="checked"]:hover,
+.dark button[role="checkbox"][data-state="checked"]:active,
+.dark button[role="checkbox"][data-state="checked"]:focus,
+.dark button[role="checkbox"][data-state="checked"]:focus-visible,
+.dark button[role="checkbox"][data-state="checked"]:focus-within {
   background-color: hsl(var(--primary)) !important;
+  background: hsl(var(--primary)) !important;
   border-color: hsl(var(--primary)) !important;
+  border-width: inherit !important;
+  border-style: inherit !important;
+  color: hsl(var(--primary-foreground)) !important;
   opacity: 1 !important;
   transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transition: none !important;
+  outline: none !important;
+  scale: 1 !important;
+  cursor: default !important;
+}
+
+/* Dark mode - prevent checkmark icon from changing size on hover/active/focus - ALL STATES */
+.dark [data-radix-checkbox-root][data-state="checked"]:hover *,
+.dark [data-radix-checkbox-root][data-state="checked"]:active *,
+.dark [data-radix-checkbox-root][data-state="checked"]:focus *,
+.dark [data-radix-checkbox-root][data-state="checked"]:focus-visible *,
+.dark [role="checkbox"][data-state="checked"]:hover *,
+.dark [role="checkbox"][data-state="checked"]:active *,
+.dark [role="checkbox"][data-state="checked"]:focus *,
+.dark [role="checkbox"][data-state="checked"]:focus-visible *,
+.dark button[data-radix-checkbox-root][data-state="checked"]:hover *,
+.dark button[data-radix-checkbox-root][data-state="checked"]:active *,
+.dark button[data-radix-checkbox-root][data-state="checked"]:focus *,
+.dark button[data-radix-checkbox-root][data-state="checked"]:focus-visible *,
+.dark button[role="checkbox"][data-state="checked"]:hover *,
+.dark button[role="checkbox"][data-state="checked"]:active *,
+.dark button[role="checkbox"][data-state="checked"]:focus *,
+.dark button[role="checkbox"][data-state="checked"]:focus-visible * {
+  color: hsl(var(--primary-foreground)) !important;
+  transform: none !important;
+  scale: 1 !important;
+  zoom: 1 !important;
+}
+
+/* Dark mode - prevent checkmark icon (SVG) from scaling on hover/active/focus - ALL STATES */
+.dark [data-radix-checkbox-root][data-state="checked"]:hover svg,
+.dark [data-radix-checkbox-root][data-state="checked"]:active svg,
+.dark [data-radix-checkbox-root][data-state="checked"]:focus svg,
+.dark [data-radix-checkbox-root][data-state="checked"]:focus-visible svg,
+.dark [data-radix-checkbox-root][data-state="checked"]:hover [data-radix-checkbox-indicator],
+.dark [data-radix-checkbox-root][data-state="checked"]:active [data-radix-checkbox-indicator],
+.dark [data-radix-checkbox-root][data-state="checked"]:focus [data-radix-checkbox-indicator],
+.dark [data-radix-checkbox-root][data-state="checked"]:focus-visible [data-radix-checkbox-indicator],
+.dark [role="checkbox"][data-state="checked"]:hover svg,
+.dark [role="checkbox"][data-state="checked"]:active svg,
+.dark [role="checkbox"][data-state="checked"]:focus svg,
+.dark [role="checkbox"][data-state="checked"]:focus-visible svg,
+.dark [role="checkbox"][data-state="checked"]:hover [data-radix-checkbox-indicator],
+.dark [role="checkbox"][data-state="checked"]:active [data-radix-checkbox-indicator],
+.dark [role="checkbox"][data-state="checked"]:focus [data-radix-checkbox-indicator],
+.dark [role="checkbox"][data-state="checked"]:focus-visible [data-radix-checkbox-indicator],
+.dark button[data-radix-checkbox-root][data-state="checked"]:hover svg,
+.dark button[data-radix-checkbox-root][data-state="checked"]:active svg,
+.dark button[data-radix-checkbox-root][data-state="checked"]:focus svg,
+.dark button[data-radix-checkbox-root][data-state="checked"]:focus-visible svg,
+.dark button[data-radix-checkbox-root][data-state="checked"]:hover [data-radix-checkbox-indicator],
+.dark button[data-radix-checkbox-root][data-state="checked"]:active [data-radix-checkbox-indicator],
+.dark button[data-radix-checkbox-root][data-state="checked"]:focus [data-radix-checkbox-indicator],
+.dark button[data-radix-checkbox-root][data-state="checked"]:focus-visible [data-radix-checkbox-indicator],
+.dark button[role="checkbox"][data-state="checked"]:hover svg,
+.dark button[role="checkbox"][data-state="checked"]:active svg,
+.dark button[role="checkbox"][data-state="checked"]:focus svg,
+.dark button[role="checkbox"][data-state="checked"]:focus-visible svg,
+.dark button[role="checkbox"][data-state="checked"]:hover [data-radix-checkbox-indicator],
+.dark button[role="checkbox"][data-state="checked"]:active [data-radix-checkbox-indicator],
+.dark button[role="checkbox"][data-state="checked"]:focus [data-radix-checkbox-indicator],
+.dark button[role="checkbox"][data-state="checked"]:focus-visible [data-radix-checkbox-indicator] {
+  width: 1rem !important;
+  height: 1rem !important;
+  min-width: 1rem !important;
+  min-height: 1rem !important;
+  max-width: 1rem !important;
+  max-height: 1rem !important;
+  transform: none !important;
+  scale: 1 !important;
+  zoom: 1 !important;
+  font-size: 1rem !important;
+  line-height: 1 !important;
+}
+
+/* Primary background for checkbox only when checked - override transparent rule */
+.checkbox-checked [data-radix-checkbox-root][data-state="checked"],
+.checkbox-checked button[data-radix-checkbox-root][data-state="checked"],
+.checkbox-checked [role="checkbox"][data-state="checked"] {
+  background-color: hsl(var(--primary)) !important;
+  background: hsl(var(--primary)) !important;
+  background-image: none !important;
+  border-color: hsl(var(--primary)) !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  color: hsl(var(--primary-foreground)) !important;
+  transition: none !important;
+}
+
+/* .checkbox-checked class - NO hover/active/focus effects, stay exactly the same */
+.checkbox-checked [data-radix-checkbox-root][data-state="checked"]:hover,
+.checkbox-checked [data-radix-checkbox-root][data-state="checked"]:active,
+.checkbox-checked [data-radix-checkbox-root][data-state="checked"]:focus,
+.checkbox-checked [data-radix-checkbox-root][data-state="checked"]:focus-visible,
+.checkbox-checked [data-radix-checkbox-root][data-state="checked"]:focus-within,
+.checkbox-checked button[data-radix-checkbox-root][data-state="checked"]:hover,
+.checkbox-checked button[data-radix-checkbox-root][data-state="checked"]:active,
+.checkbox-checked button[data-radix-checkbox-root][data-state="checked"]:focus,
+.checkbox-checked button[data-radix-checkbox-root][data-state="checked"]:focus-visible,
+.checkbox-checked button[data-radix-checkbox-root][data-state="checked"]:focus-within,
+.checkbox-checked [role="checkbox"][data-state="checked"]:hover,
+.checkbox-checked [role="checkbox"][data-state="checked"]:active,
+.checkbox-checked [role="checkbox"][data-state="checked"]:focus,
+.checkbox-checked [role="checkbox"][data-state="checked"]:focus-visible,
+.checkbox-checked [role="checkbox"][data-state="checked"]:focus-within {
+  background-color: hsl(var(--primary)) !important;
+  background: hsl(var(--primary)) !important;
+  background-image: none !important;
+  border-color: hsl(var(--primary)) !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  color: hsl(var(--primary-foreground)) !important;
+  --tw-ring-width: 0 !important;
+  --tw-ring-offset-width: 0 !important;
+  --tw-ring-color: transparent !important;
+  transition: none !important;
 }
 
 /* Remove hover effects from Table rows */
@@ -1145,18 +1524,79 @@ button.widget-no-hover:active,
 [type="submit"].chatbot-send-button:active,
 .chatbot-delete:hover,
 .chatbot-delete:active,
+.chatbot-delete:hover *,
+.chatbot-delete:active *,
 .chatbot-close:hover,
 .chatbot-close:active,
+.chatbot-close:hover *,
+.chatbot-close:active * {
+  background-color: transparent !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  border: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  scale: 1 !important;
+  cursor: pointer !important;
+  transition: none !important;
+  outline: none !important;
+}
+
+/* Light mode specific - Remove ALL hover effects from action buttons */
+:root:not(.dark) .chatbot-message-action-button:hover,
+:root:not(.dark) .chatbot-message-action-button:active,
+:root:not(.dark) .chatbot-message-action-button:focus,
+button.chatbot-message-action-button:hover,
+button.chatbot-message-action-button:active,
+button.chatbot-message-action-button:focus,
+[type="button"].chatbot-message-action-button:hover,
+[type="button"].chatbot-message-action-button:active,
+[type="button"].chatbot-message-action-button:focus {
+  background-color: transparent !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  border: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  scale: 1 !important;
+  outline: none !important;
+}
+
 .chatbot-message-action-button:hover,
 .chatbot-message-action-button:active,
 .chatbot-trigger:hover,
 .chatbot-trigger:active,
-.chatbot-trigger:focus {
+.chatbot-trigger:focus,
+.chatbot-trigger:focus-visible,
+.chatbot-trigger:focus-within {
   background-color: transparent !important;
+  background: transparent !important;
   border-color: transparent !important;
+  border: none !important;
+  outline: none !important;
   opacity: 1 !important;
   transform: none !important;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
+  box-shadow: none !important;
+}
+
+/* Light mode - Remove ALL edges on click/active for trigger button */
+:root:not(.dark) .chatbot-trigger:active,
+:root:not(.dark) .chatbot-trigger:focus,
+:root:not(.dark) .chatbot-trigger:focus-visible,
+button.chatbot-trigger:active,
+button.chatbot-trigger:focus,
+[type="button"].chatbot-trigger:active,
+[type="button"].chatbot-trigger:focus {
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 /* Remove hover effects from embedded widget input fields */
@@ -1205,3 +1645,86 @@ textarea.widget-no-hover:focus-visible,
 }
 
 /* Keep hover effects for Select items/options in dark mode - allow hover in dropdown menu */
+
+/* Toast z-index - ensure toasts appear above widget (widget z-index: 99999) */
+.Toastify__toast-container {
+  z-index: 100001 !important;
+}
+
+.Toastify__toast {
+  z-index: 100001 !important;
+}
+
+.Toastify__toast-body {
+  z-index: 100001 !important;
+}
+
+.Toastify__progress-bar {
+  z-index: 100002 !important;
+}
+
+.Toastify__close-button {
+  z-index: 100002 !important;
+}
+
+/* Select/Dropdown z-index - ensure dropdowns appear above modals (modal z-index: 100001) */
+[data-radix-select-content],
+[data-radix-select-viewport] {
+  z-index: 100002 !important;
+}
+
+[data-radix-popover-content] {
+  z-index: 100002 !important;
+}
+
+/* Chat message styling - remove white background forcing */
+/* Let assistant messages use their natural card background */
+/* Assistant messages - white text color */
+.chat-bubble:not(.ml-auto):not(.user-message-bubble),
+.chat-bubble:not(.ml-auto):not(.user-message-bubble) * {
+  color: #000000;
+}
+
+.dark .chat-bubble:not(.ml-auto):not(.user-message-bubble),
+.dark .chat-bubble:not(.ml-auto):not(.user-message-bubble) * {
+  color: #ffffff;
+}
+
+/* User messages - override Card bg-card class to use customization color */
+/* Use highest specificity to override Tailwind's bg-card class with the customization color */
+.user-message-bubble.bg-card,
+.user-message-bubble.shadcn-card,
+.dark .user-message-bubble.bg-card,
+.dark .user-message-bubble.shadcn-card,
+.chat-bubble.user-message-bubble.bg-card,
+.chat-bubble.user-message-bubble.shadcn-card,
+.chat-bubble.ml-auto.bg-card,
+.chat-bubble.ml-auto.shadcn-card,
+.dark .chat-bubble.ml-auto.bg-card,
+.dark .chat-bubble.ml-auto.shadcn-card,
+div.user-message-bubble.bg-card,
+div.chat-bubble.ml-auto.bg-card,
+div.chat-bubble.user-message-bubble.bg-card {
+  background-color: var(--user-message-bg, #3b82f6) !important;
+  background: var(--user-message-bg, #3b82f6) !important;
+  background-image: none !important;
+}
+
+/* Ensure user message color is applied even when inline style is present */
+.user-message-bubble[style*="--user-message-bg"],
+.chat-bubble.user-message-bubble[style*="--user-message-bg"],
+.chat-bubble.ml-auto[style*="--user-message-bg"],
+div[style*="--user-message-bg"].user-message-bubble,
+div[style*="--user-message-bg"].chat-bubble.ml-auto {
+  background-color: var(--user-message-bg) !important;
+  background: var(--user-message-bg) !important;
+  background-image: none !important;
+}
+
+/* Direct override for user messages with inline backgroundColor style */
+.user-message-bubble[style*="background-color"],
+.chat-bubble.ml-auto[style*="background-color"],
+.chat-bubble.user-message-bubble[style*="background-color"] {
+  background-color: inherit !important;
+  background: inherit !important;
+}

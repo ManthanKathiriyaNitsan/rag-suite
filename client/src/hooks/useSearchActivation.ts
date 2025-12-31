@@ -20,8 +20,8 @@ export function useSearchActivation() {
     mutationFn: (isActive: boolean) => searchActivationAPI.updateActivationStatus(isActive),
     onSuccess: (response, variables) => {
       // Update the query cache optimistically with the new status
-      // Convert boolean to string format that matches the API response (GET returns a string)
-      const newStatus = variables ? 'active' : 'inactive';
+      // API returns: { success: true, data: { is_active: boolean }, message: "..." }
+      const newStatus = response?.data || { is_active: variables };
       queryClient.setQueryData(['search-activation'], newStatus);
       toast({
         title: 'Activation Status Updated',
@@ -38,12 +38,10 @@ export function useSearchActivation() {
     },
   });
 
-  // Extract is_active from response string
-  // The API returns a string like "active" or "inactive"
+  // Extract is_active from response object
+  // The API returns: { is_active: true/false }
   const activationStatus = activationQuery.data;
-  const isActive = typeof activationStatus === 'string' 
-    ? activationStatus.toLowerCase().trim() === 'active'
-    : false; // Default to false if not available
+  const isActive = activationStatus?.is_active ?? false; // Default to false if not available
 
   return {
     activationData: activationQuery.data,

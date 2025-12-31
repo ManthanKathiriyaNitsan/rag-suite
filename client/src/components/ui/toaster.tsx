@@ -17,6 +17,7 @@ export function Toaster() {
       pauseOnHover
       theme={theme}
       transition={Bounce}
+      style={{ zIndex: 100001 }}
     />
   );
 }

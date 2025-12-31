@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   configModelsAPI, 
+  searchAPI,
   ConfigModelsData, 
   ConfigModelsRequest 
 } from '@/services/api/api';
@@ -103,6 +104,59 @@ export function useAvailableEmbeddingModels(provider?: string) {
   return {
     availableModels: embeddingModels,
     isLoading: false, // Already loaded from useAvailableModels
+  };
+}
+
+// Hook for Search Configuration Model Settings (uses /search/models/ endpoint)
+export function useSearchConfigModels() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Get search config models
+  const searchConfigModelsQuery = useQuery({
+    queryKey: ['search-config-models'],
+    queryFn: searchAPI.getSearchModels,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+  });
+
+  // Save search config models mutation
+  const saveSearchConfigModelsMutation = useMutation({
+    mutationFn: (config: ConfigModelsRequest) => searchAPI.saveSearchModels(config),
+    onSuccess: (response) => {
+      // Update the query cache with the new config
+      queryClient.setQueryData<ConfigModelsData>(['search-config-models'], (oldData) => {
+        return {
+          ...oldData,
+          ...response,
+        } as ConfigModelsData;
+      });
+      // Invalidate to ensure fresh data from server
+      queryClient.invalidateQueries({ queryKey: ['search-config-models'] });
+      toast({
+        title: 'Model Settings Saved',
+        description: 'Your search model configuration has been saved successfully.',
+        variant: 'success',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error?.response?.data?.detail || error?.response?.data?.message || 'Failed to save search model settings. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  return {
+    configModels: searchConfigModelsQuery.data,
+    isLoading: searchConfigModelsQuery.isLoading,
+    isError: searchConfigModelsQuery.isError,
+    error: searchConfigModelsQuery.error,
+    refetchConfigModels: searchConfigModelsQuery.refetch,
+    saveConfigModelsAsync: saveSearchConfigModelsMutation.mutateAsync,
+    isSaving: saveSearchConfigModelsMutation.isPending,
   };
 }
 
