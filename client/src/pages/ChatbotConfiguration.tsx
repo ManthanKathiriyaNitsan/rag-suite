@@ -555,11 +555,13 @@ export default function ChatbotConfiguration() {
       if (configModels.model_provider) setModelProvider(configModels.model_provider);
       if (configModels.chat_model) setChatModel(configModels.chat_model);
       if (configModels.embedding_model) setEmbeddingModel(configModels.embedding_model);
-      // Populate API key if it exists in the response (only on initial load)
-      if (configModels.api_key && configModels.api_key.trim() !== '' && !hasPopulatedApiKey.current) {
-        // Populate API key from API so user can see it exists
-        setModelApiKey(configModels.api_key);
-        hasPopulatedApiKey.current = true;
+      // Populate API key if it exists in the response (only on initial load, but allow updates if key changes)
+      if (configModels.api_key && configModels.api_key.trim() !== '') {
+        // Only update if the key actually changed to avoid overwriting user edits
+        if (modelApiKey !== configModels.api_key) {
+          setModelApiKey(configModels.api_key);
+          hasPopulatedApiKey.current = true;
+        }
       }
       // Populate new model parameters
       if (configModels.chat_temperature !== undefined) setTemperature(configModels.chat_temperature);
@@ -567,12 +569,28 @@ export default function ChatbotConfiguration() {
       if (configModels.chat_best_of !== undefined) setBestOf(configModels.chat_best_of);
       if (configModels.chat_frequency_penalty !== undefined) setFrequencyPenalty(configModels.chat_frequency_penalty);
       if (configModels.chat_presence_penalty !== undefined) setPresencePenalty(configModels.chat_presence_penalty);
+      
+      // Populate RAG settings from chat_* fields
+      if (configModels.chat_top_k !== undefined && configModels.chat_top_k !== null) {
+        updateRAGSettings({ topK: configModels.chat_top_k });
+      }
+      if (configModels.chat_similarity_threshold !== undefined && configModels.chat_similarity_threshold !== null) {
+        updateRAGSettings({ similarityThreshold: configModels.chat_similarity_threshold });
+      }
+      if (configModels.chat_max_tokens !== undefined && configModels.chat_max_tokens !== null) {
+        updateRAGSettings({ maxTokens: configModels.chat_max_tokens });
+      }
+      if (configModels.chat_use_reranker !== undefined && configModels.chat_use_reranker !== null) {
+        updateRAGSettings({ useReranker: configModels.chat_use_reranker });
+      }
+      
+      // Also set individual state variables for backward compatibility
       if (configModels.chat_top_k !== undefined) setTopK(configModels.chat_top_k);
       if (configModels.chat_similarity_threshold !== undefined) setSimilarityThreshold(configModels.chat_similarity_threshold);
       if (configModels.chat_max_tokens !== undefined) setMaxTokens(configModels.chat_max_tokens);
       if (configModels.chat_use_reranker !== undefined) setUseReranker(configModels.chat_use_reranker);
     }
-  }, [configModels]);
+  }, [configModels, updateRAGSettings]);
   
   // Reset chat model when provider changes (if current model is not in the new provider's list)
   useEffect(() => {
@@ -2095,16 +2113,16 @@ chatbot.init();`);
                                       <Slider
                                         value={[ragSettings.maxTokens]}
                                         onValueChange={(value) => updateRAGSettings({ maxTokens: value[0] })}
-                                        min={0}
+                                        min={50}
                                         max={1000}
                                         step={50}
                                         data-testid="slider-max-tokens"
                                         className="flex-1"
                                       />
-                                      <Badge variant="outline" className="text-xs w-20 text-center">{ragSettings.maxTokens === 0 ? "Unlimited" : ragSettings.maxTokens}</Badge>
+                                      <Badge variant="outline" className="text-xs w-20 text-center">{ragSettings.maxTokens}</Badge>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                      Maximum length of generated responses (0 = unlimited, max 1000)
+                                      Maximum length of generated responses (minimum: 50, max: 1000)
                                     </p>
                                   </div>
 
@@ -2140,10 +2158,10 @@ chatbot.init();`);
                                         chat_best_of: bestOf,
                                         chat_frequency_penalty: frequencyPenalty,
                                         chat_presence_penalty: presencePenalty,
-                                        chat_top_k: topK,
-                                        chat_similarity_threshold: similarityThreshold,
-                                        chat_max_tokens: maxTokens,
-                                        chat_use_reranker: useReranker,
+                                        chat_top_k: ragSettings.topK, // Use RAG settings from context
+                                        chat_similarity_threshold: ragSettings.similarityThreshold, // Use RAG settings from context
+                                        chat_max_tokens: ragSettings.maxTokens, // Use RAG settings from context
+                                        chat_use_reranker: ragSettings.useReranker, // Use RAG settings from context
                                       });
                                       // Keep the API key in state after saving
                                       // This ensures it remains visible even after the query refetches

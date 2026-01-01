@@ -11,6 +11,8 @@ import {
   Calendar,
   Filter,
   Search,
+  ScanSearch,
+  Sparkles,
   Globe,
   Smartphone,
   Save,
@@ -18,7 +20,6 @@ import {
   Upload,
   Check,
   HelpCircle,
-  Sparkles,
   X,
   Copy,
   LayoutDashboard,
@@ -61,13 +62,14 @@ import { useConfigModels, useSearchConfigModels, useAvailableChatModels, useAvai
 import { useSearchPrompt } from "@/hooks/useSearchPrompt";
 import { useSearchActivation } from "@/hooks/useSearchActivation";
 import { Slider } from "@/components/ui/slider";
-import { FileText, Zap, Trash2, CheckCircle2, Circle } from "lucide-react";
+import { FileText, Zap, Trash2, CheckCircle2, Circle, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Plus } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SearchBar } from "@/components/common/SearchBar";
 import { EmbeddableWidget } from "@/components/common/EmbeddableWidget";
 import { StickyLivePreview } from "@/components/ui/StickyLivePreview";
+import { SearchBarLivePreview } from "@/components/ui/SearchBarLivePreview";
 import { cn, copyToClipboard } from "@/lib/utils";
-import { chatAPI, suggestionsAPI, searchAPI } from "@/services/api/api";
+import { chatAPI, searchAPI } from "@/services/api/api";
 import ChatMessage from "@/components/common/ChatMessage";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/ScrollArea";
@@ -78,7 +80,7 @@ import { useSearch } from "@/hooks/useSearch";
 import { useChat, useChatSessions } from "@/hooks/useChat";
 import { usePerformanceMetrics } from "@/contexts/RAGSettingsContext";
 import { Message } from "@/types/components";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import "@/components/common/EmbeddableWidgetStyles.css";
 // 📝 Import markdown support for proper formatting
@@ -231,8 +233,9 @@ function PromptEditTab() {
 export default function SearchConfiguration() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  // 🎨 Get theme for syntax highlighting
+  // 🎨 Get theme for syntax highlighting and search bar styling
   const { theme } = useTheme();
+  const isDarkMode = theme === 'dark';
   
   // Citation formatting - use search citation API for Search Configuration tab
   const {
@@ -296,7 +299,7 @@ export default function SearchConfiguration() {
 
   // Auto-open widget preview when entering configuration or customization tabs
   useEffect(() => {
-    if (settingsSubTab === "chatbot-configuration" || settingsSubTab === "widget-customization") {
+    if (settingsSubTab === "search-configuration" || settingsSubTab === "search-customization") {
       setIsWidgetOpen(true);
     }
   }, [settingsSubTab]);
@@ -386,6 +389,33 @@ export default function SearchConfiguration() {
   // Training Tab State
   const [responseType, setResponseType] = useState<"long" | "short">("long");
   
+  /**
+   * Validates maxTokens based on response type
+   * @param maxTokens - The maxTokens value to validate (can be null/undefined/0)
+   * @param responseType - The selected response type ('long' | 'short')
+   * @returns Error message string if invalid, null if valid
+   */
+  const validateMaxTokens = useCallback((
+    maxTokens: number | null | undefined, 
+    responseType: 'long' | 'short'
+  ): string | null => {
+    // If maxTokens is 0, null, or undefined, validation passes (backend will use defaults)
+    if (maxTokens === null || maxTokens === undefined || maxTokens === 0) {
+      return null;
+    }
+    
+    // Validate based on response type
+    if (responseType === 'long' && maxTokens < 400) {
+      return `maxTokens for LONG response must be at least 400. You provided ${maxTokens}. Please increase maxTokens to at least 400.`;
+    }
+    
+    if (responseType === 'short' && maxTokens < 200) {
+      return `maxTokens for SHORT response must be at least 200. You provided ${maxTokens}. Please increase maxTokens to at least 200.`;
+    }
+    
+    return null; // Valid
+  }, []);
+  
   // Fetch response config from API
   const { data: responseConfig, isLoading: isLoadingResponseConfig, refetch: refetchResponseConfig } = useQuery({
     queryKey: ['responseConfig'],
@@ -432,6 +462,9 @@ export default function SearchConfiguration() {
   const [pendingResponse, setPendingResponse] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>();
   const ragMessagesEndRef = useRef<HTMLDivElement>(null);
+  const [ragSearchInput, setRagSearchInput] = useState("");
+  const [ragSearchError, setRagSearchError] = useState("");
+  const [maxTokensError, setMaxTokensError] = useState<string | null>(null);
 
   // Settings Tab State (CSP removed per user request)
   
@@ -506,6 +539,202 @@ export default function SearchConfiguration() {
   const [bubbleMessage, setBubbleMessage] = useState("Bubble Message");
   const [welcomeMessage, setWelcomeMessage] = useState("Hi, how can I help you?");
   const [chatbotLanguage, setChatbotLanguage] = useState("en");
+  
+  // Fetch search configuration from API
+  const { data: searchConfigData, isLoading: isLoadingSearchConfig, refetch: refetchSearchConfig } = useQuery({
+    queryKey: ['search-configuration'],
+    queryFn: () => searchAPI.getSearchConfiguration(),
+    refetchOnWindowFocus: false,
+  });
+
+  // Fetch search customization from API
+  const { data: searchCustomizationData, isLoading: isLoadingSearchCustomization, refetch: refetchSearchCustomization } = useQuery({
+    queryKey: ['search-customization'],
+    queryFn: () => searchAPI.getSearchCustomization(),
+    refetchOnWindowFocus: false,
+  });
+
+  // Search configuration state - Load from API or use defaults
+  const [searchTitle, setSearchTitle] = useState("");
+  const [searchLanguage, setSearchLanguage] = useState("en");
+  const [searchStyleOption, setSearchStyleOption] = useState("default");
+  const [searchIcon, setSearchIcon] = useState("search");
+  const [searchLoaderType, setSearchLoaderType] = useState("skeleton");
+  const [searchBackgroundColor, setSearchBackgroundColor] = useState("#d5d4d4");
+  const [searchBorderRadius, setSearchBorderRadius] = useState("semi-rounded");
+  const [searchResultStyle, setSearchResultStyle] = useState("list");
+  
+  // Saved search configuration state - Only updated when save is clicked
+  const [savedSearchTitle, setSavedSearchTitle] = useState("");
+  const [savedSearchLanguage, setSavedSearchLanguage] = useState("en");
+  const [savedSearchStyleOption, setSavedSearchStyleOption] = useState("default");
+  const [savedSearchIcon, setSavedSearchIcon] = useState("search");
+  const [savedSearchLoaderType, setSavedSearchLoaderType] = useState("skeleton");
+  const [savedSearchBackgroundColor, setSavedSearchBackgroundColor] = useState("#d5d4d4");
+  const [savedSearchBorderRadius, setSavedSearchBorderRadius] = useState("semi-rounded");
+  const [savedSearchResultStyle, setSavedSearchResultStyle] = useState("list");
+  
+  // Search customization state - Load from API or use defaults
+  const [searchFormType, setSearchFormType] = useState("default");
+  const [searchButtonType, setSearchButtonType] = useState("icon");
+  const [searchButtonText, setSearchButtonText] = useState("Search");
+  const [searchInputPlaceholder, setSearchInputPlaceholder] = useState("");
+  const [searchRecentSearch, setSearchRecentSearch] = useState(false);
+  const [searchRecentSearchTitle, setSearchRecentSearchTitle] = useState("");
+  const [searchPredefinedQuestions, setSearchPredefinedQuestions] = useState(false);
+  const [searchQuestionsPosition, setSearchQuestionsPosition] = useState("below-search");
+  const [searchQuestionsLimit, setSearchQuestionsLimit] = useState(5);
+  const [searchQuestionsList, setSearchQuestionsList] = useState<string[]>([]);
+  const [newQuestionText, setNewQuestionText] = useState("");
+  const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null);
+  
+  // Saved search customization state - Only updated when save is clicked
+  const [savedSearchFormType, setSavedSearchFormType] = useState("default");
+  const [savedSearchButtonType, setSavedSearchButtonType] = useState("icon");
+  const [savedSearchButtonText, setSavedSearchButtonText] = useState("Search");
+  const [savedSearchInputPlaceholder, setSavedSearchInputPlaceholder] = useState("");
+  const [savedSearchRecentSearch, setSavedSearchRecentSearch] = useState(false);
+  const [savedSearchRecentSearchTitle, setSavedSearchRecentSearchTitle] = useState("");
+  const [savedSearchPredefinedQuestions, setSavedSearchPredefinedQuestions] = useState(false);
+  const [savedSearchQuestionsPosition, setSavedSearchQuestionsPosition] = useState("below-search");
+  const [savedSearchQuestionsLimit, setSavedSearchQuestionsLimit] = useState(5);
+  const [savedSearchQuestionsList, setSavedSearchQuestionsList] = useState<string[]>([]);
+
+  // Load configuration data from API
+  useEffect(() => {
+    if (searchConfigData) {
+      setSearchTitle(searchConfigData.title || "");
+      setSearchLanguage(searchConfigData.language || "en");
+      setSearchStyleOption(searchConfigData.styleOption || "default");
+      setSearchIcon(searchConfigData.searchIcon || "search");
+      setSearchLoaderType(searchConfigData.loaderType || "skeleton");
+      setSearchBackgroundColor(searchConfigData.background || "#d5d4d4");
+      setSearchBorderRadius(searchConfigData.borderRadius || "semi-rounded");
+      setSearchResultStyle(searchConfigData.resultStyle || "list");
+      
+      // Also initialize saved state with same values
+      setSavedSearchTitle(searchConfigData.title || "");
+      setSavedSearchLanguage(searchConfigData.language || "en");
+      setSavedSearchStyleOption(searchConfigData.styleOption || "default");
+      setSavedSearchIcon(searchConfigData.searchIcon || "search");
+      setSavedSearchLoaderType(searchConfigData.loaderType || "skeleton");
+      setSavedSearchBackgroundColor(searchConfigData.background || "#d5d4d4");
+      setSavedSearchBorderRadius(searchConfigData.borderRadius || "semi-rounded");
+      setSavedSearchResultStyle(searchConfigData.resultStyle || "list");
+    }
+  }, [searchConfigData]);
+
+  // Load customization data from API
+  useEffect(() => {
+    if (searchCustomizationData) {
+      setSearchFormType(searchCustomizationData.searchFormType || "default");
+      setSearchButtonType(searchCustomizationData.buttonType || "icon");
+      setSearchButtonText(searchCustomizationData.searchButtonText || "Search");
+      setSearchInputPlaceholder(searchCustomizationData.searchInputPlaceholder || "");
+      setSearchRecentSearch(searchCustomizationData.recentSearch ?? false);
+      setSearchRecentSearchTitle(searchCustomizationData.recentSearchTitle || "");
+      setSearchPredefinedQuestions(searchCustomizationData.predefinedQuestions ?? false);
+      setSearchQuestionsPosition(searchCustomizationData.questionsPosition || "below-search");
+      setSearchQuestionsLimit(searchCustomizationData.questionsLimit || 5);
+      setSearchQuestionsList(searchCustomizationData.questions || []);
+      
+      // Also initialize saved state with same values
+      setSavedSearchFormType(searchCustomizationData.searchFormType || "default");
+      setSavedSearchButtonType(searchCustomizationData.buttonType || "icon");
+      setSavedSearchButtonText(searchCustomizationData.searchButtonText || "Search");
+      setSavedSearchInputPlaceholder(searchCustomizationData.searchInputPlaceholder || "");
+      setSavedSearchRecentSearch(searchCustomizationData.recentSearch ?? false);
+      setSavedSearchRecentSearchTitle(searchCustomizationData.recentSearchTitle || "");
+      setSavedSearchPredefinedQuestions(searchCustomizationData.predefinedQuestions ?? false);
+      setSavedSearchQuestionsPosition(searchCustomizationData.questionsPosition || "below-search");
+      setSavedSearchQuestionsLimit(searchCustomizationData.questionsLimit || 5);
+      setSavedSearchQuestionsList(searchCustomizationData.questions || []);
+    }
+  }, [searchCustomizationData]);
+
+  // Mutation for saving search configuration
+  const saveConfigMutation = useMutation({
+    mutationFn: (config: {
+      title?: string;
+      language?: string;
+      styleOption?: string;
+      searchIcon?: string;
+      loaderType?: string;
+      background?: string;
+      borderRadius?: string;
+      resultStyle?: string;
+    }) => searchAPI.saveSearchConfiguration(config),
+    onSuccess: () => {
+      // Update saved state with current values
+      setSavedSearchTitle(searchTitle);
+      setSavedSearchLanguage(searchLanguage);
+      setSavedSearchStyleOption(searchStyleOption);
+      setSavedSearchIcon(searchIcon);
+      setSavedSearchLoaderType(searchLoaderType);
+      setSavedSearchBackgroundColor(searchBackgroundColor);
+      setSavedSearchBorderRadius(searchBorderRadius);
+      setSavedSearchResultStyle(searchResultStyle);
+      
+      toast({
+        title: "Configuration Saved",
+        description: "Search box configuration has been saved successfully.",
+        variant: "success",
+      });
+      refetchSearchConfig();
+    },
+    onError: (error) => {
+      console.error("Failed to save search configuration:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save search configuration. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation for saving search customization
+  const saveCustomizationMutation = useMutation({
+    mutationFn: (customization: {
+      searchFormType?: string;
+      buttonType?: string;
+      searchButtonText?: string;
+      searchInputPlaceholder?: string;
+      recentSearch?: boolean;
+      recentSearchTitle?: string;
+      predefinedQuestions?: boolean;
+      questionsPosition?: string;
+      questionsLimit?: number;
+      questions?: string[];
+    }) => searchAPI.saveSearchCustomization(customization),
+    onSuccess: () => {
+      // Update saved state with current values
+      setSavedSearchFormType(searchFormType);
+      setSavedSearchButtonType(searchButtonType);
+      setSavedSearchButtonText(searchButtonText);
+      setSavedSearchInputPlaceholder(searchInputPlaceholder);
+      setSavedSearchRecentSearch(searchRecentSearch);
+      setSavedSearchRecentSearchTitle(searchRecentSearchTitle);
+      setSavedSearchPredefinedQuestions(searchPredefinedQuestions);
+      setSavedSearchQuestionsPosition(searchQuestionsPosition);
+      setSavedSearchQuestionsLimit(searchQuestionsLimit);
+      setSavedSearchQuestionsList(searchQuestionsList);
+      
+      toast({
+        title: "Customization Saved",
+        description: "Search box customization has been saved successfully.",
+        variant: "success",
+      });
+      refetchSearchCustomization();
+    },
+    onError: (error) => {
+      console.error("Failed to save search customization:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save search customization. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
   
   // Ref for configuration tab content
   const configurationRef = useRef<HTMLDivElement>(null);
@@ -682,7 +911,9 @@ export default function SearchConfiguration() {
   useEffect(() => {
     if (configModels) {
       if (configModels.model_provider) setModelProvider(configModels.model_provider);
-      if (configModels.chat_model) setChatModel(configModels.chat_model);
+      // Use search_model if available, otherwise fall back to chat_model
+      const modelToUse = configModels.search_model || configModels.chat_model;
+      if (modelToUse) setChatModel(modelToUse);
       if (configModels.embedding_model) setEmbeddingModel(configModels.embedding_model);
       // Populate API key if it exists in the response (only on initial load, but allow updates if key changes)
       if (configModels.api_key && configModels.api_key.trim() !== '') {
@@ -692,18 +923,51 @@ export default function SearchConfiguration() {
           hasPopulatedApiKey.current = true;
         }
       }
-      // Populate new model parameters
-      if (configModels.chat_temperature !== undefined) setTemperature(configModels.chat_temperature);
-      if (configModels.chat_top_p !== undefined) setTopP(configModels.chat_top_p);
-      if (configModels.chat_best_of !== undefined) setBestOf(configModels.chat_best_of);
-      if (configModels.chat_frequency_penalty !== undefined) setFrequencyPenalty(configModels.chat_frequency_penalty);
-      if (configModels.chat_presence_penalty !== undefined) setPresencePenalty(configModels.chat_presence_penalty);
-      if (configModels.chat_top_k !== undefined) setTopK(configModels.chat_top_k);
-      if (configModels.chat_similarity_threshold !== undefined) setSimilarityThreshold(configModels.chat_similarity_threshold);
-      if (configModels.chat_max_tokens !== undefined) setMaxTokens(configModels.chat_max_tokens);
-      if (configModels.chat_use_reranker !== undefined) setUseReranker(configModels.chat_use_reranker);
+      // Populate response_type
+      if (configModels.response_type && (configModels.response_type === "long" || configModels.response_type === "short")) {
+        setResponseType(configModels.response_type);
+      }
+      // Populate new model parameters - Use search_* fields if available, otherwise fall back to chat_* fields
+      const temperatureToUse = configModels.search_temperature !== undefined ? configModels.search_temperature : configModels.chat_temperature;
+      if (temperatureToUse !== undefined) setTemperature(temperatureToUse);
+      const topPToUse = configModels.search_top_p !== undefined ? configModels.search_top_p : configModels.chat_top_p;
+      if (topPToUse !== undefined) setTopP(topPToUse);
+      const bestOfToUse = configModels.search_best_of !== undefined ? configModels.search_best_of : configModels.chat_best_of;
+      if (bestOfToUse !== undefined) setBestOf(bestOfToUse);
+      const frequencyPenaltyToUse = configModels.search_frequency_penalty !== undefined ? configModels.search_frequency_penalty : configModels.chat_frequency_penalty;
+      if (frequencyPenaltyToUse !== undefined) setFrequencyPenalty(frequencyPenaltyToUse);
+      const presencePenaltyToUse = configModels.search_presence_penalty !== undefined ? configModels.search_presence_penalty : configModels.chat_presence_penalty;
+      if (presencePenaltyToUse !== undefined) setPresencePenalty(presencePenaltyToUse);
+      
+      // Populate RAG settings from search_* fields
+      if (configModels.search_top_k !== undefined && configModels.search_top_k !== null) {
+        updateRAGSettings({ topK: configModels.search_top_k });
+      }
+      if (configModels.search_similarity_threshold !== undefined && configModels.search_similarity_threshold !== null) {
+        updateRAGSettings({ similarityThreshold: configModels.search_similarity_threshold });
+      }
+      if (configModels.search_max_tokens !== undefined && configModels.search_max_tokens !== null) {
+        updateRAGSettings({ maxTokens: configModels.search_max_tokens });
+      }
+      if (configModels.search_use_reranker !== undefined && configModels.search_use_reranker !== null) {
+        updateRAGSettings({ useReranker: configModels.search_use_reranker });
+      }
+      
+      // Fallback to chat_* fields if search_* fields are not available
+      if (configModels.chat_top_k !== undefined && configModels.search_top_k === undefined) {
+        setTopK(configModels.chat_top_k);
+      }
+      if (configModels.chat_similarity_threshold !== undefined && configModels.search_similarity_threshold === undefined) {
+        setSimilarityThreshold(configModels.chat_similarity_threshold);
+      }
+      if (configModels.chat_max_tokens !== undefined && configModels.search_max_tokens === undefined) {
+        setMaxTokens(configModels.chat_max_tokens);
+      }
+      if (configModels.chat_use_reranker !== undefined && configModels.search_use_reranker === undefined) {
+        setUseReranker(configModels.chat_use_reranker);
+      }
     }
-  }, [configModels]);
+  }, [configModels, updateRAGSettings]);
   
   // Refetch model settings when Settings Overview tab becomes active for real-time updates
   useEffect(() => {
@@ -1258,12 +1522,31 @@ chatbot.init();`);
     };
     // Replace all messages with just the new user message (show only last query)
     setRagMessages([userMessage]);
+    
+    // Client-side validation before API call
+    const validationError = validateMaxTokens(ragSettings.maxTokens, responseType);
+    if (validationError) {
+      setMaxTokensError(validationError);
+      setIsTyping(false);
+      const errorMessage: Message = {
+        type: "assistant",
+        content: `Validation Error: ${validationError}`,
+        timestamp: new Date(),
+      };
+      setRagMessages([userMessage, errorMessage]);
+      return;
+    }
+    
+    // Clear any previous errors
+    setMaxTokensError(null);
+    setRagSearchError("");
+    
     setIsTyping(true);
     setPendingResponse("Searching with RAG settings...");
     const startTime = Date.now();
 
     try {
-      const searchResponse = await searchAsync(query, ragSettings);
+      const searchResponse = await searchAsync(query, ragSettings, responseType);
       const latency = Date.now() - startTime;
       const tokensUsed = searchResponse.answer?.split(' ').length || 0;
       const documentsRetrieved = searchResponse.sources?.length || 0;
@@ -1278,15 +1561,9 @@ chatbot.init();`);
       });
 
       setIsTyping(false);
-      setIsStreaming(true);
-      setStreamingContent("");
       setPendingResponse(null);
 
       const responseContent = searchResponse.answer || "No answer from API";
-      await simulateStreamingResponse(responseContent, (content) => {
-        setStreamingContent(content);
-      });
-
       const serverMessage = searchResponse.message || "";
       const { topK: actualTopK, reranker: actualReranker } = extractTopKFromMessage(serverMessage);
       const ragSources = searchResponse.sources || [];
@@ -1310,24 +1587,36 @@ chatbot.init();`);
         sessionId: searchResponse.session_id,
       };
 
-      // Replace messages with just user message and new assistant response (show only last response)
+      // Replace messages with just user message and new assistant response (show immediately)
       setRagMessages([userMessage, assistantMessage]);
       setIsStreaming(false);
       setStreamingContent("");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Search API call failed:", error);
       setIsTyping(false);
       setIsStreaming(false);
       setPendingResponse(null);
+      
+      // Handle backend validation errors (400 status)
+      let errorContent = `Sorry, I encountered an error while searching: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`;
+      
+      if (error?.response?.status === 400) {
+        const errorDetail = error?.response?.data?.detail || error?.message;
+        if (errorDetail) {
+          errorContent = `Validation Error: ${errorDetail}`;
+          setMaxTokensError(errorDetail);
+        }
+      }
+      
       const errorMessage: Message = {
         type: "assistant",
-        content: `Sorry, I encountered an error while searching: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+        content: errorContent,
         timestamp: new Date(),
       };
       // Replace messages with just user message and error message (show only last response)
       setRagMessages([userMessage, errorMessage]);
     }
-  }, [ragSettings, searchAsync, updateMetrics]);
+  }, [ragSettings, searchAsync, updateMetrics, validateMaxTokens, responseType]);
 
   const clearRagChat = async () => {
     try {
@@ -1340,29 +1629,45 @@ chatbot.init();`);
     setCurrentSessionId(undefined);
   };
 
-  // Fetch suggestions for RAG
-  const { data: suggestionsData, isLoading: isLoadingSuggestions } = useQuery({
-    queryKey: ['suggestions'],
-    queryFn: suggestionsAPI.getSuggestions,
-    staleTime: 0,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-  });
 
-  const exampleQueries = useMemo(() => {
-    if (suggestionsData?.suggestions && suggestionsData.suggestions.length > 0) {
-      return suggestionsData.suggestions;
+  // Handle search input validation
+  const handleRagSearchInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setRagSearchInput(value);
+    if (value.length > 0 && value.length < 3) {
+      setRagSearchError("Please enter at least 3 characters");
+    } else {
+      setRagSearchError("");
     }
-    return [
-      "How do I configure authentication?",
-      "What are the API rate limits?",
-      "How to troubleshoot deployment issues?",
-      "Best practices for data backup",
-    ];
-  }, [suggestionsData]);
+  }, []);
+
+  // Handle search submit
+  const handleRagSearchSubmit = useCallback((e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const query = ragSearchInput.trim();
+    if (query.length < 3) {
+      setRagSearchError("Please enter at least 3 characters");
+      return;
+    }
+    setRagSearchError("");
+    handleRagQuery(query);
+  }, [ragSearchInput, handleRagQuery]);
+
+  // Handle clear search
+  const handleRagSearchClear = useCallback(() => {
+    setRagSearchInput("");
+    setRagSearchError("");
+  }, []);
+
+  // Suggestions removed - no API connectivity
+  // Keep UI place but don't fetch from API
+  const isLoadingSuggestions = false;
+  const exampleQueries: string[] = [];
 
   // Check if widget customization tab is active for overflow override
-  const isWidgetCustomizationTab = settingsSubTab === 'widget-customization';
+  const isWidgetCustomizationTab = settingsSubTab === 'search-customization';
+  const isConfigurationTab = settingsSubTab === 'search-configuration';
+  const shouldShowOverflow = isWidgetCustomizationTab || isConfigurationTab;
   
   return (
     <div className="relative">
@@ -1370,7 +1675,7 @@ chatbot.init();`);
         className="relative z-10 space-y-6 w-full max-w-full min-w-0 p-0 sm:p-6" 
         style={{ 
           maxWidth: '92vw',
-          overflow: isWidgetCustomizationTab ? 'visible' : 'hidden'
+          overflow: shouldShowOverflow ? 'visible' : 'hidden'
         }}
       >
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 lg:gap-0 lg:justify-between">
@@ -1780,7 +2085,29 @@ chatbot.init();`);
                       <Label htmlFor="response-type">Response Type</Label>
                       <Select 
                         value={responseType} 
-                        onValueChange={(value: "long" | "short") => setResponseType(value)}
+                        onValueChange={(value: "long" | "short") => {
+                          const newType = value as "long" | "short";
+                          setResponseType(newType);
+                          
+                          // If maxTokens is set and below new minimum, auto-adjust to minimum
+                          if (ragSettings.maxTokens !== null && ragSettings.maxTokens !== undefined && ragSettings.maxTokens > 0) {
+                            const minRequired = newType === 'long' ? 400 : 200;
+                            
+                            if (ragSettings.maxTokens < minRequired) {
+                              // Auto-adjust to minimum
+                              updateRAGSettings({ maxTokens: minRequired });
+                              setMaxTokensError(null); // Clear error after auto-adjust
+                            } else {
+                              // Validate the current value with new type
+                              const validationError = validateMaxTokens(ragSettings.maxTokens, newType);
+                              if (validationError) {
+                                setMaxTokensError(validationError);
+                              } else {
+                                setMaxTokensError(null);
+                              }
+                            }
+                          }
+                        }}
                         disabled={isSavingResponseConfig}
                       >
                         <SelectTrigger id="response-type" className="mt-2">
@@ -2123,28 +2450,28 @@ chatbot.init();`);
                         variant="ghost"
                         className={cn(
                           "w-full justify-start border border-transparent transition-[background-color,border-color,color]",
-                          settingsSubTab === "chatbot-configuration"
+                          settingsSubTab === "search-configuration"
                             ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
                             : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
                         )}
-                        onClick={(e) => handleTabClick(e, "chatbot-configuration")}
+                        onClick={(e) => handleTabClick(e, "search-configuration")}
                         {...preventScrollOnClick}
                       >
-                        <MessageSquare className="h-4 w-4 mr-2" />
+                        <Search className="h-4 w-4 mr-2" />
                         Configuration
                       </Button>
                       <Button
                         variant="ghost"
                         className={cn(
                           "w-full justify-start border border-transparent transition-[background-color,border-color,color]",
-                          settingsSubTab === "widget-customization"
+                          settingsSubTab === "search-customization"
                             ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
                             : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
                         )}
-                        onClick={(e) => handleTabClick(e, "widget-customization")}
+                        onClick={(e) => handleTabClick(e, "search-customization")}
                         {...preventScrollOnClick}
                       >
-                        <Bot className="h-4 w-4 mr-2" />
+                        <Settings className="h-4 w-4 mr-2" />
                          Customization
                       </Button>
                     </div>
@@ -2208,14 +2535,14 @@ chatbot.init();`);
                           size="sm"
                           className={cn(
                             "flex items-center gap-2 justify-start h-9 text-xs border border-transparent transition-[background-color,border-color,color]",
-                            settingsSubTab === "chatbot-configuration"
+                            settingsSubTab === "search-configuration"
                               ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
                               : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
                           )}
-                          onClick={(e) => handleTabClick(e, "chatbot-configuration")}
+                          onClick={(e) => handleTabClick(e, "search-configuration")}
                           {...preventScrollOnClick}
                         >
-                          <MessageSquare className="h-3 w-3 flex-shrink-0" />
+                          <Search className="h-3 w-3 flex-shrink-0" />
                           <span className="truncate">Config</span>
                         </Button>
                         <Button
@@ -2223,14 +2550,14 @@ chatbot.init();`);
                           size="sm"
                           className={cn(
                             "flex items-center gap-2 justify-start h-9 text-xs border border-transparent transition-[background-color,border-color,color]",
-                            settingsSubTab === "widget-customization"
+                            settingsSubTab === "search-customization"
                               ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
                               : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
                           )}
-                          onClick={(e) => handleTabClick(e, "widget-customization")}
+                          onClick={(e) => handleTabClick(e, "search-customization")}
                           {...preventScrollOnClick}
                         >
-                          <Bot className="h-3 w-3 flex-shrink-0" />
+                          <Settings className="h-3 w-3 flex-shrink-0" />
                           <span className="truncate">Custom</span>
                         </Button>
                       </div>
@@ -2244,8 +2571,8 @@ chatbot.init();`);
                         <TabsTrigger value="overview">Overview</TabsTrigger>
                         <TabsTrigger value="models">Models Setting</TabsTrigger>
                         <TabsTrigger value="citations">Citation Formatting</TabsTrigger>
-                        <TabsTrigger value="chatbot-configuration">Configuration</TabsTrigger>
-                        <TabsTrigger value="widget-customization">Widget Customization</TabsTrigger>
+                        <TabsTrigger value="search-configuration">Configuration</TabsTrigger>
+                        <TabsTrigger value="search-customization">Customization</TabsTrigger>
                       </TabsList>
 
                       {/* Overview Tab */}
@@ -2610,8 +2937,18 @@ chatbot.init();`);
                                     <div className="flex items-center gap-2">
                                       <Slider
                                         value={[ragSettings.maxTokens]}
-                                        onValueChange={(value) => updateRAGSettings({ maxTokens: value[0] })}
-                                        min={0}
+                                        onValueChange={(value) => {
+                                          const newValue = value[0];
+                                          updateRAGSettings({ maxTokens: newValue });
+                                          // Clear error when user changes value
+                                          if (maxTokensError) {
+                                            const validationError = validateMaxTokens(newValue, responseType);
+                                            if (!validationError) {
+                                              setMaxTokensError(null);
+                                            }
+                                          }
+                                        }}
+                                        min={responseType === 'long' ? 400 : 200}
                                         max={1000}
                                         step={50}
                                         data-testid="slider-max-tokens"
@@ -2620,8 +2957,16 @@ chatbot.init();`);
                                       <Badge variant="outline" className="text-xs w-20 text-center">{ragSettings.maxTokens === 0 ? "Unlimited" : ragSettings.maxTokens}</Badge>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                      Maximum length of generated responses (0 = unlimited, max 1000)
+                                      {responseType === 'long' 
+                                        ? 'Minimum: 400 tokens (for LONG responses). 0 = unlimited, max 1000'
+                                        : 'Minimum: 200 tokens (for SHORT responses). 0 = unlimited, max 1000'
+                                      }
                                     </p>
+                                    {maxTokensError && (
+                                      <p className="text-xs text-destructive mt-1" role="alert">
+                                        ⚠️ {maxTokensError}
+                                      </p>
+                                    )}
                                   </div>
 
                                   <div className="flex items-center justify-between">
@@ -2648,18 +2993,19 @@ chatbot.init();`);
                                       const apiKeyToSave = modelApiKey;
                                       await saveConfigModelsAsync({
                                         model_provider: modelProvider,
-                                        chat_model: chatModel,
+                                        search_model: chatModel, // Use search_model for search configuration
                                         embedding_model: embeddingModel,
                                         api_key: apiKeyToSave,
-                                        chat_temperature: temperature,
-                                        chat_top_p: topP,
-                                        chat_best_of: bestOf,
-                                        chat_frequency_penalty: frequencyPenalty,
-                                        chat_presence_penalty: presencePenalty,
-                                        chat_top_k: topK,
-                                        chat_similarity_threshold: similarityThreshold,
-                                        chat_max_tokens: maxTokens,
-                                        chat_use_reranker: useReranker,
+                                        search_temperature: temperature, // Use search_temperature for search configuration
+                                        search_top_p: topP, // Use search_top_p for search configuration
+                                        search_best_of: bestOf, // Use search_best_of for search configuration
+                                        search_frequency_penalty: frequencyPenalty, // Use search_frequency_penalty for search configuration
+                                        search_presence_penalty: presencePenalty, // Use search_presence_penalty for search configuration
+                                        search_top_k: ragSettings.topK, // Use search_top_k from RAG settings
+                                        search_similarity_threshold: ragSettings.similarityThreshold, // Use search_similarity_threshold from RAG settings
+                                        search_max_tokens: ragSettings.maxTokens, // Use search_max_tokens from RAG settings
+                                        search_use_reranker: ragSettings.useReranker, // Use search_use_reranker from RAG settings
+                                        response_type: responseType, // Include response_type
                                       });
                                       // Keep the API key in state after saving
                                       // This ensures it remains visible even after the query refetches
@@ -2833,18 +3179,6 @@ chatbot.init();`);
                     />
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="text-sm font-medium">Enable Hover Effects</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Add hover animations
-                      </p>
-                    </div>
-                    <Switch
-                      checked={formatting.enableHover}
-                      onCheckedChange={(checked: boolean) => updateFormatting({ enableHover: checked })}
-                    />
-                  </div>
                 </div>
 
                 {/* Snippet Length */}
@@ -2937,735 +3271,613 @@ chatbot.init();`);
             </GlassCard>
                       </TabsContent>
 
-                      {/* Chatbot Configuration Tab */}
-                      <TabsContent value="chatbot-configuration" className="space-y-6 w-full chatbot-configuration-tab">
-                        <style>{`
-                          .chatbot-configuration-tab button {
-                            scroll-margin: 0 !important;
-                          }
-                          .chatbot-configuration-tab button:focus {
-                            scroll-margin: 0 !important;
-                          }
-                          .chatbot-configuration-tab button:focus-visible {
-                            scroll-margin: 0 !important;
-                          }
-                        `}</style>
-                        <div ref={configurationRef} className="grid gap-6 grid-cols-1 lg:grid-cols-2 lg:items-start">
+                      {/* Search Configuration Tab */}
+                      <TabsContent value="search-configuration" className="w-full search-configuration-tab" style={{ overflow: 'visible' }}>
+                        <div ref={configurationRef} className="grid gap-4 grid-cols-1 lg:grid-cols-2 items-start" style={{ overflow: 'visible' }}>
                           {/* Left: Configuration Controls */}
                           <div className="space-y-6">
                             <GlassCard>
                               <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                  <MessageSquare className="h-5 w-5" />
-                                  Configuration
+                                  <Search className="h-5 w-5" />
+                                  Search Box Configuration
+                                  {isLoadingSearchConfig && (
+                                    <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                                  )}
                                 </CardTitle>
                                 <CardDescription>
-                                  Configure your chatbot's basic settings and behavior
+                                  Configure your search box settings and appearance
                                 </CardDescription>
                               </CardHeader>
                               <CardContent className="space-y-6">
-                                <div>
-                                  <Label htmlFor="chatbot-title">
-                                    Chatbot Title
-                                  </Label>
+                                {isLoadingSearchConfig ? (
+                                  <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                    <span className="ml-2 text-sm text-muted-foreground">Loading configuration...</span>
+                                  </div>
+                                ) : (
+                                  <>
+                              <div>
+                                <Label htmlFor="search-title">
+                                  Title
+                                </Label>
+                                <Input
+                                  id="search-title"
+                                  type="text"
+                                  value={searchTitle}
+                                  onChange={(e) => setSearchTitle(e.target.value)}
+                                  placeholder="Search Box"
+                                  className="mt-2"
+                                />
+                              </div>
+
+                              <div>
+                                <Label htmlFor="search-language">
+                                  Language
+                                </Label>
+                                <Select value={searchLanguage} onValueChange={setSearchLanguage}>
+                                  <SelectTrigger id="search-language" className="mt-2">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="en">English</SelectItem>
+                                    <SelectItem value="es">Spanish</SelectItem>
+                                    <SelectItem value="fr">French</SelectItem>
+                                    <SelectItem value="de">German</SelectItem>
+                                    <SelectItem value="ja">Japanese</SelectItem>
+                                    <SelectItem value="zh">Chinese</SelectItem>
+                                    <SelectItem value="pt">Portuguese</SelectItem>
+                                    <SelectItem value="it">Italian</SelectItem>
+                                    <SelectItem value="ru">Russian</SelectItem>
+                                    <SelectItem value="ar">Arabic</SelectItem>
+                                    <SelectItem value="hi">Hindi</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div>
+                                <Label htmlFor="search-style-option">
+                                  Select Style
+                                </Label>
+                                <p className="text-xs text-muted-foreground mt-1 mb-2">
+                                  Select Style of the search box and results (Default style is the default as per existing website color scheme)
+                                </p>
+                                <Select value={searchStyleOption} onValueChange={setSearchStyleOption}>
+                                  <SelectTrigger id="search-style-option" className="mt-2">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="default">Default</SelectItem>
+                                    <SelectItem value="plugin">Customize Style</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+
+                              <div>
+                                <Label htmlFor="search-icon">
+                                  Search Icon
+                                </Label>
+                                <Select value={searchIcon} onValueChange={setSearchIcon}>
+                                  <SelectTrigger id="search-icon" className="mt-2">
+                                    <SelectValue>
+                                      <div className="flex items-center gap-2">
+                                        {searchIcon === 'search' && <Search className="h-4 w-4" />}
+                                        {searchIcon === 'scan' && <ScanSearch className="h-4 w-4" />}
+                                        {searchIcon === 'sparkles' && <Sparkles className="h-4 w-4" />}
+                                        <span>{searchIcon === 'search' ? 'Search' : searchIcon === 'scan' ? 'Scan' : 'Sparkles'}</span>
+                                      </div>
+                                    </SelectValue>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="search">
+                                      <div className="flex items-center gap-2">
+                                        <Search className="h-4 w-4" />
+                                        <span>Search</span>
+                                      </div>
+                                    </SelectItem>
+                                    <SelectItem value="scan">
+                                      <div className="flex items-center gap-2">
+                                        <ScanSearch className="h-4 w-4" />
+                                        <span>Scan</span>
+                                      </div>
+                                    </SelectItem>
+                                    <SelectItem value="sparkles">
+                                      <div className="flex items-center gap-2">
+                                        <Sparkles className="h-4 w-4" />
+                                        <span>Sparkles</span>
+                                      </div>
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div>
+                                <Label htmlFor="search-loader-type">
+                                  Select Loader
+                                </Label>
+                                <Select value={searchLoaderType} onValueChange={setSearchLoaderType}>
+                                  <SelectTrigger id="search-loader-type" className="mt-2">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="skeleton">Skeleton</SelectItem>
+                                    <SelectItem value="typing">Typing Loader</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div>
+                                <Label htmlFor="search-background-color">
+                                  Background
+                                </Label>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <input
+                                    type="color"
+                                    value={searchBackgroundColor}
+                                    onChange={(e) => setSearchBackgroundColor(e.target.value)}
+                                    className="h-10 w-16 cursor-pointer rounded border border-input"
+                                    style={{ 
+                                      appearance: 'none',
+                                      WebkitAppearance: 'none',
+                                      MozAppearance: 'none',
+                                    }}
+                                  />
                                   <Input
-                                    id="chatbot-title"
+                                    id="search-background-color"
                                     type="text"
-                                    value={chatbotTitle}
-                                    onChange={(e) => setChatbotTitle(e.target.value)}
-                                    placeholder="RAGSuite Demo"
-                                    className="mt-2"
+                                    value={searchBackgroundColor}
+                                    onChange={(e) => setSearchBackgroundColor(e.target.value)}
+                                    className="flex-1 font-mono"
+                                    placeholder="#d5d4d4"
                                   />
                                 </div>
+                              </div>
 
-                                <div>
-                                  <Label htmlFor="bubble-message">
-                                    Bubble Message
-                                  </Label>
-                                  <Input
-                                    id="bubble-message"
-                                    type="text"
-                                    value={bubbleMessage}
-                                    onChange={(e) => setBubbleMessage(e.target.value)}
-                                    placeholder="Bubble Message"
-                                    className="mt-2"
-                                  />
-                                </div>
 
-                                <div>
-                                  <Label htmlFor="welcome-message">
-                                    Welcome Message
-                                  </Label>
-                                  <Input
-                                    id="welcome-message"
-                                    type="text"
-                                    value={welcomeMessage}
-                                    onChange={(e) => setWelcomeMessage(e.target.value)}
-                                    placeholder="Hi, how can I help you?"
-                                    className="mt-2"
-                                  />
-                                </div>
+                              <div>
+                                <Label htmlFor="search-border-radius">
+                                  Border Radius
+                                </Label>
+                                <Select value={searchBorderRadius} onValueChange={setSearchBorderRadius}>
+                                  <SelectTrigger id="search-border-radius" className="mt-2">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="rounded">Rounded</SelectItem>
+                                    <SelectItem value="medium-rounded">Medium Rounded</SelectItem>
+                                    <SelectItem value="semi-rounded">Semi Rounded</SelectItem>
+                                    <SelectItem value="square">Square</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
 
-                                <div>
-                                  <Label htmlFor="chatbot-language">
-                                    Chatbot Language
-                                  </Label>
-                                  <Select value={chatbotLanguage} onValueChange={setChatbotLanguage}>
-                                    <SelectTrigger id="chatbot-language" className="mt-2">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="en">English</SelectItem>
-                                      <SelectItem value="es">Spanish</SelectItem>
-                                      <SelectItem value="fr">French</SelectItem>
-                                      <SelectItem value="de">German</SelectItem>
-                                      <SelectItem value="ja">Japanese</SelectItem>
-                                      <SelectItem value="zh">Chinese</SelectItem>
-                                      <SelectItem value="pt">Portuguese</SelectItem>
-                                      <SelectItem value="it">Italian</SelectItem>
-                                      <SelectItem value="ru">Russian</SelectItem>
-                                      <SelectItem value="ar">Arabic</SelectItem>
-                                      <SelectItem value="hi">Hindi</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-
-                                <Button
-                                  type="button"
-                                  onClick={async (e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    try {
-                                      // Save configuration to API
-                                      await saveConfigurationAsync({
-                                        chatbot_title: chatbotTitle,
-                                        short_description: "",
-                                        bubble_message: bubbleMessage,
-                                        welcome_message: welcomeMessage,
-                                        chatbot_language: chatbotLanguage,
-                                      });
-                                      
-                                      // Note: orgName should come from Settings, not from Chatbot Configuration
-                                      // Do not update BrandingContext orgName here
-                                    } catch (error) {
-                                      console.error("Failed to save configuration:", error);
-                                      // Error toast is handled in the hook
-                                    }
-                                  }}
-                                  {...preventScrollOnClick}
-                                  className="w-auto min-w-[200px]"
-                                  disabled={isSavingConfiguration || isLoadingChatbotSettings}
-                                >
-                                  <Save className="h-4 w-4 mr-2" />
-                                  {isSavingConfiguration ? "Saving..." : "Save Configuration"}
-                                </Button>
-                              </CardContent>
-                            </GlassCard>
+                              <Button
+                                type="button"
+                                onClick={async (e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  saveConfigMutation.mutate({
+                                    title: searchTitle,
+                                    language: searchLanguage,
+                                    styleOption: searchStyleOption,
+                                    searchIcon: searchIcon,
+                                    loaderType: searchLoaderType,
+                                    background: searchBackgroundColor,
+                                    borderRadius: searchBorderRadius,
+                                    resultStyle: searchResultStyle,
+                                  });
+                                }}
+                                {...preventScrollOnClick}
+                                className="w-auto min-w-[200px]"
+                                disabled={saveConfigMutation.isPending || isLoadingSearchConfig}
+                              >
+                                <Save className="h-4 w-4 mr-2" />
+                                {saveConfigMutation.isPending ? "Saving..." : "Save Configuration"}
+                              </Button>
+                                  </>
+                                )}
+                            </CardContent>
+                          </GlassCard>
                           </div>
 
-                          {/* Right: Live Preview */}
-                          <StickyLivePreview
-                            isWidgetOpen={isWidgetOpen}
-                            onWidgetToggle={() => setIsWidgetOpen(!isWidgetOpen)}
-                            settingsSubTab={settingsSubTab}
-                            previewOverrides={{
-                              widgetLogoUrl,
-                              widgetAvatar,
-                              widgetAvatarSize,
-                              widgetChatbotColor,
-                              widgetShowLogo,
-                              widgetShowDateTime,
-                              widgetBottomSpace,
-                              widgetFontSize,
-                              widgetTriggerBorderRadius,
-                              widgetPosition,
-                              widgetZIndex,
-                              widgetOffsetX,
-                              widgetOffsetY,
-                              orgName: orgNameGlobal,
-                              chatbotTitle: chatbotTitle || undefined,
-                              bubbleMessage: bubbleMessage || undefined,
-                              welcomeMessage: welcomeMessage || undefined,
+                          {/* Right: Live Preview - Sticky */}
+                          <div
+                            style={{
+                              position: 'sticky',
+                              top: '24px',
+                              alignSelf: 'flex-start',
+                              width: '100%',
+                              overflow: 'visible',
+                              zIndex: 10,
+                              height: 'fit-content',
+                              maxHeight: 'calc(100vh - 48px)',
                             }}
-                            minHeight={650}
-                          />
+                            className="sticky-live-preview-wrapper"
+                          >
+                            <SearchBarLivePreview
+                              settingsSubTab={settingsSubTab}
+                              previewOverrides={{
+                                title: searchTitle,
+                                styleOption: searchStyleOption,
+                                searchIcon: searchIcon,
+                                loaderType: searchLoaderType,
+                                secondaryColor: searchBackgroundColor,
+                                borderRadius: searchBorderRadius,
+                                resultStyle: searchResultStyle,
+                                searchFormType: searchFormType,
+                                buttonType: searchButtonType,
+                                searchButtonText: searchButtonText,
+                                searchInputPlaceholder: searchInputPlaceholder,
+                                recentSearch: searchRecentSearch,
+                                recentSearchTitle: searchRecentSearchTitle,
+                                predefinedQuestions: searchPredefinedQuestions,
+                                questionsList: searchQuestionsList,
+                                questionsPosition: searchQuestionsPosition,
+                                questionsLimit: searchQuestionsLimit,
+                                citationFormatting: searchCitationFormatting ? {
+                                  colorScheme: searchCitationFormatting.colorScheme,
+                                  layout: searchCitationFormatting.layout,
+                                  showSourceCount: searchCitationFormatting.showSourceCount,
+                                } : undefined,
+                              }}
+                              minHeight={650}
+                            />
+                          </div>
                         </div>
                       </TabsContent>
 
-                      {/* Widget Customization Tab */}
-                      <TabsContent value="widget-customization" className="w-full widget-customization-tab" style={{ overflow: 'visible' }}>
+                      {/* Search Customization Tab */}
+                      <TabsContent value="search-customization" className="w-full search-customization-tab" style={{ overflow: 'visible' }}>
                         <div ref={widgetCustomizationRef} className="grid gap-4 grid-cols-1 lg:grid-cols-2 items-start" style={{ overflow: 'visible' }}>
                           {/* Left: Customization Controls */}
-                          <div className="space-y-3">
-                                <GlassCard className="border-border/50 bg-card/50 backdrop-blur-sm">
-                              <CardHeader className="border-b border-border/50 pb-2">
-                                <CardTitle className="flex items-center gap-2 text-base font-medium">
-                                  Upload Logo
-                      
+                          <div className="space-y-6">
+                            <GlassCard>
+                              <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                  <Settings className="h-5 w-5" />
+                                  Search Box Customization
+                                  {isLoadingSearchCustomization && (
+                                    <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                                  )}
                                 </CardTitle>
+                                <CardDescription>
+                                  Customize your search box form and behavior settings
+                                </CardDescription>
                               </CardHeader>
-                              <CardContent className="space-y-2 pt-3">
-                                <input
-                                  ref={widgetLogoFileRef}
-                                  type="file"
-                                  accept="image/*"
-                                  className="hidden"
-                                  onChange={handleWidgetLogoChange}
-                                />
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      widgetLogoFileRef.current?.click();
-                                    }}
-                                    className="flex-shrink-0"
-                                  >
-                                    Choose file
-                                  </Button>
+                              <CardContent className="space-y-6">
+                                {isLoadingSearchCustomization ? (
+                                  <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                    <span className="ml-2 text-sm text-muted-foreground">Loading customization...</span>
+                                  </div>
+                                ) : (
+                                  <>
+                              <div>
+                                <Label htmlFor="search-form-type">
+                                  Search Form Type
+                                </Label>
+                                <Select value={searchFormType} onValueChange={setSearchFormType}>
+                                  <SelectTrigger id="search-form-type" className="mt-2">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="default">Default</SelectItem>
+                                    <SelectItem value="withBtn">With Button</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div>
+                                <Label htmlFor="search-button-type">
+                                  Button Type
+                                </Label>
+                                <Select value={searchButtonType} onValueChange={setSearchButtonType}>
+                                  <SelectTrigger id="search-button-type" className="mt-2">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="icon">Search Icon</SelectItem>
+                                    <SelectItem value="withLabel">With Label</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              {searchButtonType === "withLabel" && (
+                                <div>
+                                  <Label htmlFor="search-button-text">
+                                    Search Button Text
+                                  </Label>
                                   <Input
+                                    id="search-button-text"
                                     type="text"
-                                    readOnly
-                                    value={widgetLogoFileName || "No file chosen"}
-                                    className="flex-1 text-sm text-muted-foreground"
-                                    placeholder="No file chosen"
+                                    value={searchButtonText}
+                                    onChange={(e) => setSearchButtonText(e.target.value)}
+                                    placeholder="Search"
+                                    className="mt-2"
                                   />
-                                  {widgetLogoUrl && (
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        handleRemoveWidgetLogo();
-                                      }}
-                                      className="flex-shrink-0 text-destructive hover:text-destructive"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  )}
                                 </div>
-                                {widgetLogoUrl && (
-                                  <div className="mt-2 pt-2 border-t">
-                                    <div className="flex items-center gap-2">
-                                      <Label className="text-xs text-muted-foreground">Preview:</Label>
-                                      <div className="flex items-center justify-center p-1.5 border rounded bg-muted/30">
-                                        <img
-                                          src={widgetLogoUrl}
-                                          alt="Widget logo preview"
-                                          className="max-h-8 max-w-20 object-contain"
-                                        />
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </CardContent>
-                            </GlassCard>
+                              )}
 
-                            <GlassCard className="border-border/50 bg-card/50 backdrop-blur-sm">
-                              <CardHeader className="border-b border-border/50 pb-2">
-                                <CardTitle className="text-base font-medium">Avatar</CardTitle>
-                              </CardHeader>
-                              <CardContent className="space-y-2 pt-3">
-                                <div className="flex flex-wrap gap-1 items-center justify-between">
-                                  <div className="flex flex-wrap gap-1">
-                                    {avatarOptions.map((avatar) => (
-                                        <Button
-                                          type="button"
-                                          key={avatar.id}
-                                          variant="outline"
-                                          size="sm"
-                                          className={cn(
-                                            "h-10 w-10 p-0 relative rounded-full",
-                                            widgetAvatar === avatar.id && "ring-2 ring-primary"
-                                          )}
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            setWidgetAvatar(avatar.id);
-                                            // Don't update BrandingContext - only update on save
-                                          }}
-                                          onMouseDown={(e) => {
-                                            // Prevent focus which can cause scrolling
-                                            e.preventDefault();
-                                          }}
-                                        >
-                                        {avatar.image ? (
-                                          <img
-                                            src={avatar.image}
-                                            alt={avatar.name || "Avatar"}
-                                            className="w-full h-full object-cover rounded-full"
-                                          />
-                                        ) : (
-                                          <span className="text-2xl">🤖</span>
-                                        )}
-                                      </Button>
-                                    ))}
-                                    {/* Show uploaded custom avatar as a selectable option */}
-                                    {isCustomAvatar && (
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        className={cn(
-                                          "h-10 w-10 p-0 relative rounded-full overflow-hidden",
-                                          isCustomAvatar && widgetAvatar && !widgetAvatar.startsWith("default-") && "ring-2 ring-primary"
-                                        )}
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          // Keep the custom avatar selected
-                                        }}
-                                        onMouseDown={(e) => {
-                                          e.preventDefault();
-                                        }}
-                                        title="Custom avatar"
-                                      >
-                                        <img
-                                          src={widgetAvatar}
-                                          alt="Custom avatar"
-                                          className="h-full w-full object-cover"
-                                        />
-                                      </Button>
-                                    )}
-                                    <input
-                                      ref={widgetAvatarFileRef}
-                                      type="file"
-                                      accept="image/*"
-                                      className="hidden"
-                                      onChange={handleWidgetAvatarChange}
-                                    />
-                                    <Button 
-                                      type="button"
-                                      variant="outline" 
-                                      size="sm" 
-                                      className="h-10 w-10 p-0 rounded-full"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        widgetAvatarFileRef.current?.click();
-                                      }}
-                                      onMouseDown={(e) => {
-                                        e.preventDefault();
-                                      }}
-                                      onFocus={(e) => {
-                                        e.target.blur();
-                                      }}
-                                    >
-                                      <span className="text-2xl">+</span>
-                                    </Button>
-                                  </div>
-                                  {isCustomAvatar && (
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        handleRemoveCustomAvatar();
-                                      }}
-                                      onMouseDown={(e) => {
-                                        e.preventDefault();
-                                      }}
-                                      onFocus={(e) => {
-                                        e.target.blur();
-                                      }}
-                                      className="h-10 w-10 p-0 text-destructive hover:text-destructive"
-                                      title="Remove custom avatar"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  )}
+                              <div>
+                                <Label htmlFor="search-input-placeholder">
+                                  Search Input Placeholder
+                                </Label>
+                                <Input
+                                  id="search-input-placeholder"
+                                  type="text"
+                                  value={searchInputPlaceholder}
+                                  onChange={(e) => setSearchInputPlaceholder(e.target.value)}
+                                  placeholder="Search using AI..."
+                                  className="mt-2"
+                                />
+                              </div>
+
+                              <div className="flex items-center justify-between py-2">
+                                <div className="space-y-0.5">
+                                  <Label htmlFor="search-recent-search">
+                                    Recent Search
+                                  </Label>
+                                  <p className="text-xs text-muted-foreground">
+                                    Enable recent search history
+                                  </p>
                                 </div>
-                              </CardContent>
-                            </GlassCard>
+                                <Switch
+                                  id="search-recent-search"
+                                  checked={searchRecentSearch}
+                                  onCheckedChange={setSearchRecentSearch}
+                                />
+                              </div>
 
-                            {/* Chatbot Color */}
-                                <GlassCard className="border-border/50 bg-card/50 backdrop-blur-sm">
-                                  <CardHeader className="border-b border-border/50 pb-2">
-                                    <CardTitle className="text-base font-medium">Chatbot Color</CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-3 pt-3">
-                                    {/* Predefined Colors and Custom Color Picker */}
-                                    <div className="flex gap-2 flex-wrap items-center">
-                                      {chatbotColors.map((color) => (
-                                        <Button
-                                          type="button"
-                                          key={color.value}
-                                          variant="outline"
-                                          size="sm"
-                                          className={cn(
-                                            "h-10 w-10 p-0 relative flex-shrink-0",
-                                            widgetChatbotColor === color.value && "ring-2 ring-primary"
-                                          )}
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            setWidgetChatbotColor(color.value);
-                                            // Don't update BrandingContext - only update on save
-                                          }}
-                                          onMouseDown={(e) => {
-                                            // Prevent focus which can cause scrolling
-                                            e.preventDefault();
-                                          }}
-                                        >
-                                          <div
-                                            className="w-full h-full rounded"
-                                            style={{
-                                              backgroundColor: color.value === "gradient" ? undefined : color.color,
-                                              backgroundImage: color.value === "gradient" ? color.color : undefined,
-                                            }}
-                                          />
-                                          {widgetChatbotColor === color.value && (
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                              <Check className="h-4 w-4 text-white drop-shadow-lg" />
-                                            </div>
-                                          )}
-                                        </Button>
-                                      ))}
-                                      {/* Custom Color Picker */}
-                                      <input
-                                        type="color"
-                                        value={widgetChatbotColor.startsWith('#') ? widgetChatbotColor : '#1F2937'}
-                                        onChange={(e) => {
-                                          setWidgetChatbotColor(e.target.value);
-                                        }}
-                                        className="h-10 w-10 cursor-pointer rounded border border-input flex-shrink-0"
-                                        style={{ 
-                                          appearance: 'none',
-                                          WebkitAppearance: 'none',
-                                          MozAppearance: 'none',
-                                        }}
-                                        title="Pick custom color"
-                                      />
-                                    </div>
-                                    
-                                    {/* Custom Gradient Picker */}
-                                    <div className="mt-4 pt-4 border-t border-border/50 space-y-3">
-                                      <Label className="text-sm font-medium">Custom Gradient</Label>
-                                      <div className="space-y-3">
-                                        {/* Gradient Preview */}
-                                        <div 
-                                          className="w-full h-12 rounded border border-input"
-                                          style={{
-                                            backgroundImage: `linear-gradient(${customGradientAngle}deg, ${customGradientColor1} 0%, ${customGradientColor2} 100%)`
-                                          }}
-                                        />
-                                        
-                                        {/* Gradient Color Inputs */}
-                                        <div className="flex gap-3 items-center">
-                                          <div className="flex-1">
-                                            <Label className="text-xs text-muted-foreground mb-1.5 block">Color 1</Label>
-                                            <div className="flex gap-2 items-center">
-                                              <input
-                                                type="color"
-                                                value={customGradientColor1}
-                                                onChange={(e) => setCustomGradientColor1(e.target.value)}
-                                                className="h-8 w-12 cursor-pointer rounded border border-input flex-shrink-0"
-                                                style={{ 
-                                                  appearance: 'none',
-                                                  WebkitAppearance: 'none',
-                                                  MozAppearance: 'none',
-                                                }}
-                                                title="Gradient color 1"
-                                              />
-                                              <Input
-                                                type="text"
-                                                value={customGradientColor1}
-                                                onChange={(e) => setCustomGradientColor1(e.target.value)}
-                                                className="flex-1 h-8 text-xs font-mono"
-                                                placeholder="#667eea"
-                                              />
-                                            </div>
-                                          </div>
-                                          <div className="flex-1">
-                                            <Label className="text-xs text-muted-foreground mb-1.5 block">Color 2</Label>
-                                            <div className="flex gap-2 items-center">
-                                              <input
-                                                type="color"
-                                                value={customGradientColor2}
-                                                onChange={(e) => setCustomGradientColor2(e.target.value)}
-                                                className="h-8 w-12 cursor-pointer rounded border border-input flex-shrink-0"
-                                                style={{ 
-                                                  appearance: 'none',
-                                                  WebkitAppearance: 'none',
-                                                  MozAppearance: 'none',
-                                                }}
-                                                title="Gradient color 2"
-                                              />
-                                              <Input
-                                                type="text"
-                                                value={customGradientColor2}
-                                                onChange={(e) => setCustomGradientColor2(e.target.value)}
-                                                className="flex-1 h-8 text-xs font-mono"
-                                                placeholder="#764ba2"
-                                              />
-                                            </div>
-                                          </div>
-                                        </div>
-                                        
-                                        {/* Gradient Angle */}
-                                        <div>
-                                          <div className="flex items-center justify-between mb-1.5">
-                                            <Label className="text-xs text-muted-foreground">Angle</Label>
-                                            <span className="text-xs text-muted-foreground">{customGradientAngle}°</span>
-                                          </div>
-                                          <Slider
-                                            value={[customGradientAngle]}
-                                            onValueChange={(value) => setCustomGradientAngle(value[0])}
-                                            min={0}
-                                            max={360}
-                                            step={1}
-                                            className="w-full"
-                                          />
-                                        </div>
-                                        
-                                        {/* Apply Button */}
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            handleCustomGradientApply();
-                                          }}
-                                          className="w-full"
-                                        >
-                                          Apply Gradient
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </GlassCard>
+                              {searchRecentSearch && (
+                                <div>
+                                  <Label htmlFor="search-recent-search-title">
+                                    Recent Search Title
+                                  </Label>
+                                  <Input
+                                    id="search-recent-search-title"
+                                    type="text"
+                                    value={searchRecentSearchTitle}
+                                    onChange={(e) => setSearchRecentSearchTitle(e.target.value)}
+                                    placeholder="Recent Searches"
+                                    className="mt-2"
+                                  />
+                                </div>
+                              )}
 
-                            {/* Chatbot Position */}
-                                <GlassCard className="border-border/50 bg-card/50 backdrop-blur-sm">
-                                  <CardHeader className="border-b border-border/50 pb-2">
-                                    <CardTitle className="text-base font-medium">Chatbot Position</CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-2 pt-3">
-                                    <div className="grid grid-cols-2 gap-1.5">
-                                      <Button
-                                        type="button"
-                                        variant={widgetPosition === "bottom-left" ? "default" : "outline"}
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          setWidgetPosition("bottom-left");
-                                          // Don't update BrandingContext - only update on save
-                                        }}
-                                        onMouseDown={(e) => {
-                                          e.preventDefault();
-                                        }}
-                                        onFocus={(e) => {
-                                          e.target.blur();
-                                        }}
-                                        className="h-10 flex flex-row items-center justify-center gap-1.5 px-2"
-                                      >
-                                        <div className="w-5 h-5 border border-current rounded relative">
-                                          <div className="absolute bottom-0 left-0 w-2 h-2 bg-current rounded-full" />
-                                        </div>
-                                        <span className="text-xs">Left</span>
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        variant={widgetPosition === "bottom-right" ? "default" : "outline"}
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          setWidgetPosition("bottom-right");
-                                          // Don't update BrandingContext - only update on save
-                                        }}
-                                        onMouseDown={(e) => {
-                                          e.preventDefault();
-                                        }}
-                                        onFocus={(e) => {
-                                          e.target.blur();
-                                        }}
-                                        className="h-10 flex flex-row items-center justify-center gap-1.5 px-2"
-                                      >
-                                        <div className="w-5 h-5 border border-current rounded relative">
-                                          <div className="absolute bottom-0 right-0 w-2 h-2 bg-current rounded-full" />
-                                        </div>
-                                        <span className="text-xs">Right</span>
-                                      </Button>
-                                    </div>
-                                  </CardContent>
-                                </GlassCard>
+                              <div className="flex items-center justify-between py-2">
+                                <div className="space-y-0.5">
+                                  <Label htmlFor="search-predefined-questions">
+                                    Predefined Questions
+                                  </Label>
+                                  <p className="text-xs text-muted-foreground">
+                                    Show predefined question suggestions
+                                  </p>
+                                </div>
+                                <Switch
+                                  id="search-predefined-questions"
+                                  checked={searchPredefinedQuestions}
+                                  onCheckedChange={setSearchPredefinedQuestions}
+                                />
+                              </div>
 
-                            {/* Options */}
-                                <GlassCard className="border-border/50 bg-card/50 backdrop-blur-sm">
-                                  <CardHeader className="border-b border-border/50 pb-2">
-                                    <CardTitle className="text-base font-medium">Options</CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-2 pt-3">
-                                    <div className="flex items-center justify-between py-1">
-                                      <Label className="text-sm">Show Logo</Label>
-                                      <Switch
-                                        checked={widgetShowLogo}
-                                        onCheckedChange={(checked) => {
-                                          setWidgetShowLogo(checked);
-                                          // Don't update BrandingContext - only update on save
-                                        }}
-                                      />
-                                    </div>
-                                    <div className="flex items-center justify-between py-1">
-                                      <Label className="text-sm">Show Date & Time</Label>
-                                      <Switch
-                                        checked={widgetShowDateTime}
-                                        onCheckedChange={(checked) => {
-                                          setWidgetShowDateTime(checked);
-                                          // Don't update BrandingContext - only update on save
-                                        }}
-                                      />
-                                    </div>
-                                  </CardContent>
-                                </GlassCard>
-
-                                <GlassCard className="border-border/50 bg-card/50 backdrop-blur-sm">
-                                  <CardHeader className="border-b border-border/50 pb-2">
-                                    <CardTitle className="text-base font-medium">Widget Settings</CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-6 pt-3">
-                                    {/* Avatar Size */}
-                                    <div className="space-y-1.5">
-                                      <div className="flex items-center justify-between">
-                                        <Label className="text-sm">Avatar Size: {widgetAvatarSize}px</Label>
-                                      </div>
-                                      <Slider
-                                        value={[widgetAvatarSize]}
-                                        onValueChange={(value) => {
-                                          setWidgetAvatarSize(value[0]);
-                                          // Don't update BrandingContext - only update on save
-                                        }}
-                                        min={15}
-                                        max={100}
-                                        step={1}
-                                      />
-                                    </div>
-
-                                    {/* Widget Bottom Space */}
-                                    <div className="space-y-1.5">
-                                      <div className="flex items-center justify-between">
-                                        <Label className="text-sm">Widget Bottom Space: {widgetBottomSpace}px</Label>
-                                      </div>
-                                      <Slider
-                                        value={[widgetBottomSpace]}
-                                        onValueChange={(value) => {
-                                          setWidgetBottomSpace(value[0]);
-                                          // Don't update BrandingContext - only update on save
-                                        }}
-                                        min={15}
-                                        max={200}
-                                        step={1}
-                                      />
-                                    </div>
-
-                                    {/* Border Radius */}
-                                    <div className="space-y-1.5">
-                                      <div className="flex items-center justify-between">
-                                        <Label className="text-sm">Border Radius: {widgetTriggerBorderRadius}px</Label>
-                                      </div>
-                                      <Slider
-                                        value={[widgetTriggerBorderRadius]}
-                                        onValueChange={(value) => {
-                                          setWidgetTriggerBorderRadius(value[0]);
-                                          // Don't update BrandingContext - only update on save
-                                        }}
-                                        min={0}
+                              {/* Predefined Questions Configuration - Show when enabled */}
+                              {searchPredefinedQuestions && (
+                                <div className="space-y-6 pt-4 border-t">
+                                  {/* No. of questions limit */}
+                                  <div>
+                                    <Label htmlFor="search-questions-limit">
+                                      No. of questions limit
+                                    </Label>
+                                    <div className="relative mt-2">
+                                      <Input
+                                        id="search-questions-limit"
+                                        type="number"
+                                        value={searchQuestionsLimit}
+                                        onChange={(e) => setSearchQuestionsLimit(parseInt(e.target.value) || 0)}
+                                        min={1}
                                         max={50}
-                                        step={1}
+                                        className="pr-8"
                                       />
+                                      {searchQuestionsLimit > 0 && (
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
+                                          onClick={() => setSearchQuestionsLimit(0)}
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                      )}
                                     </div>
-                                  </CardContent>
-                                </GlassCard>
+                                  </div>
 
-                            {/* Save Button */}
+                                  {/* Questions List Management */}
+                                  <div>
+                                    <Label>
+                                      Questions
+                                    </Label>
+                                    <div className="mt-2 space-y-2">
+                                      {/* Add Question Input */}
+                                      <div className="flex gap-2">
+                                        <Input
+                                          placeholder="Enter a question..."
+                                          value={newQuestionText}
+                                          onChange={(e) => setNewQuestionText(e.target.value)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && newQuestionText.trim()) {
+                                              e.preventDefault();
+                                              setSearchQuestionsList([...searchQuestionsList, newQuestionText.trim()]);
+                                              setNewQuestionText("");
+                                            }
+                                          }}
+                                        />
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="icon"
+                                          onClick={() => {
+                                            if (newQuestionText.trim()) {
+                                              setSearchQuestionsList([...searchQuestionsList, newQuestionText.trim()]);
+                                              setNewQuestionText("");
+                                            }
+                                          }}
+                                          disabled={!newQuestionText.trim()}
+                                        >
+                                          <Plus className="h-4 w-4" />
+                                        </Button>
+                                      </div>
 
-                            <GlassCard className="border-border/50 bg-card/50 backdrop-blur-sm">
-                              <CardContent className="pt-3">
-                                <Button
-                                  type="button"
-                                  onClick={async (e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    try {
-                                      // Save all widget customization settings to API
-                                      await saveCustomizationAsync({
-                                        widget_logo_url: widgetLogoUrl || "",
-                                        widget_avatar: widgetAvatar,
-                                        widget_avatar_size: widgetAvatarSize,
-                                        widget_chatbot_color: widgetChatbotColor,
-                                        widget_show_logo: widgetShowLogo,
-                                        widget_show_date_time: widgetShowDateTime,
-                                        widget_bottom_space: widgetBottomSpace,
-                                        widget_trigger_border_radius: widgetTriggerBorderRadius,
-                                        widget_position: widgetPosition,
-                                        widget_z_index: widgetZIndex,
-                                        widget_offset_x: widgetOffsetX,
-                                        widget_offset_y: widgetOffsetY,
-                                      });
-                                      
-                                      // Also update BrandingContext for backward compatibility
-                                      setBranding({
-                                        widgetLogoUrl,
-                                        widgetAvatar,
-                                        widgetAvatarSize,
-                                        widgetChatbotColor,
-                                        widgetShowLogo,
-                                        widgetShowDateTime,
-                                        widgetBottomSpace,
-                                        widgetTriggerBorderRadius,
-                                        widgetPosition,
-                                        widgetZIndex,
-                                        widgetOffsetX,
-                                        widgetOffsetY,
-                                      });
-                                    } catch (error) {
-                                      console.error("Failed to save widget customization:", error);
-                                      // Error toast is handled in the hook
-                                    }
-                                  }}
-                                  {...preventScrollOnClick}
-                                  className="w-auto min-w-[200px]"
-                                  disabled={isSavingCustomization || isLoadingChatbotSettings}
-                                >
-                                  <Save className="h-4 w-4 mr-2" />
-                                  {isSavingCustomization ? "Saving..." : "Save Widget Customization"}
-                                </Button>
-                              </CardContent>
-                            </GlassCard>
+                                      {/* Questions List */}
+                                      {searchQuestionsList.length > 0 && (
+                                        <div className="border rounded-lg">
+                                          <div className="max-h-60 overflow-y-auto">
+                                            {searchQuestionsList.map((question, index) => (
+                                              <div
+                                                key={index}
+                                                className={`flex items-center gap-2 p-2 border-b last:border-b-0 hover:bg-muted/50 ${
+                                                  selectedQuestionIndex === index ? 'bg-muted' : ''
+                                                }`}
+                                                onClick={() => setSelectedQuestionIndex(index)}
+                                              >
+                                                <div className="flex-1 text-sm">{question}</div>
+                                                <div className="flex items-center gap-1">
+                                                  <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-7 w-7"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      if (index > 0) {
+                                                        const newList = [...searchQuestionsList];
+                                                        [newList[index - 1], newList[index]] = [newList[index], newList[index - 1]];
+                                                        setSearchQuestionsList(newList);
+                                                        setSelectedQuestionIndex(index - 1);
+                                                      }
+                                                    }}
+                                                    disabled={index === 0}
+                                                  >
+                                                    <ChevronUp className="h-4 w-4" />
+                                                  </Button>
+                                                  <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-7 w-7"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      if (index < searchQuestionsList.length - 1) {
+                                                        const newList = [...searchQuestionsList];
+                                                        [newList[index], newList[index + 1]] = [newList[index + 1], newList[index]];
+                                                        setSearchQuestionsList(newList);
+                                                        setSelectedQuestionIndex(index + 1);
+                                                      }
+                                                    }}
+                                                    disabled={index === searchQuestionsList.length - 1}
+                                                  >
+                                                    <ChevronDown className="h-4 w-4" />
+                                                  </Button>
+                                                  <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-7 w-7 text-destructive hover:text-destructive"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      const newList = searchQuestionsList.filter((_, i) => i !== index);
+                                                      setSearchQuestionsList(newList);
+                                                      setSelectedQuestionIndex(null);
+                                                    }}
+                                                  >
+                                                    <Trash2 className="h-4 w-4" />
+                                                  </Button>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              <Button
+                                type="button"
+                                onClick={async (e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  saveCustomizationMutation.mutate({
+                                    searchFormType: searchFormType,
+                                    buttonType: searchButtonType,
+                                    searchButtonText: searchButtonText,
+                                    searchInputPlaceholder: searchInputPlaceholder,
+                                    recentSearch: searchRecentSearch,
+                                    recentSearchTitle: searchRecentSearchTitle,
+                                    predefinedQuestions: searchPredefinedQuestions,
+                                    questionsPosition: searchQuestionsPosition,
+                                    questionsLimit: searchQuestionsLimit,
+                                    questions: searchQuestionsList,
+                                  });
+                                }}
+                                {...preventScrollOnClick}
+                                className="w-auto min-w-[200px]"
+                                disabled={saveCustomizationMutation.isPending || isLoadingSearchCustomization}
+                              >
+                                <Save className="h-4 w-4 mr-2" />
+                                {saveCustomizationMutation.isPending ? "Saving..." : "Save Customization"}
+                              </Button>
+                                  </>
+                                )}
+                            </CardContent>
+                          </GlassCard>
                           </div>
 
-                          {/* Right: Live Preview */}
-                          <StickyLivePreview
-                            isWidgetOpen={isWidgetOpen}
-                            onWidgetToggle={() => setIsWidgetOpen(!isWidgetOpen)}
-                            settingsSubTab={settingsSubTab}
-                            previewOverrides={{
-                              widgetLogoUrl,
-                              widgetAvatar,
-                              widgetAvatarSize,
-                              widgetChatbotColor,
-                              widgetShowLogo,
-                              widgetShowDateTime,
-                              widgetBottomSpace,
-                              widgetFontSize,
-                              widgetTriggerBorderRadius,
-                              widgetPosition,
-                              widgetZIndex,
-                              widgetOffsetX,
-                              widgetOffsetY,
-                              orgName: orgNameGlobal,
+                          {/* Right: Live Preview - Sticky */}
+                          <div
+                            style={{
+                              position: 'sticky',
+                              top: '24px',
+                              alignSelf: 'flex-start',
+                              width: '100%',
+                              overflow: 'visible',
+                              zIndex: 10,
+                              height: 'fit-content',
+                              maxHeight: 'calc(100vh - 48px)',
                             }}
-                            minHeight={650}
-                          />
+                            className="sticky-live-preview-wrapper"
+                          >
+                            <SearchBarLivePreview
+                              settingsSubTab={settingsSubTab}
+                              previewOverrides={{
+                                title: searchTitle,
+                                styleOption: searchStyleOption,
+                                searchIcon: searchIcon,
+                                loaderType: searchLoaderType,
+                                secondaryColor: searchBackgroundColor,
+                                borderRadius: searchBorderRadius,
+                                resultStyle: searchResultStyle,
+                                searchFormType: searchFormType,
+                                buttonType: searchButtonType,
+                                searchButtonText: searchButtonText,
+                                searchInputPlaceholder: searchInputPlaceholder,
+                                recentSearch: searchRecentSearch,
+                                recentSearchTitle: searchRecentSearchTitle,
+                                predefinedQuestions: searchPredefinedQuestions,
+                                questionsList: searchQuestionsList,
+                                questionsPosition: searchQuestionsPosition,
+                                questionsLimit: searchQuestionsLimit,
+                                citationFormatting: searchCitationFormatting ? {
+                                  colorScheme: searchCitationFormatting.colorScheme,
+                                  layout: searchCitationFormatting.layout,
+                                  showSourceCount: searchCitationFormatting.showSourceCount,
+                                } : undefined,
+                              }}
+                              minHeight={650}
+                            />
+                          </div>
                         </div>
                       </TabsContent>
                     </Tabs>
@@ -3784,311 +3996,492 @@ chatbot.init();`);
           </TabsContent>
 
           {/* Search Test Tab */}
-          <TabsContent value="search-test" className="space-y-6 w-full overflow-hidden">
-            <div className="relative lg:h-full lg:overflow-hidden">
-              <div className="relative z-10 space-y-6 p-0">
-                <div className="flex flex-col md:flex-row gap-5 md:gap-0 justify-between items-start">
-                  <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Search Test</h2>
-                    <p className="text-muted-foreground">
-                      Test your search configuration with different retrieval and generation settings
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={clearRagChat}
-                      className="flex items-center gap-2"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Clear Chat
-                    </Button>
-                  </div>
-                </div>
+          <TabsContent value="search-test" className="space-y-6 w-full overflow-x-hidden">
+            <div className="space-y-6 w-full min-w-0 max-w-full">
+              {/* Search Box Section */}
+              <GlassCard>
+                <CardContent className="space-y-4 pt-6">
+                  {/* Title from configuration */}
+                  {searchTitle && (
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="relative">
+                        <Search className="h-5 w-5 text-foreground" />
+                        <Sparkles className="h-2.5 w-2.5 text-foreground absolute -top-0.5 -right-0.5" fill="currentColor" />
+                      </div>
+                      <h3 className="text-base font-semibold text-foreground">{searchTitle}</h3>
+                    </div>
+                  )}
 
-                <div className="grid gap-6 lg:grid-cols-3 min-h-0">
-                  {/* Query Interface */}
-                  <div className="lg:col-span-2 space-y-4 min-h-0 flex flex-col">
-                    <GlassCard>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Zap className="h-5 w-5" />
-                          Query Interface
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-5 w-5 animate-spin" /></div>}>
-                          <LazySearchBar
-                            placeholder="Ask about policies, docs, or how-tos..."
-                            onSearch={handleRagQuery}
-                            showSendButton
-                            data-testid="rag-query-input"
-                          />
-                        </Suspense>
+                  <form onSubmit={handleRagSearchSubmit} className="space-y-4 w-full min-w-0">
+                    {/* Get border radius value */}
+                    {(() => {
+                      const getBorderRadiusValue = (borderRadius: string) => {
+                        switch (borderRadius) {
+                          case 'rounded': return '12px';
+                          case 'medium-rounded': return '10px';
+                          case 'semi-rounded': return '8px';
+                          case 'square': return '0px';
+                          default: return '8px';
+                        }
+                      };
+                      // Use saved values in test search
+                      const borderRadiusValue = getBorderRadiusValue(savedSearchBorderRadius || 'semi-rounded');
+                      const searchFormType = savedSearchFormType || 'default';
+                      const showSendButton = searchFormType === 'withBtn';
+                      const showSearchIcon = searchFormType === 'default';
+                      const buttonType = savedSearchButtonType || 'icon';
+                      const showButtonLabel = buttonType === 'withLabel';
+                      const buttonText = savedSearchButtonText || 'Search';
+                      const placeholder = savedSearchInputPlaceholder || 'Search using AI...';
+                      
+                      // Use custom colors when customize style is selected
+                      const isCustomizedStyle = savedSearchStyleOption === 'plugin';
+                      // Wrapper always uses default colors (not custom backgroundColor)
+                      const wrapperBgColor = isDarkMode ? 'var(--tab-bg-default)' : '#f5f5f5';
+                      const innerBgColor = isDarkMode ? '#121212' : '#ffffff';
+                      const inputTextColor = isDarkMode ? '#f9fafb' : '#374151';
+                      // Button uses custom backgroundColor when customized
+                      const buttonBgColor = isCustomizedStyle && savedSearchBackgroundColor 
+                        ? savedSearchBackgroundColor 
+                        : (isDarkMode ? '#3b82f6' : '#1e3a8a');
+                      const buttonTextColor = '#ffffff';
 
-                        {isSearching && (
-                          <TypingIndicator
-                            message="Searching documentation with RAG settings..."
-                            variant="wave"
-                            size="md"
-                          />
-                        )}
+                      // Calculate padding based on icons and buttons
+                      const paddingLeft = showSearchIcon ? '48px' : '16px';
+                      const paddingRight = showSendButton
+                        ? (showButtonLabel
+                          ? (ragSearchInput ? '150px' : '110px')
+                          : (ragSearchInput ? '106px' : '66px'))
+                        : (ragSearchInput ? '50px' : '16px');
 
-                        <div className="space-y-2">
-                          <Label className="text-sm text-muted-foreground">Suggested Questions:</Label>
-                          <div className="flex flex-wrap gap-2">
-                            {isLoadingSuggestions && (
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span>Loading suggestions...</span>
+                      // Get search icon component - Use saved value
+                      const SearchIconComponent = savedSearchIcon === 'scan' ? ScanSearch : savedSearchIcon === 'sparkles' ? Sparkles : Search;
+
+                      return (
+                        <div className="rag-search-form-wrapper w-full min-w-0" style={{
+                          backgroundColor: wrapperBgColor,
+                          borderRadius: borderRadiusValue,
+                          padding: '12px',
+                          boxShadow: isDarkMode ? '0 1px 3px rgba(0, 0, 0, 0.3)' : '0 1px 3px rgba(0, 0, 0, 0.1)'
+                        }}>
+                          <div className="rag-search-form-inner w-full min-w-0" style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            backgroundColor: innerBgColor,
+                            borderRadius: borderRadiusValue,
+                            border: 'none',
+                            overflow: 'hidden',
+                            width: '100%',
+                            position: 'relative',
+                            minHeight: '56px'
+                          }}>
+                            {/* Left search icon when form type is default */}
+                            {showSearchIcon && (
+                              <div style={{
+                                position: 'absolute',
+                                left: '16px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                zIndex: 1,
+                                pointerEvents: 'none'
+                              }}>
+                                <SearchIconComponent className="h-5 w-5" style={{ color: isDarkMode ? '#9ca3af' : '#6b7280' }} />
                               </div>
                             )}
-                            {!isLoadingSuggestions && exampleQueries.map((query, index) => (
-                              <Button
-                                key={index}
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleRagQuery(query)}
-                                data-testid={`example-query-${index}`}
-                                className="text-xs"
-                                disabled={isSearching}
-                              >
+                            <input
+                              type="text"
+                              className="rag-search-input-field"
+                              style={{
+                                flex: '1',
+                                minWidth: '0',
+                                border: 'none',
+                                outline: 'none',
+                                paddingLeft: paddingLeft,
+                                paddingRight: paddingRight,
+                                paddingTop: '14px',
+                                paddingBottom: '14px',
+                                backgroundColor: 'transparent',
+                                color: inputTextColor,
+                                fontSize: '16px',
+                                fontFamily: 'inherit',
+                                wordBreak: 'break-word',
+                                overflowWrap: 'break-word',
+                                lineHeight: '1.5'
+                              }}
+                              placeholder={placeholder}
+                              value={ragSearchInput}
+                              onChange={handleRagSearchInputChange}
+                              maxLength={150}
+                              minLength={3}
+                              autoComplete="off"
+                              data-testid="rag-query-input"
+                            />
+                            <div style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '0',
+                              flexShrink: 0,
+                              position: 'absolute',
+                              right: '0',
+                              height: '100%'
+                            }}>
+                              {ragSearchInput && (
+                                <button
+                                  type="button"
+                                  className="rag-search-clear-button"
+                                  style={{
+                                    width: '50px',
+                                    height: '100%',
+                                    border: 'none',
+                                    background: 'transparent',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '0',
+                                    margin: '0',
+                                    flexShrink: 0,
+                                    borderRadius: showSendButton ? '8px 0 0 8px' : '8px'
+                                  }}
+                                  onClick={handleRagSearchClear}
+                                  aria-label="Clear Search"
+                                >
+                                  <X className="h-5 w-5" style={{ color: isDarkMode ? '#9ca3af' : '#6b7280' }} />
+                                </button>
+                              )}
+                              {showSendButton && (
+                                <button
+                                  type="submit"
+                                  className="rag-search-submit-button"
+                                  style={{
+                                    width: showButtonLabel ? 'auto' : '80px',
+                                    minWidth: showButtonLabel ? '110px' : '80px',
+                                    height: '100%',
+                                    border: 'none',
+                                    background: buttonBgColor,
+                                    borderRadius: ragSearchInput ? `0 ${borderRadiusValue} ${borderRadiusValue} 0` : borderRadiusValue,
+                                    cursor: ragSearchInput.trim().length < 3 || isSearching ? 'not-allowed' : 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: showButtonLabel ? '0 16px' : '0',
+                                    gap: showButtonLabel ? '8px' : '0',
+                                    margin: '0',
+                                    opacity: (ragSearchInput.trim().length < 3 || isSearching) ? 0.6 : 1,
+                                    transition: 'opacity 0.2s, background-color 0.2s, border-radius 0.2s',
+                                    flexShrink: 0,
+                                    boxShadow: 'none'
+                                  }}
+                                  disabled={isSearching || ragSearchInput.trim().length < 3}
+                                  aria-label="Search"
+                                >
+                                  {isSearching ? (
+                                    <Loader2 className="h-5 w-5 animate-spin" style={{ color: buttonTextColor, strokeWidth: '2.5' }} />
+                                  ) : (
+                                    <>
+                                      {showButtonLabel ? (
+                                        <>
+                                          <SearchIconComponent className="h-4 w-4" style={{ color: buttonTextColor, strokeWidth: '2.5' }} />
+                                          <span style={{ color: buttonTextColor, fontSize: '14px', fontWeight: '500' }}>{buttonText}</span>
+                                        </>
+                                      ) : (
+                                        <SearchIconComponent className="h-5 w-5" style={{ color: buttonTextColor, strokeWidth: '2.5' }} />
+                                      )}
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {ragSearchError && (
+                      <div className="text-sm text-destructive">
+                        {ragSearchError}
+                      </div>
+                    )}
+                  </form>
+
+                  {/* Predefined Questions - Only show if enabled */}
+                  {searchPredefinedQuestions && searchQuestionsList.length > 0 && (() => {
+                    // Get border radius value
+                    const getBorderRadiusValue = (borderRadius: string) => {
+                      switch (borderRadius) {
+                        case 'rounded': return '12px';
+                        case 'medium-rounded': return '10px';
+                        case 'semi-rounded': return '8px';
+                        case 'square': return '0px';
+                        default: return '8px';
+                      }
+                    };
+                    const borderRadiusValue = getBorderRadiusValue(searchBorderRadius || 'semi-rounded');
+                    return (
+                      <div className="pt-4 border-t border-border space-y-4 w-full min-w-0">
+                        <p className="text-sm font-semibold text-foreground">
+                          Suggestions
+                        </p>
+                        <div className="flex flex-wrap gap-3 w-full">
+                          {savedSearchQuestionsList.slice(0, savedSearchQuestionsLimit || 5).map((query, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between gap-2 px-4 py-3 bg-muted/30 hover:bg-muted/50 border border-border cursor-pointer transition-all hover:shadow-sm w-full sm:w-auto sm:flex-1 sm:min-w-[200px] sm:max-w-full"
+                              style={{
+                                borderRadius: borderRadiusValue
+                              }}
+                              onClick={() => {
+                                setRagSearchInput(query);
+                                handleRagQuery(query);
+                              }}
+                              data-testid={`example-query-${index}`}
+                            >
+                              <span className="text-sm font-medium flex-1 break-words overflow-wrap-anywhere">
                                 {query}
-                              </Button>
-                            ))}
-                            {!isLoadingSuggestions && exampleQueries.length === 0 && (
-                              <p className="text-sm text-muted-foreground">No suggestions available</p>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </GlassCard>
-
-                    {/* Response Area */}
-                    <GlassCard className="h-[500px] flex flex-col overflow-hidden">
-                      <CardHeader>
-                        <CardTitle>Response</CardTitle>
-                      </CardHeader>
-                      <CardContent className="min-h-0 flex-1 flex flex-col p-0">
-                        <div
-                          data-chat-scroll
-                          className={`chatbot-conversation flex-1 ${(isStreaming || isTyping) ? "overflow-hidden" : "overflow-y-auto"}`}
-                          style={{ padding: '15px' }}
-                        >
-                          {isLoadingRagHistory ? (
-                            <div className="flex items-center justify-center p-8">
-                              <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                              <span className="text-sm text-muted-foreground">Loading chat history...</span>
+                              </span>
+                              <HelpCircle className="h-4 w-4 flex-shrink-0" />
                             </div>
-                          ) : ragMessages.map((message, index) => (
-                            <Suspense key={message.messageId || `${message.timestamp?.getTime()}-${index}`} fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-4 w-4 animate-spin" /></div>}>
-                              <LazyChatMessage
-                                key={message.messageId || `${message.timestamp?.getTime()}-${index}`}
-                                type={message.type}
-                                content={message.content}
-                                citations={message.citations}
-                                timestamp={message.timestamp}
-                                showFeedback={message.type === "assistant"}
-                                messageId={message.messageId}
-                                sessionId={message.sessionId || currentSessionId}
-                                ragSettings={message.ragSettings}
-                                queryString={message.queryString}
-                                serverMessage={message.serverMessage}
-                                actualTopK={message.actualTopK || (message.citations ? message.citations.length : undefined)}
-                                actualReranker={message.actualReranker}
-                                isWidget={true}
-                                widgetAvatar={widgetAvatarGlobal}
-                                widgetAvatarSize={widgetAvatarSizeGlobal}
-                                widgetChatbotColor={widgetChatbotColorGlobal}
-                                widgetShowDateTime={widgetShowDateTimeGlobal}
-                                widgetFontSize={widgetFontSizeGlobal}
-                                avatarOptions={avatarOptions}
-                                citationFormatting={searchCitationFormatting}
-                              />
-                            </Suspense>
                           ))}
-
-                          {/* Typing Animation */}
-                          {isTyping && (
-                            <div className="chatbot-message bot-message">
-                              <div className="chatbot-message__avatar">
-                                <div
-                                  style={{
-                                    width: '30px',
-                                    height: '30px',
-                                    borderRadius: '50%',
-                                    backgroundColor: widgetChatbotColorGlobal || '#1F2937',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '14px',
-                                  }}
-                                >
-                                  🤖
-                                </div>
-                              </div>
-                              <div className="chatbot-message__content">
-                                <div className="chatbot-typing-indicator loading">
-                                  <span></span>
-                                  <span></span>
-                                  <span></span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Streaming Response */}
-                          {isStreaming && streamingContent && (
-                            <div className="chatbot-message bot-message">
-                              <div className="chatbot-message__avatar">
-                                <div
-                                  style={{
-                                    width: '30px',
-                                    height: '30px',
-                                    borderRadius: '50%',
-                                    backgroundColor: widgetChatbotColorGlobal || '#1F2937',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '14px',
-                                  }}
-                                >
-                                  🤖
-                                </div>
-                              </div>
-                              <div className="chatbot-message__content">
-                                <div className="chatbot-message-text">
-                                  <div
-                                    className="text-sm leading-relaxed prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground prose-blockquote:text-muted-foreground prose-blockquote:border-l-muted-foreground"
-                                    role="text"
-                                    aria-label="Assistant message content"
-                                  >
-                                    <ReactMarkdown
-                                      remarkPlugins={[remarkGfm]}
-                                      rehypePlugins={[rehypeRaw]}
-                                      components={{
-                                        // 🎨 Enhanced code blocks with syntax highlighting
-                                        code: ({ node, className, children, ...props }: any) => {
-                                          const isInline = !className?.includes('language-');
-                                          if (isInline) {
-                                            return (
-                                              <code className="bg-muted px-1 py-0.5 rounded text-sm font-mono" {...props}>
-                                                {children}
-                                              </code>
-                                            );
-                                          }
-
-                                          // Extract language from className (e.g., "language-javascript" -> "javascript")
-                                          const match = /language-(\w+)/.exec(className || '');
-                                          const language = match ? match[1] : 'text';
-
-                                          return (
-                                            <div className="my-4">
-                                              <SyntaxHighlighter
-                                                language={language}
-                                                style={theme === 'dark' ? oneDark : oneLight}
-                                                customStyle={{
-                                                  margin: 0,
-                                                  borderRadius: '0.5rem',
-                                                  fontSize: '0.875rem',
-                                                  lineHeight: '1.5',
-                                                }}
-                                                showLineNumbers={false}
-                                                wrapLines={true}
-                                                wrapLongLines={true}
-                                              >
-                                                {safeStringConversion(children).replace(/\n$/, '')}
-                                              </SyntaxHighlighter>
-                                            </div>
-                                          );
-                                        },
-                                        // Custom styling for links
-                                        a: ({ href, children, ...props }) => (
-                                          <a
-                                            href={href}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-primary hover:underline"
-                                            {...props}
-                                          >
-                                            {children}
-                                          </a>
-                                        ),
-                                        // Custom styling for lists
-                                        ul: ({ children, ...props }) => (
-                                          <ul className="list-disc list-inside space-y-1" {...props}>
-                                            {children}
-                                          </ul>
-                                        ),
-                                        ol: ({ children, ...props }) => (
-                                          <ol className="list-decimal list-inside space-y-1" {...props}>
-                                            {children}
-                                          </ol>
-                                        ),
-                                        // Custom styling for blockquotes
-                                        blockquote: ({ children, ...props }) => (
-                                          <blockquote className="border-l-4 border-muted-foreground pl-4 italic text-muted-foreground" {...props}>
-                                            {children}
-                                          </blockquote>
-                                        ),
-                                      }}
-                                    >
-                                      {safeStringConversion(streamingContent)}
-                                    </ReactMarkdown>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          <div ref={ragMessagesEndRef} />
                         </div>
-                      </CardContent>
-                    </GlassCard>
-                  </div>
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </GlassCard>
 
-                  {/* Settings Panel */}
-                  <div className="space-y-4">
-                    {/* Performance Stats */}
-                    <GlassCard>
-                      <CardHeader>
-                        <CardTitle>Performance</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Latency</span>
-                          <span className="font-medium">
-                            {metrics ? `${metrics.latency}ms` : "—"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Tokens Used</span>
-                          <span className="font-medium">
-                            {metrics ? `${metrics.tokensUsed} / ${ragSettings.maxTokens === 0 ? "∞" : ragSettings.maxTokens}` : "—"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Documents Retrieved</span>
-                          <span className="font-medium">
-                            {metrics ? metrics.documentsRetrieved : "—"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Relevance Score</span>
-                          <span className="font-medium">
-                            {metrics ? metrics.relevanceScore.toFixed(2) : "—"}
-                          </span>
-                        </div>
-                        {metrics && (
-                          <div className="pt-2 border-t text-xs text-muted-foreground">
-                            Last updated: {metrics.timestamp.toLocaleTimeString()}
+              {/* Search Results Section */}
+              {(ragMessages.length > 0 || isTyping || isStreaming) && (
+                <GlassCard>
+                  <CardContent className="pt-6">
+                    {/* Loading - Skeleton or Typing Loader based on savedSearchLoaderType */}
+                    {(isTyping || (isStreaming && !streamingContent)) && (
+                      <>
+                        {savedSearchLoaderType === "typing" ? (
+                          <TypingAnimation message="AI is thinking..." speed={50} />
+                        ) : (
+                          <div className="space-y-3">
+                            <div className="h-4 bg-muted/50 rounded animate-pulse"></div>
+                            <div className="h-4 bg-muted/50 rounded animate-pulse"></div>
+                            <div className="h-4 bg-muted/50 rounded animate-pulse w-3/4"></div>
+                            <div className="h-4 bg-muted/50 rounded animate-pulse"></div>
+                            <div className="h-4 bg-muted/50 rounded animate-pulse w-5/6"></div>
+                            <div className="h-4 bg-muted/50 rounded animate-pulse w-2/3"></div>
                           </div>
                         )}
-                      </CardContent>
-                    </GlassCard>
-                  </div>
-                </div>
-              </div>
+                      </>
+                    )}
+
+                    {/* Results Display */}
+                    {isLoadingRagHistory ? (
+                      <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <span>Loading chat history...</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {ragMessages
+                          .filter((message) => message.type === "assistant")
+                          .map((message, index) => {
+                            const isLastMessage = index === ragMessages.filter((m) => m.type === "assistant").length - 1;
+                            return (
+                              <Suspense key={message.messageId || `${message.timestamp?.getTime()}-${index}`} fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-4 w-4 animate-spin" /></div>}>
+                                <div className="space-y-4 w-full min-w-0 max-w-full overflow-x-hidden">
+                                  <div className="prose prose-sm dark:prose-invert max-w-none w-full min-w-0 prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground prose-blockquote:text-muted-foreground prose-blockquote:border-l-muted-foreground prose-p:break-words prose-p:overflow-wrap-anywhere prose-headings:break-words prose-headings:overflow-wrap-anywhere prose-li:break-words prose-li:overflow-wrap-anywhere">
+                                    {isStreaming && isLastMessage && streamingContent ? (
+                                      <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        rehypePlugins={[rehypeRaw]}
+                                        components={{
+                                          code: ({ node, className, children, ...props }: any) => {
+                                            const isInline = !className?.includes('language-');
+                                            if (isInline) {
+                                              return (
+                                                <code className="bg-muted px-1 py-0.5 rounded text-sm font-mono" {...props}>
+                                                  {children}
+                                                </code>
+                                              );
+                                            }
+                                            const match = /language-(\w+)/.exec(className || '');
+                                            const language = match ? match[1] : 'text';
+                                            return (
+                                              <div className="my-4">
+                                                <SyntaxHighlighter
+                                                  language={language}
+                                                  style={theme === 'dark' ? oneDark : oneLight}
+                                                  customStyle={{
+                                                    margin: 0,
+                                                    borderRadius: '0.5rem',
+                                                    fontSize: '0.875rem',
+                                                    lineHeight: '1.5',
+                                                  }}
+                                                  showLineNumbers={false}
+                                                  wrapLines={true}
+                                                  wrapLongLines={true}
+                                                >
+                                                  {safeStringConversion(children).replace(/\n$/, '')}
+                                                </SyntaxHighlighter>
+                                              </div>
+                                            );
+                                          },
+                                          a: ({ href, children, ...props }) => (
+                                            <a
+                                              href={href}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-primary hover:underline"
+                                              {...props}
+                                            >
+                                              {children}
+                                            </a>
+                                          ),
+                                          ul: ({ children, ...props }) => (
+                                            <ul className="list-disc list-inside space-y-1" {...props}>
+                                              {children}
+                                            </ul>
+                                          ),
+                                          ol: ({ children, ...props }) => (
+                                            <ol className="list-decimal list-inside space-y-1" {...props}>
+                                              {children}
+                                            </ol>
+                                          ),
+                                          blockquote: ({ children, ...props }) => (
+                                            <blockquote className="border-l-4 border-muted-foreground pl-4 italic text-muted-foreground" {...props}>
+                                              {children}
+                                            </blockquote>
+                                          ),
+                                        }}
+                                      >
+                                        {safeStringConversion(streamingContent)}
+                                      </ReactMarkdown>
+                                    ) : (
+                                      <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        rehypePlugins={[rehypeRaw]}
+                                        components={{
+                                          code: ({ node, className, children, ...props }: any) => {
+                                            const isInline = !className?.includes('language-');
+                                            if (isInline) {
+                                              return (
+                                                <code className="bg-muted px-1 py-0.5 rounded text-sm font-mono" {...props}>
+                                                  {children}
+                                                </code>
+                                              );
+                                            }
+                                            const match = /language-(\w+)/.exec(className || '');
+                                            const language = match ? match[1] : 'text';
+                                            return (
+                                              <div className="my-4">
+                                                <SyntaxHighlighter
+                                                  language={language}
+                                                  style={theme === 'dark' ? oneDark : oneLight}
+                                                  customStyle={{
+                                                    margin: 0,
+                                                    borderRadius: '0.5rem',
+                                                    fontSize: '0.875rem',
+                                                    lineHeight: '1.5',
+                                                  }}
+                                                  showLineNumbers={false}
+                                                  wrapLines={true}
+                                                  wrapLongLines={true}
+                                                >
+                                                  {safeStringConversion(children).replace(/\n$/, '')}
+                                                </SyntaxHighlighter>
+                                              </div>
+                                            );
+                                          },
+                                          a: ({ href, children, ...props }) => (
+                                            <a
+                                              href={href}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-primary hover:underline"
+                                              {...props}
+                                            >
+                                              {children}
+                                            </a>
+                                          ),
+                                          ul: ({ children, ...props }) => (
+                                            <ul className="list-disc list-inside space-y-1" {...props}>
+                                              {children}
+                                            </ul>
+                                          ),
+                                          ol: ({ children, ...props }) => (
+                                            <ol className="list-decimal list-inside space-y-1" {...props}>
+                                              {children}
+                                            </ol>
+                                          ),
+                                          blockquote: ({ children, ...props }) => (
+                                            <blockquote className="border-l-4 border-muted-foreground pl-4 italic text-muted-foreground" {...props}>
+                                              {children}
+                                            </blockquote>
+                                          ),
+                                        }}
+                                      >
+                                        {safeStringConversion(message.content)}
+                                      </ReactMarkdown>
+                                    )}
+                                  </div>
+                                  {message.citations && message.citations.length > 0 && (() => {
+                                    const topKValue = message.actualTopK !== undefined ? message.actualTopK : (message.ragSettings?.topK !== undefined ? message.ragSettings.topK : message.citations.length);
+                                    const displayedCitations = topKValue ? message.citations.slice(0, topKValue) : message.citations;
+                                    const citationFormatting = searchCitationFormatting || { showSourceCount: true, layout: 'grid', colorScheme: 'default' };
+                                    
+                                    // Helper function to get citation color scheme classes
+                                    const getCitationColorSchemeClasses = () => {
+                                      const colorScheme = citationFormatting.colorScheme || 'default';
+                                      switch (colorScheme) {
+                                        case 'primary': return "border-primary/20 bg-primary/5";
+                                        case 'muted': return "border-muted bg-muted/30";
+                                        case 'accent': return "border-accent/20 bg-accent/5";
+                                        default: return "border-border/20 bg-muted/30";
+                                      }
+                                    };
+                                    
+                                    return (
+                                      <div className="pt-4 border-t border-border space-y-3 w-full min-w-0">
+                                        {citationFormatting.showSourceCount && (
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-xs font-medium text-muted-foreground">
+                                              Sources ({displayedCitations.length}):
+                                            </span>
+                                          </div>
+                                        )}
+                                        <div className={`grid gap-3 w-full min-w-0 ${citationFormatting.layout === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+                                          {displayedCitations.map((citation, index) => (
+                                            <Card key={index} className={`p-3 w-full min-w-0 border ${getCitationColorSchemeClasses()}`}>
+                                              <div className="space-y-2 w-full min-w-0">
+                                                <div className="flex items-start gap-2 w-full min-w-0">
+                                                  <span className="text-xs font-semibold text-muted-foreground flex-shrink-0">{index + 1}.</span>
+                                                  <div className="flex-1 min-w-0 overflow-hidden">
+                                                    <h4 className="text-sm font-medium text-foreground break-words overflow-wrap-anywhere">{citation.title}</h4>
+                                                    <p className="text-xs text-muted-foreground mt-1 break-words overflow-wrap-anywhere">{citation.snippet}</p>
+                                                    <a
+                                                      href={citation.url}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      className="text-xs text-primary hover:underline mt-2 inline-flex items-center gap-1 break-all"
+                                                    >
+                                                      View Source
+                                                      <span>→</span>
+                                                    </a>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </Card>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              </Suspense>
+                            );
+                          })}
+                        <div ref={ragMessagesEndRef} />
+                      </div>
+                    )}
+                  </CardContent>
+                </GlassCard>
+              )}
             </div>
           </TabsContent>
         </Tabs>

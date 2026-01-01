@@ -1152,10 +1152,10 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                 role="text"
                 aria-label="Assistant message content"
               >
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeRaw]}
-                  components={{
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
+                components={{
                     // 🎨 Enhanced code blocks with syntax highlighting
                     code: ({ node, className, children, ...props }: any) => {
                       const isInline = !className?.includes('language-');
@@ -1200,9 +1200,9 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                         className="text-primary hover:underline"
                         {...props}
                       >
-                        {children}
-                      </a>
-                    ),
+                      {children}
+                    </a>
+                  ),
                     // Custom styling for lists
                     ul: ({ children, ...props }) => (
                       <ul className="list-disc list-inside space-y-1" {...props}>
@@ -1220,10 +1220,10 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                         {children}
                       </blockquote>
                     ),
-                  }}
-                >
-                  {safeStringConversion(message.content)}
-                </ReactMarkdown>
+                }}
+              >
+                {safeStringConversion(message.content)}
+              </ReactMarkdown>
               </div>
             ) : (
               <p>{message.content}</p>
@@ -1246,7 +1246,7 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                   {copiedMessages[message.messageId || `msg-${index}`] ? (
                     <Check style={{ width: '14px', height: '14px' }} />
                   ) : (
-                    <Copy style={{ width: '14px', height: '14px' }} />
+                  <Copy style={{ width: '14px', height: '14px' }} />
                   )}
                 </button>
                 <button

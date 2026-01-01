@@ -410,10 +410,10 @@
   /* Exclude widget buttons that should not have hover effects */
   /* Exclude switch/toggle buttons - they should have no hover effects */
   /* Exclude checkboxes from global button hover rules */
-  button:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger):not([data-radix-switch-root]):not([role="switch"]):not([data-radix-checkbox-root]):not([role="checkbox"]),
-  [type="button"]:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger):not([data-radix-switch-root]):not([role="switch"]):not([data-radix-checkbox-root]):not([role="checkbox"]),
-  [type="submit"]:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger):not([data-radix-switch-root]):not([role="switch"]):not([data-radix-checkbox-root]):not([role="checkbox"]),
-  [type="reset"]:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger):not([data-radix-switch-root]):not([role="switch"]):not([data-radix-checkbox-root]):not([role="checkbox"]) {
+  button:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger):not(.rag-search-submit-button):not([data-radix-switch-root]):not([role="switch"]):not([data-radix-checkbox-root]):not([role="checkbox"]),
+  [type="button"]:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger):not(.rag-search-submit-button):not([data-radix-switch-root]):not([role="switch"]):not([data-radix-checkbox-root]):not([role="checkbox"]),
+  [type="submit"]:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger):not(.rag-search-submit-button):not([data-radix-switch-root]):not([role="switch"]):not([data-radix-checkbox-root]):not([role="checkbox"]),
+  [type="reset"]:hover:not(.bg-primary):not(.widget-no-hover):not(.chatbot-voice-button):not(.chatbot-send-button):not(.chatbot-delete):not(.chatbot-close):not(.chatbot-message-action-button):not(.chatbot-trigger):not(.rag-search-submit-button):not([data-radix-switch-root]):not([role="switch"]):not([data-radix-checkbox-root]):not([role="checkbox"]) {
     background-color: hsl(var(--button-hover-bg)) !important;
     border-color: hsl(var(--button-hover-border)) !important;
   }
@@ -1727,4 +1727,116 @@ div[style*="--user-message-bg"].chat-bubble.ml-auto {
 .chat-bubble.user-message-bubble[style*="background-color"] {
   background-color: inherit !important;
   background: inherit !important;
+}
+
+/* ============================================
+   RAG Search Test Tab - Theme Integration
+   Minimal custom styles - uses theme variables
+   ============================================ */
+
+/* RAG Search Form - Exact styling to match design, no overrides */
+.rag-search-form-wrapper {
+  /* Styles applied inline to prevent overrides */
+}
+
+.rag-search-form-inner {
+  /* Styles applied inline to prevent overrides */
+}
+
+.rag-search-input-field {
+  /* Prevent any global input styles from overriding */
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.rag-search-input-field::placeholder {
+  color: #9ca3af !important;
+}
+
+.rag-search-input-field:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Prevent overflow and ensure text wrapping */
+.rag-search-form-wrapper,
+.rag-search-form-inner {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.rag-search-form-inner {
+  position: relative !important;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 640px) {
+  .rag-search-form-wrapper {
+    padding: 6px !important;
+  }
+  
+  .rag-search-form-inner {
+    padding: 0 !important;
+  }
+  
+  .rag-search-input-field {
+    padding: 10px 12px !important;
+    font-size: 14px !important;
+  }
+  
+  .rag-search-submit-button {
+    width: 36px !important;
+    height: 36px !important;
+  }
+  
+  .rag-search-submit-button .h-5 {
+    width: 18px !important;
+    height: 18px !important;
+  }
+}
+
+/* Ensure text wrapping in all content areas */
+.prose p,
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6,
+.prose li,
+.prose td,
+.prose th {
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  hyphens: auto !important;
+}
+
+.prose pre,
+.prose code {
+  word-break: break-all !important;
+  overflow-wrap: break-word !important;
+  white-space: pre-wrap !important;
+}
+
+.rag-search-clear-button:hover {
+  background-color: #f3f4f6 !important;
+  border-radius: 4px !important;
+}
+
+.dark .rag-search-clear-button:hover {
+  background-color: #374151 !important;
+}
+
+
+.rag-search-submit-button:active:not(:disabled) {
+  background-color: #1e40af !important;
+  opacity: 1 !important;
+}
+
+.dark .rag-search-submit-button:active:not(:disabled) {
+  background-color: #3b82f6 !important;
+  opacity: 1 !important;
 }

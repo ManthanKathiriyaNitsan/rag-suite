@@ -17,32 +17,11 @@ apiClient.interceptors.request.use(
   (config) => {
     // Add authentication token if available (check both token storage keys for compatibility)
     const token = localStorage.getItem('auth-token') || localStorage.getItem('auth_token');
-    const expiresAt = localStorage.getItem('token_expires');
 
     if (token) {
-      // If expiresAt exists, check if token is expired
-      if (expiresAt) {
-        try {
-      const expirationDate = new Date(expiresAt);
-      const currentDate = new Date();
-
-          // Only add token if not expired (with 5 minute buffer for safety)
-          const bufferTime = 5 * 60 * 1000; // 5 minutes
-          if (expirationDate.getTime() > (currentDate.getTime() + bufferTime)) {
-        config.headers.Authorization = `Bearer ${token}`;
-          } else {
-            console.warn('⚠️ Token expired, not adding to request');
-          }
-        } catch (error) {
-          // If expiresAt is invalid, still try to use the token (let backend decide)
-          console.warn('⚠️ Invalid expiresAt format, using token anyway:', error);
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-      } else {
-        // If no expiresAt, still use the token (let backend decide if it's valid)
-        console.warn('⚠️ No expiresAt found, using token anyway');
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+      // Always send token if it exists - let backend decide if it's valid
+      // User will only be logged out when they explicitly click logout button
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     console.log('🌐 API Request:', {
@@ -52,7 +31,6 @@ apiClient.interceptors.request.use(
       fullURL: `${config.baseURL}${config.url}`,
       hasAuth: !!config.headers.Authorization,
       hasToken: !!token,
-      hasExpiresAt: !!expiresAt,
     });
     return config;
   },
@@ -87,22 +65,17 @@ apiClient.interceptors.response.use(
 
     // Check if it's a 401 Unauthorized error
     if (error.response?.status === 401) {
-      // Don't redirect if we're already on login page or if it's a login request
-      const isLoginPage = window.location.pathname === '/login' || window.location.pathname === '/signup';
+      // Don't automatically log out on 401 - let the user stay logged in
+      // Only logout when user explicitly clicks logout button
+      // If it's a login request that fails, that's expected and should be handled by the login component
       const isLoginRequest = error.config?.url?.includes('/login') || error.config?.url?.includes('/auth/login');
       
-      if (!isLoginPage && !isLoginRequest) {
-        console.warn('🔐 Authentication failed (401) - clearing tokens and redirecting to login');
-        // Clear auth data (clear both token storage keys for compatibility)
-      localStorage.removeItem('auth-token');
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth-user');
-      localStorage.removeItem('user_data');
-      localStorage.removeItem('token_expires');
-        // Only redirect if not already on login page
-      window.location.href = '/login';
+      if (isLoginRequest) {
+        console.warn('🔐 Login failed - invalid credentials');
       } else {
-        console.warn('🔐 Authentication failed (401) on login page - token may be invalid');
+        // Log the error but don't clear tokens or redirect
+        // The backend will reject the request, but user stays logged in
+        console.warn('🔐 Authentication failed (401) - request rejected but user remains logged in');
       }
     }
 
@@ -119,20 +92,28 @@ export const searchAPI = {
     similarityThreshold?: number;
     useReranker?: boolean;
     maxTokens?: number;
-  }) => {
+  }, responseType?: 'long' | 'short') => {
     console.log('🚀 API Call - Searching for:', query);
     console.log('⚙️ RAG Settings:', ragSettings);
+    console.log('📝 Response Type:', responseType);
     console.log('🌐 Using real API at:', `${API_BASE_URL}/search`);
 
     try {
       // Send POST request to /search endpoint with RAG settings
-      const response = await apiClient.post('/search', {
+      const requestBody: any = {
         query: query,  // Send the user's question
         topK: ragSettings?.topK || 5,
         similarityThreshold: ragSettings?.similarityThreshold || 0.2,
         useReranker: ragSettings?.useReranker || false,
         maxTokens: ragSettings?.maxTokens || 0,
-      });
+      };
+      
+      // Include response_type if provided
+      if (responseType) {
+        requestBody.response_type = responseType;
+      }
+      
+      const response = await apiClient.post('/search', requestBody);
 
       console.log('✅ API Response:', response.data);
       console.log('🔍 API Response structure:', response.data);
@@ -164,6 +145,84 @@ export const searchAPI = {
     } catch (error) {
       console.error('❌ API Error:', error);
       // Throw error - no mock fallback
+      throw error;
+    }
+  },
+
+  // Get search configuration
+  getSearchConfiguration: async () => {
+    console.log('🔍 Search API - Getting search configuration');
+    try {
+      const response = await apiClient.get('/search/configuration');
+      console.log('✅ Search configuration retrieved successfully:', response.data);
+      // Handle nested response structure: { data: {...} } or direct {...}
+      const configData = response.data?.data || response.data;
+      console.log('🔍 Extracted configuration data:', configData);
+      return configData;
+    } catch (error) {
+      console.error('❌ Get search configuration failed:', error);
+      throw error;
+    }
+  },
+
+  // Save search configuration
+  saveSearchConfiguration: async (config: {
+    title?: string;
+    language?: string;
+    styleOption?: string;
+    searchIcon?: string;
+    loaderType?: string;
+    background?: string;
+    borderRadius?: string;
+    resultStyle?: string;
+  }) => {
+    console.log('🔍 Search API - Saving search configuration:', config);
+    try {
+      const response = await apiClient.post('/search/configuration', config);
+      console.log('✅ Search configuration saved successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Save search configuration failed:', error);
+      throw error;
+    }
+  },
+
+  // Get search customization
+  getSearchCustomization: async () => {
+    console.log('🔍 Search API - Getting search customization');
+    try {
+      const response = await apiClient.get('/search/customization');
+      console.log('✅ Search customization retrieved successfully:', response.data);
+      // Handle nested response structure: { data: {...} } or direct {...}
+      const customizationData = response.data?.data || response.data;
+      console.log('🔍 Extracted customization data:', customizationData);
+      return customizationData;
+    } catch (error) {
+      console.error('❌ Get search customization failed:', error);
+      throw error;
+    }
+  },
+
+  // Save search customization
+  saveSearchCustomization: async (customization: {
+    searchFormType?: string;
+    buttonType?: string;
+    searchButtonText?: string;
+    searchInputPlaceholder?: string;
+    recentSearch?: boolean;
+    recentSearchTitle?: string;
+    predefinedQuestions?: boolean;
+    questionsPosition?: string;
+    questionsLimit?: number;
+    questions?: string[];
+  }) => {
+    console.log('🔍 Search API - Saving search customization:', customization);
+    try {
+      const response = await apiClient.post('/search/customization', customization);
+      console.log('✅ Search customization saved successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Save search customization failed:', error);
       throw error;
     }
   },
@@ -2425,34 +2484,56 @@ export interface ConfigModelsResponse {
 
 export interface ConfigModelsData {
   model_provider: string;
-  chat_model: string;
+  chat_model?: string | null;
+  search_model?: string | null; // API returns search_model for search configuration
   embedding_model: string;
   api_key: string;
   chat_temperature?: string | null;
+  search_temperature?: string | null; // API returns search_temperature for search configuration
   chat_top_p?: string | null;
+  search_top_p?: string | null; // API returns search_top_p for search configuration
   chat_best_of?: number | null;
+  search_best_of?: number | null; // API returns search_best_of for search configuration
   chat_frequency_penalty?: string | null;
+  search_frequency_penalty?: string | null; // API returns search_frequency_penalty for search configuration
   chat_presence_penalty?: string | null;
+  search_presence_penalty?: string | null; // API returns search_presence_penalty for search configuration
   chat_top_k?: number | null;
+  search_top_k?: number | null; // API returns search_top_k for search configuration
   chat_similarity_threshold?: number | null;
+  search_similarity_threshold?: number | null; // API returns search_similarity_threshold for search configuration
   chat_max_tokens?: number | null;
+  search_max_tokens?: number | null; // API returns search_max_tokens for search configuration
   chat_use_reranker?: boolean | null;
+  search_use_reranker?: boolean | null; // API returns search_use_reranker for search configuration
+  response_type?: string | null; // API returns response_type
 }
 
 export interface ConfigModelsRequest {
   model_provider: string;
-  chat_model: string;
+  chat_model?: string | null;
+  search_model?: string | null; // For search configuration
   embedding_model: string;
   api_key: string;
   chat_temperature?: string | null;
+  search_temperature?: string | null; // For search configuration
   chat_top_p?: string | null;
+  search_top_p?: string | null; // For search configuration
   chat_best_of?: number | null;
+  search_best_of?: number | null; // For search configuration
   chat_frequency_penalty?: string | null;
+  search_frequency_penalty?: string | null; // For search configuration
   chat_presence_penalty?: string | null;
+  search_presence_penalty?: string | null; // For search configuration
   chat_top_k?: number | null;
+  search_top_k?: number | null; // For search configuration
   chat_similarity_threshold?: number | null;
+  search_similarity_threshold?: number | null; // For search configuration
   chat_max_tokens?: number | null;
+  search_max_tokens?: number | null; // For search configuration
   chat_use_reranker?: boolean | null;
+  search_use_reranker?: boolean | null; // For search configuration
+  response_type?: string | null; // For search configuration
 }
 
 export interface AvailableModelsResponse {

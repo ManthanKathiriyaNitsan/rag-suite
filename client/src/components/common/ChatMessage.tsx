@@ -374,10 +374,10 @@ const ChatMessage = React.memo(function ChatMessage({
                 role="text"
                 aria-label="Assistant message content"
               >
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeRaw]}
-                  components={{
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
+                components={{
                     // 🎨 Enhanced code blocks with syntax highlighting
                     code: ({ node, className, children, ...props }: any) => {
                       const isInline = !className?.includes('language-');
@@ -422,9 +422,9 @@ const ChatMessage = React.memo(function ChatMessage({
                         className="text-primary hover:underline"
                         {...props}
                       >
-                        {children}
-                      </a>
-                    ),
+                      {children}
+                    </a>
+                  ),
                     // Custom styling for lists
                     ul: ({ children, ...props }) => (
                       <ul className="list-disc list-inside space-y-1" {...props}>
@@ -442,10 +442,10 @@ const ChatMessage = React.memo(function ChatMessage({
                         {children}
                       </blockquote>
                     ),
-                  }}
-                >
-                  {safeStringConversion(content)}
-                </ReactMarkdown>
+                }}
+              >
+                {safeStringConversion(content)}
+              </ReactMarkdown>
               </div>
             ) : (
               <p>{content}</p>
@@ -514,7 +514,7 @@ const ChatMessage = React.memo(function ChatMessage({
                   {copied ? (
                     <Check className="h-3 w-3" />
                   ) : (
-                    <Copy className="h-3 w-3" />
+                  <Copy className="h-3 w-3" />
                   )}
                 </button>
                 {showFeedback && (
@@ -747,7 +747,7 @@ const ChatMessage = React.memo(function ChatMessage({
                     {copied ? (
                       <Check className="h-3 w-3" />
                     ) : (
-                      <Copy className="h-3 w-3" />
+                    <Copy className="h-3 w-3" />
                     )}
                   </Button>
                 </div>
