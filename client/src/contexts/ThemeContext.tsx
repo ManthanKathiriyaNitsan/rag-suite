@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useMemo } from "react";
 import { useAuthContext } from "@/contexts/AuthContext";
 
 type Theme = "light" | "dark";
@@ -99,6 +99,7 @@ interface ThemeContextType {
       sm?: string;
       md?: string;
       lg?: string;
+      xl?: string;
     };
     widgetAppearance?: {
       chatBubbleStyle?: "rounded" | "sharp" | "minimal";
@@ -136,12 +137,36 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user } = useAuthContext();
   
   const [theme, setTheme] = useState<Theme>(() => {
-    // Default to dark as per design brief
-    return "dark";
+    // Check local storage first
+    if (typeof window !== "undefined") {
+      const savedTheme = localStorage.getItem("ui-theme") as Theme | null;
+      if (savedTheme) {
+        return savedTheme;
+      }
+      // Fallback to system preference
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return "dark";
+      }
+    }
+    return "light"; 
   });
 
+  // Listen for system theme changes
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      // Only update if user hasn't explicitly set a preference
+      if (!localStorage.getItem("ui-theme")) {
+        setTheme(e.matches ? "dark" : "light");
+      }
+    };
+    
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
   // Default theme data
-  const defaultThemeData: ThemeData = {
+  const defaultThemeData: ThemeData = useMemo(() => ({
     primaryColor: "#3b82f6",
     secondaryColor: "#6b7280",
     accentColor: "#f59e0b",
@@ -195,7 +220,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         easeInOut: "ease-in-out"
       }
     }
-  };
+  }), [theme]);
 
   const [themeData, setThemeDataState] = useState<ThemeData>(() => {
     return defaultThemeData;
@@ -234,6 +259,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       sm: string;
       md: string;
       lg: string;
+      xl: string; // Added to match interface if needed or just keep current
     };
     widgetAppearance: {
       chatBubbleStyle: "rounded" | "sharp" | "minimal";
@@ -250,6 +276,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         sm: "0.125rem",
         md: "0.375rem",
         lg: "0.5rem",
+        xl: "1rem", // Ensuring consistency
       },
       widgetAppearance: {
         chatBubbleStyle: "rounded",
@@ -266,10 +293,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Reset theme to defaults when user changes (logout/login)
   useEffect(() => {
     if (!isAuthenticated) {
-      // User logged out - reset to defaults
-      console.log('🔄 User logged out, resetting theme to defaults...');
-      setTheme("dark");
-      // Theme data, typography, and layout will use their default values on next mount
+      // User logged out - reset to system preference
+      console.log('🔄 User logged out, checking system theme...');
+      localStorage.removeItem("ui-theme"); // Clear user preference
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        setTheme("dark");
+      } else {
+        setTheme("light");
+      }
     }
   }, [isAuthenticated, user?.id]);
 
@@ -278,6 +309,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.classList.remove("light", "dark");
     root.classList.add(theme);
   }, [theme]);
+
+  // Sync theme-dependent colors when theme changes
+  useEffect(() => {
+    setThemeDataState(prev => ({
+      ...prev,
+      backgroundColor: defaultThemeData.backgroundColor,
+      surfaceColor: defaultThemeData.surfaceColor,
+      cardColor: defaultThemeData.cardColor,
+      textPrimary: defaultThemeData.textPrimary,
+      textSecondary: defaultThemeData.textSecondary,
+      textMuted: defaultThemeData.textMuted,
+      borderColor: defaultThemeData.borderColor,
+    }));
+  }, [theme, defaultThemeData]);
 
   // Apply global typography to :root CSS variables and html font-size
   useEffect(() => {
@@ -359,7 +404,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [typography.fontFamily]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === "light" ? "dark" : "light");
+    setTheme(prev => {
+      const next = prev === "light" ? "dark" : "light";
+      localStorage.setItem("ui-theme", next);
+      return next;
+    });
+  };
+
+  const setThemeWithPersistence = (newTheme: Theme) => {
+    setTheme(newTheme);
+    localStorage.setItem("ui-theme", newTheme);
   };
 
   // Expose setter for global typography
@@ -395,6 +449,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       sm?: string;
       md?: string;
       lg?: string;
+      xl?: string;
     };
     widgetAppearance?: {
       chatBubbleStyle?: "rounded" | "sharp" | "minimal";
@@ -411,6 +466,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         sm: opts.borderRadius.sm ?? prev.borderRadius.sm,
         md: opts.borderRadius.md ?? prev.borderRadius.md,
         lg: opts.borderRadius.lg ?? prev.borderRadius.lg,
+        xl: opts.borderRadius.xl ?? prev.borderRadius.xl,
       } : prev.borderRadius,
       widgetAppearance: opts.widgetAppearance ? {
         chatBubbleStyle: opts.widgetAppearance.chatBubbleStyle ?? prev.widgetAppearance.chatBubbleStyle,
@@ -525,7 +581,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     <ThemeContext.Provider value={{ 
       theme, 
       toggleTheme, 
-      setTheme, 
+      setTheme: setThemeWithPersistence, 
       themeData,
       setThemeData,
       setTypography, 

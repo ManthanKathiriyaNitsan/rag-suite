@@ -475,6 +475,34 @@ export const searchAPI = {
       throw error;
     }
   },
+
+  // Delete a specific search session
+  deleteSession: async (sessionId: string) => {
+    console.log('🗑️ Search API - Deleting session:', sessionId);
+
+    try {
+      const response = await apiClient.delete(`/search/sessions/${sessionId}`);
+      console.log('✅ Delete Search Session Response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Delete Search Session Error:', error);
+      throw error;
+    }
+  },
+
+  // Delete all search history
+  deleteAllSessions: async () => {
+    console.log('🗑️ Search API - Deleting all search sessions');
+
+    try {
+      const response = await apiClient.delete('/search/messages');
+      console.log('✅ Delete All Search Sessions Response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Delete All Search Sessions Error:', error);
+      throw error;
+    }
+  },
 };
 
 // 💬 Chat API functions - This handles chat functionality

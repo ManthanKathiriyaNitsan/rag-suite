@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { GlassCard } from './GlassCard';
 import { CardHeader, CardTitle, CardDescription, CardContent } from './card';
-import { HelpCircle, Search, X, Loader2, Sparkles, Filter, ScanSearch } from 'lucide-react';
+import { HelpCircle, Search, X, Loader2, Sparkles, Filter, ScanSearch, Clock } from 'lucide-react';
 import ChatMessage from '@/components/common/ChatMessage';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -34,6 +34,8 @@ interface SearchBarLivePreviewProps {
     questionsList?: string[];
     questionsPosition?: string;
     questionsLimit?: number;
+    showRecentSearchPreview?: boolean;
+    showLoaderPreview?: boolean;
     citationFormatting?: {
       colorScheme?: 'default' | 'primary' | 'muted' | 'accent';
       layout?: 'vertical' | 'grid';
@@ -50,12 +52,14 @@ export const SearchBarLivePreview: React.FC<SearchBarLivePreviewProps> = ({
 }) => {
   const [isLargeScreen, setIsLargeScreen] = useState(false);
   const [previewSearchInput, setPreviewSearchInput] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
   const [showResponse, setShowResponse] = useState(false);
   const [showTestMessage, setShowTestMessage] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
   
@@ -126,7 +130,13 @@ export const SearchBarLivePreview: React.FC<SearchBarLivePreviewProps> = ({
   const questionsList = previewOverrides.questionsList || [];
   const questionsLimit = previewOverrides.questionsLimit || 5;
   const displayQuestions = questionsList.slice(0, questionsLimit);
-
+  
+  // Logic for Recent Search display mode
+  // If Predefined Questions are ENABLED, Recent Search should be a Dropdown to avoid clutter/conflict
+  // If Predefined Questions are DISABLED, Recent Search should be a Static Block (Component) replacing it
+  const isRecentSearchDropdown = previewOverrides.recentSearch && previewOverrides.predefinedQuestions;
+  const isRecentSearchBlock = previewOverrides.recentSearch && !previewOverrides.predefinedQuestions;
+  
   // Sample response with full markdown and citations
   const sampleResponse = {
     type: 'assistant' as const,
@@ -196,10 +206,21 @@ The guide is designed to help developers quickly get started with implementing C
       setShowTestMessage(true);
       setIsSearching(false);
     }, 500);
+    
+    // Blur input to close suggestions
+    if (searchInputRef.current) {
+      searchInputRef.current.blur();
+    }
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Blur input to close suggestions
+    if (searchInputRef.current) {
+      searchInputRef.current.blur();
+    }
+
     if (previewSearchInput.trim().length >= 3) {
       // Show message in response area instead of performing search
       setIsSearching(true);
@@ -255,7 +276,7 @@ The guide is designed to help developers quickly get started with implementing C
             }}
           >
             {/* Search Box Section - Exact replica of search test */}
-            <GlassCard>
+            <GlassCard className="overflow-visible relative z-[500]">
               <CardContent className="space-y-4 pt-6">
                 {/* Title with Icon - Show when title is provided */}
                 {previewOverrides.title && (
@@ -268,7 +289,7 @@ The guide is designed to help developers quickly get started with implementing C
                     <h3 className="text-base font-semibold text-foreground">{previewOverrides.title}</h3>
                   </div>
                 )}
-                <form onSubmit={handleSearchSubmit} className="space-y-4 w-full min-w-0">
+                <form onSubmit={handleSearchSubmit} className="space-y-4 w-full min-w-0 relative">
                   <div className="rag-search-form-wrapper w-full min-w-0" style={{
                     backgroundColor: wrapperBgColor,
                     borderRadius: borderRadiusValue,
@@ -305,6 +326,7 @@ The guide is designed to help developers quickly get started with implementing C
                         </div>
                       )}
                       <input
+                        ref={searchInputRef}
                         type="text"
                         className="rag-search-input-field"
                         style={{
@@ -329,6 +351,8 @@ The guide is designed to help developers quickly get started with implementing C
                         placeholder={placeholder}
                         value={previewSearchInput}
                         onChange={(e) => setPreviewSearchInput(e.target.value)}
+                        onFocus={() => setIsFocused(true)}
+                        onBlur={() => setTimeout(() => setIsFocused(false), 200)}
                         maxLength={150}
                         minLength={3}
                         autoComplete="off"
@@ -432,7 +456,6 @@ The guide is designed to help developers quickly get started with implementing C
                               <>
                                 {showButtonLabel ? (
                                   <>
-                                    <Search className="h-4 w-4" style={{ color: buttonTextColor, strokeWidth: '2.5' }} />
                                     <span style={{ color: buttonTextColor, fontSize: '14px', fontWeight: '500' }}>{buttonText}</span>
                                   </>
                                 ) : (
@@ -445,6 +468,42 @@ The guide is designed to help developers quickly get started with implementing C
                       </div>
                     </div>
                   </div>
+                  {/* Recent Searches Dropdown - Show when enabled, focused, AND in Dropdown Mode (i.e. Predefined Questions are ON) */}
+                  {((isRecentSearchDropdown && isFocused) || (previewOverrides.showRecentSearchPreview && previewOverrides.predefinedQuestions)) && (
+                    <div 
+                      className="absolute left-0 right-0 top-full mt-2 z-[100] bg-background border border-border shadow-lg overflow-hidden"
+                      style={{
+                        borderRadius: borderRadiusValue,
+                        width: '100%' // Ensure it takes full width of parent relative container
+                      }}
+                    >
+                      <div className="p-3 border-b border-border bg-muted/30">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          {previewOverrides.recentSearchTitle || "Recent Searches"}
+                        </p>
+                      </div>
+                      <div className="flex flex-col w-full">
+                        {["What is RAG?", "How to configure chatbot?", "API documentation"].slice(0, 2).map((query, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50 cursor-pointer transition-colors border-b border-border/50 last:border-0"
+                            onClick={(e) => {
+                              e.preventDefault(); // Prevent form submission if any
+                              handleQuestionClick(query);
+                            }}
+                            onMouseDown={(e) => {
+                              e.preventDefault(); // Prevent blur before click
+                            }}
+                          >
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <span className="text-sm font-medium text-foreground truncate">{query}</span>
+                            </div>
+                            <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </form>
 
                 {/* Suggested Questions - Exact replica */}
@@ -469,15 +528,39 @@ The guide is designed to help developers quickly get started with implementing C
                     </div>
                   </div>
                 )}
+
+                {/* Recent Searches Block - Show when enabled AND in Block Mode (i.e. Predefined Questions are OFF) */}
+                {(isRecentSearchBlock || (previewOverrides.showRecentSearchPreview && !previewOverrides.predefinedQuestions)) && (
+                  <div className="pt-4 border-t border-border space-y-4 w-full min-w-0">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      {previewOverrides.recentSearchTitle || "Recent Search"}
+                    </p>
+                    <div className="flex flex-col w-full border border-border rounded-lg overflow-hidden">
+                      {["What is RAG?", "How to configure chatbot?", "API documentation"].slice(0, 3).map((query, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between gap-3 px-4 py-3 bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors border-b border-border/50 last:border-0"
+                          onClick={() => handleQuestionClick(query)}
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="text-sm font-medium text-foreground truncate">{query}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">Just now</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </GlassCard>
 
             {/* Search Results Section - Exact replica */}
-            {(showResponse || showTestMessage || isTyping || isStreaming) && (
-              <GlassCard>
+            {(showResponse || showTestMessage || isTyping || isStreaming || previewOverrides.showLoaderPreview) && (
+              <GlassCard className="relative z-10">
                 <CardContent className="pt-6">
                   {/* Loading - Skeleton or Typing Loader based on loaderType */}
-                  {(isTyping || (isStreaming && !streamingContent)) && !showTestMessage && (
+                  {(((isTyping || (isStreaming && !streamingContent)) && !showTestMessage) || previewOverrides.showLoaderPreview) && (
                     <>
                       {previewOverrides.loaderType === "typing" ? (
                         <TypingAnimation message="AI is thinking..." speed={50} />
@@ -495,7 +578,7 @@ The guide is designed to help developers quickly get started with implementing C
                   )}
 
                   {/* Test Message */}
-                  {showTestMessage && (
+                  {showTestMessage && !previewOverrides.showLoaderPreview && (
                     <div className="space-y-4">
                       <div className="space-y-4 w-full min-w-0 max-w-full overflow-x-hidden">
                         <div 
@@ -515,7 +598,7 @@ The guide is designed to help developers quickly get started with implementing C
                   )}
 
                   {/* Results Display - Exact replica with markdown */}
-                  {!isTyping && !showTestMessage && (isStreaming || showResponse) && (
+                  {!isTyping && !showTestMessage && !previewOverrides.showLoaderPreview && (isStreaming || showResponse) && (
                     <div className="space-y-4">
                       <div className="space-y-4 w-full min-w-0 max-w-full overflow-x-hidden">
                         <div 

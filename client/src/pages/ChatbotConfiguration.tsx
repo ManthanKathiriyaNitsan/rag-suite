@@ -1133,29 +1133,15 @@ chatbot.init();`);
                         variant="ghost"
                         className={cn(
                           "w-full justify-start border border-transparent transition-[background-color,border-color,color]",
-                          trainingSubTab === "status"
+                          trainingSubTab === "config"
                             ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
                             : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
                         )}
-                        onClick={(e) => handleTrainingTabClick(e, "status")}
+                        onClick={(e) => handleTrainingTabClick(e, "config")}
                         {...preventScrollOnClick}
                       >
-                        <Power className="h-4 w-4 mr-2" />
-                        Active Status
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className={cn(
-                          "w-full justify-start border border-transparent transition-[background-color,border-color,color]",
-                          trainingSubTab === "prompt"
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
-                            : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
-                        )}
-                        onClick={(e) => handleTrainingTabClick(e, "prompt")}
-                        {...preventScrollOnClick}
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Prompt Edit
+                        <Settings className="h-4 w-4 mr-2" />
+                        Active Config
                       </Button>
                       <Button
                         variant="ghost"
@@ -1202,30 +1188,15 @@ chatbot.init();`);
                           size="sm"
                           className={cn(
                             "flex items-center gap-2 justify-start h-9 text-xs border border-transparent transition-[background-color,border-color,color]",
-                            trainingSubTab === "status"
+                            trainingSubTab === "config"
                               ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
                               : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
                           )}
-                          onClick={(e) => handleTrainingTabClick(e, "status")}
+                          onClick={(e) => handleTrainingTabClick(e, "config")}
                           {...preventScrollOnClick}
                         >
-                          <Power className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">Status</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={cn(
-                            "flex items-center gap-2 justify-start h-9 text-xs border border-transparent transition-[background-color,border-color,color]",
-                            trainingSubTab === "prompt"
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
-                              : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
-                          )}
-                          onClick={(e) => handleTrainingTabClick(e, "prompt")}
-                          {...preventScrollOnClick}
-                        >
-                          <Edit className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">Prompt</span>
+                          <Settings className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">Config</span>
                         </Button>
                         <Button
                           variant="ghost"
@@ -1341,68 +1312,65 @@ chatbot.init();`);
                       </div>
                       )}
 
-                      {/* Active Status Tab */}
-                      {trainingSubTab === "status" && (
-                      <div className="space-y-6 w-full overflow-hidden">
-            {/* Active Status */}
-            <GlassCard>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Power className="h-5 w-5" />
-                  Active Status
-                </CardTitle>
-                <CardDescription>
-                  Enable or disable the chatbot service
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {isLoadingActivation ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Loading activation status...
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label className="text-base">Chatbot Status</Label>
-                        <p className="text-sm text-muted-foreground">
-                          {isActive ? "Chatbot is currently active" : "Chatbot is currently inactive"}
-                        </p>
-                      </div>
-                      <Switch
-                        checked={isActive}
-                        onCheckedChange={async (checked) => {
-                          try {
-                            await updateActivationAsync(checked);
-                          } catch (error) {
-                            console.error("Failed to update activation status:", error);
-                            // Error toast is handled in the hook
-                          }
-                        }}
-                        disabled={isUpdatingActivation}
-                      />
-                    </div>
-                    {isActive && (
-                      <Badge variant="default" className="w-fit">
-                        Active
-                      </Badge>
-                    )}
-                    {isUpdatingActivation && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Updating status...
-                      </div>
-                    )}
-                  </>
-                )}
-              </CardContent>
-            </GlassCard>
-                      </div>
-                      )}
+                      {/* Config Tab (Merged Status, Prompt) */}
+                      {trainingSubTab === "config" && (
+                        <div className="space-y-6 w-full overflow-hidden">
+                          {/* Active Status Section */}
+                          <GlassCard>
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Power className="h-5 w-5" />
+                                Active Status
+                              </CardTitle>
+                              <CardDescription>
+                                Enable or disable the chatbot service
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              {isLoadingActivation ? (
+                                <div className="text-center py-8 text-muted-foreground">
+                                  Loading activation status...
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                      <Label className="text-base">Chatbot Status</Label>
+                                      <p className="text-sm text-muted-foreground">
+                                        {isActive ? "Chatbot is currently active" : "Chatbot is currently inactive"}
+                                      </p>
+                                    </div>
+                                    <Switch
+                                      checked={isActive}
+                                      onCheckedChange={async (checked) => {
+                                        try {
+                                          await updateActivationAsync(checked);
+                                        } catch (error) {
+                                          console.error("Failed to update activation status:", error);
+                                        }
+                                      }}
+                                      disabled={isUpdatingActivation}
+                                    />
+                                  </div>
+                                  {isActive && (
+                                    <Badge variant="default" className="w-fit">
+                                      Active
+                                    </Badge>
+                                  )}
+                                  {isUpdatingActivation && (
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      Updating status...
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </CardContent>
+                          </GlassCard>
 
-                      {/* Prompt Edit Tab */}
-                      {trainingSubTab === "prompt" && (
-                        <PromptEditTab />
+                          {/* Prompt Edit Section */}
+                          <PromptEditTab />
+                        </div>
                       )}
 
                       {/* Chat History Tab */}
@@ -1422,10 +1390,23 @@ chatbot.init();`);
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
-                      variant="destructive"
                       size="sm"
                       onClick={handleDeleteAll}
                       disabled={selectedSessionIds.size === 0}
+                      className="bg-destructive text-destructive-foreground border border-destructive-border"
+                      style={{
+                        backgroundColor: 'hsl(var(--destructive)) !important',
+                      }}
+                      onMouseEnter={(e) => {
+                        const target = e.currentTarget as HTMLButtonElement;
+                        target.style.setProperty('background-color', 'hsl(var(--destructive))', 'important');
+                        target.style.setProperty('border-color', 'hsl(var(--destructive-border))', 'important');
+                      }}
+                      onMouseLeave={(e) => {
+                        const target = e.currentTarget as HTMLButtonElement;
+                        target.style.setProperty('background-color', 'hsl(var(--destructive))', 'important');
+                        target.style.setProperty('border-color', 'hsl(var(--destructive-border))', 'important');
+                      }}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete All

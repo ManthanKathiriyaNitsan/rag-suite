@@ -942,66 +942,156 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
     return `${diffInYears} year${diffInYears > 1 ? 's' : ''} ago`;
   };
 
-  // 🎤 Voice recognition handlers
-  const startRecognition = useCallback(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
-    if (!SpeechRecognition) {
-      console.log('🎤 Speech recognition not supported');
+  // 🎤 Voice recognition handlers with improved cross-browser support
+  const startRecognition = useCallback(async () => {
+    // Check HTTPS requirement (microphone access requires secure context)
+    if (location.protocol !== 'https:' && 
+        location.hostname !== 'localhost' && 
+        location.hostname !== '127.0.0.1') {
+      console.error('🎤 Microphone access requires HTTPS');
+      alert('Microphone access requires HTTPS. Please use https:// or localhost.');
       return;
     }
 
+    // Check browser support
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      // Detect browser and show appropriate message
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isFirefox = userAgent.indexOf('firefox') > -1;
+      const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+      
+      let message = "Voice input is not supported in this browser.";
+      if (isFirefox) {
+        message = "Firefox doesn't support voice input. Please use Chrome, Edge, or Safari.";
+      } else if (isMobile) {
+        message = "Please use Chrome or Safari on mobile devices for voice input.";
+      } else {
+        message = "Your browser doesn't support voice input. Please use Chrome, Edge, or Safari.";
+      }
+      
+      console.warn('🎤 Speech recognition not supported:', message);
+      alert(message);
+      return;
+    }
+
+    // First, request microphone permission using getUserMedia
+    // This will show the browser's native permission prompt
     try {
-      const recognition = new SpeechRecognition();
-      recognitionRef.current = recognition;
-      recognition.lang = (navigator.language || "en-US");
-      recognition.interimResults = true;
-      recognition.maxAlternatives = 1;
-      recognition.continuous = false;
-
-      let finalTranscript = "";
-
-      recognition.onstart = () => {
-        console.log('🎤 Speech recognition started');
-        setIsListening(true);
-      };
-
-      recognition.onresult = (event: any) => {
-        let interimTranscript = "";
-        finalTranscript = "";
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript;
-          } else {
-            interimTranscript += transcript;
-          }
-        }
-
-        const combined = finalTranscript || interimTranscript;
-        if (combined) {
-          setInputValue(combined);
-        }
-      };
-
-      recognition.onerror = (event: any) => {
-        console.error('🎤 Speech recognition error:', event.error);
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        console.log('🎤 Speech recognition ended');
-        setIsListening(false);
-        if (finalTranscript.trim()) {
-          setInputValue(finalTranscript.trim());
-        }
-      };
-
-      recognition.start();
+      console.log('🎤 Requesting microphone permission...');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Permission granted, stop the stream and proceed with recognition
+      stream.getTracks().forEach(track => track.stop());
+      console.log('🎤 Microphone permission granted, starting recognition...');
+      proceedWithRecognition(SpeechRecognition);
     } catch (err: any) {
-      console.error('🎤 Speech recognition error:', err);
+      console.error('🎤 Microphone permission error:', err);
       setIsListening(false);
+      
+      let errorMessage = "Failed to access microphone.";
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errorMessage = "Microphone permission was denied. Please allow microphone access and try again.";
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errorMessage = "No microphone found. Please connect a microphone and try again.";
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        errorMessage = "Microphone is being used by another application. Please close other apps using the microphone.";
+      }
+      
+      alert(`Microphone Access Error\n\n${errorMessage}`);
+      return;
+    }
+
+    function proceedWithRecognition(SpeechRecognition: any) {
+      try {
+        const recognition = new SpeechRecognition();
+        recognitionRef.current = recognition;
+        
+        // Better language detection - use browser's preferred language
+        const browserLang = navigator.language || navigator.languages?.[0] || 'en-US';
+        recognition.lang = browserLang;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+        recognition.continuous = false;
+
+        let finalTranscript = "";
+
+        recognition.onstart = () => {
+          console.log('🎤 Speech recognition started');
+          setIsListening(true);
+        };
+
+        recognition.onresult = (event: any) => {
+          let interimTranscript = "";
+          finalTranscript = "";
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0]?.transcript || "";
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript + " ";
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+
+          const combined = (finalTranscript + interimTranscript).trim();
+          if (combined) {
+            setInputValue(combined);
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error('🎤 Speech recognition error:', event.error);
+          setIsListening(false);
+          
+          let errorMessage = "Failed to capture voice input.";
+          let errorTitle = "Voice Recognition Error";
+          
+          switch (event.error) {
+            case 'not-allowed':
+              errorTitle = "Microphone Permission Denied";
+              errorMessage = "Microphone permission was denied. Please refresh the page and allow microphone access when prompted.";
+              break;
+            case 'no-speech':
+              errorTitle = "No Speech Detected";
+              errorMessage = "No speech detected. Please speak clearly into your microphone.";
+              break;
+            case 'audio-capture':
+              errorTitle = "Microphone Error";
+              errorMessage = "Microphone not found or is being used by another application. Please check your microphone connection.";
+              break;
+            case 'network':
+              errorTitle = "Network Error";
+              errorMessage = "Network error. Please check your internet connection and try again.";
+              break;
+            case 'aborted':
+              // User stopped, no error needed
+              return;
+            case 'service-not-allowed':
+              errorTitle = "Service Not Allowed";
+              errorMessage = "Speech recognition service is not allowed. Please check your browser settings.";
+              break;
+            default:
+              errorMessage = event.error ? String(event.error) : "Failed to capture voice input.";
+          }
+
+          alert(`${errorTitle}\n\n${errorMessage}`);
+        };
+
+        recognition.onend = () => {
+          console.log('🎤 Speech recognition ended');
+          setIsListening(false);
+          if (finalTranscript.trim()) {
+            setInputValue(finalTranscript.trim());
+          }
+        };
+
+        recognition.start();
+      } catch (err: any) {
+        console.error('🎤 Speech recognition error:', err);
+        setIsListening(false);
+        alert(err?.message || "Unable to start microphone. Please check microphone permissions.");
+      }
     }
   }, []);
 

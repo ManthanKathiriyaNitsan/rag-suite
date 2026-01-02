@@ -26,6 +26,7 @@ import {
   Loader2,
   MessageCircle,
   CheckSquare,
+  Clock,
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -126,6 +127,7 @@ interface Conversation {
   timestamp: Date;
   messageCount: number;
   userName?: string;
+  messageType?: string;
   messages: ConversationMessage[];
 }
 
@@ -462,8 +464,11 @@ export default function SearchConfiguration() {
   const [pendingResponse, setPendingResponse] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>();
   const ragMessagesEndRef = useRef<HTMLDivElement>(null);
+  const ragSearchInputRef = useRef<HTMLInputElement>(null);
   const [ragSearchInput, setRagSearchInput] = useState("");
+  const [ragSearchFocused, setRagSearchFocused] = useState(false);
   const [ragSearchError, setRagSearchError] = useState("");
+  const [localSearchHistory, setLocalSearchHistory] = useState<string[]>([]); // Track local searches for immediate feedback
   const [maxTokensError, setMaxTokensError] = useState<string | null>(null);
 
   // Settings Tab State (CSP removed per user request)
@@ -560,6 +565,8 @@ export default function SearchConfiguration() {
   const [searchStyleOption, setSearchStyleOption] = useState("default");
   const [searchIcon, setSearchIcon] = useState("search");
   const [searchLoaderType, setSearchLoaderType] = useState("skeleton");
+  const [showLoaderPreview, setShowLoaderPreview] = useState(false);
+  const prevSearchLoaderTypeRef = useRef("skeleton");
   const [searchBackgroundColor, setSearchBackgroundColor] = useState("#d5d4d4");
   const [searchBorderRadius, setSearchBorderRadius] = useState("semi-rounded");
   const [searchResultStyle, setSearchResultStyle] = useState("list");
@@ -577,10 +584,14 @@ export default function SearchConfiguration() {
   // Search customization state - Load from API or use defaults
   const [searchFormType, setSearchFormType] = useState("default");
   const [searchButtonType, setSearchButtonType] = useState("icon");
+  const [buttonTypeError, setButtonTypeError] = useState<string>("");
+  const [searchIconError, setSearchIconError] = useState<string>("");
   const [searchButtonText, setSearchButtonText] = useState("Search");
   const [searchInputPlaceholder, setSearchInputPlaceholder] = useState("");
   const [searchRecentSearch, setSearchRecentSearch] = useState(false);
   const [searchRecentSearchTitle, setSearchRecentSearchTitle] = useState("");
+  const [showRecentSearchPreview, setShowRecentSearchPreview] = useState(false);
+  const prevSearchRecentSearchRef = useRef(false);
   const [searchPredefinedQuestions, setSearchPredefinedQuestions] = useState(false);
   const [searchQuestionsPosition, setSearchQuestionsPosition] = useState("below-search");
   const [searchQuestionsLimit, setSearchQuestionsLimit] = useState(5);
@@ -1119,15 +1130,14 @@ chatbot.init();`);
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     if (isNaN(dateObj.getTime())) return 'Unknown';
     
-    // Format as: "Jan 15, 2024, 2:30 PM" or similar
-    return dateObj.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
+    // Format as: "26 Dec 2025 12:32" (day month year hour:minute)
+    const day = dateObj.getDate();
+    const month = dateObj.toLocaleString('en-US', { month: 'short' });
+    const year = dateObj.getFullYear();
+    const hours = String(dateObj.getHours()).padStart(2, '0');
+    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+    
+    return `${day} ${month} ${year} ${hours}:${minutes}`;
   }, []);
 
   // Helper function to format relative time for display (e.g., "1 months ago")
@@ -1192,6 +1202,7 @@ chatbot.init();`);
               preview: item.userMessage || '',
               timestamp: new Date(item.createdAt),
               messageCount: 0,
+              messageType: item.messageType || 'plugin',
               messages: [],
             });
           }
@@ -1249,9 +1260,9 @@ chatbot.init();`);
           });
           conversation.messageCount += 1;
           
-          // Update preview to first user message
+          // Update preview to first user message (full text, not truncated)
           if (!conversation.preview && item.userMessage) {
-            conversation.preview = item.userMessage.substring(0, 100);
+            conversation.preview = item.userMessage;
           }
           
           // Update timestamp to earliest message
@@ -1309,11 +1320,10 @@ chatbot.init();`);
     }
   }, [toast]);
 
-  // Load chat history when tab is active (history tab or overview tab for preview) and poll for updates
+  // Load chat history when tab is active (history tab or overview tab for preview) or search-test tab (for recent searches)
   useEffect(() => {
-    if (activeTab !== 'training' || (trainingSubTab !== 'history' && trainingSubTab !== 'overview')) {
-      return;
-    }
+    if ((activeTab === 'training' && (trainingSubTab === 'history' || trainingSubTab === 'overview')) || 
+        (activeTab === 'search-test' && savedSearchRecentSearch)) {
 
     // Initial load
     loadChatHistory();
@@ -1324,7 +1334,62 @@ chatbot.init();`);
     }, 30000);
 
     return () => clearInterval(intervalId);
-  }, [activeTab, trainingSubTab, loadChatHistory]);
+    }
+  }, [activeTab, trainingSubTab, loadChatHistory, savedSearchRecentSearch]);
+
+  // Show recent search preview for 1-2 seconds when toggle is activated
+  useEffect(() => {
+    const prevValue = prevSearchRecentSearchRef.current;
+    prevSearchRecentSearchRef.current = searchRecentSearch;
+    
+    // If toggle changed from false to true, show preview temporarily
+    if (!prevValue && searchRecentSearch) {
+      setShowRecentSearchPreview(true);
+      // Hide after 1.5 seconds
+      const timer = setTimeout(() => {
+        setShowRecentSearchPreview(false);
+      }, 1500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [searchRecentSearch]);
+
+  // Show loader preview for 1-2 seconds when loader type changes
+  useEffect(() => {
+    const prevValue = prevSearchLoaderTypeRef.current;
+    
+    // If loader type changed, show preview temporarily
+    if (prevValue !== searchLoaderType && prevValue !== "") {
+      prevSearchLoaderTypeRef.current = searchLoaderType;
+      setShowLoaderPreview(true);
+      // Hide after 1.5 seconds
+      const timer = setTimeout(() => {
+        setShowLoaderPreview(false);
+      }, 2500);
+      
+      return () => clearTimeout(timer);
+    } else {
+      prevSearchLoaderTypeRef.current = searchLoaderType;
+    }
+  }, [searchLoaderType]);
+
+  // Validate button type - should only work when form type is "withBtn"
+  useEffect(() => {
+    if (searchFormType !== "withBtn" && searchButtonType) {
+      setButtonTypeError("Button Type only works when Search Form Type is set to 'With Button'");
+    } else {
+      setButtonTypeError("");
+    }
+  }, [searchFormType, searchButtonType]);
+
+  // Validate search icon - should only work when form type is "default"
+  useEffect(() => {
+    if (searchFormType !== "default" && searchIcon) {
+      setSearchIconError("Search Icon only works when Search Form Type is set to 'Default'");
+    } else {
+      setSearchIconError("");
+    }
+  }, [searchFormType, searchIcon]);
 
   // Handle conversation selection
   const handleSelectConversation = useCallback((sessionId: string) => {
@@ -1356,10 +1421,10 @@ chatbot.init();`);
   // Handle delete conversation
   const handleDeleteConversation = useCallback(async (sessionId: string) => {
     try {
-      await chatAPI.deleteSession(sessionId, 'page');  // Pass 'page' for hard delete (permanent)
+      await searchAPI.deleteSession(sessionId); 
       toast({
         title: "Deleted",
-        description: "Conversation deleted successfully.",
+        description: "Search history deleted successfully.",
         variant: "success",
       });
       await loadChatHistory();
@@ -1372,10 +1437,10 @@ chatbot.init();`);
         return newSet;
       });
     } catch (error) {
-      console.error('Failed to delete conversation:', error);
+      console.error('Failed to delete search history:', error);
       toast({
         title: "Error",
-        description: "Failed to delete conversation. Please try again.",
+        description: "Failed to delete search history. Please try again.",
         variant: "destructive",
       });
     }
@@ -1383,30 +1448,56 @@ chatbot.init();`);
 
   // Handle delete all selected
   const handleDeleteAll = useCallback(async () => {
-    if (selectedSessionIds.size === 0) return;
-    
-    try {
-      const deletePromises = Array.from(selectedSessionIds).map(sessionId =>
-        chatAPI.deleteSession(sessionId)
-      );
-      await Promise.all(deletePromises);
-      toast({
-        title: "Deleted",
-        description: `${selectedSessionIds.size} conversation(s) deleted successfully.`,
-        variant: "success",
-      });
-      setSelectedSessionIds(new Set());
-      await loadChatHistory();
-      setSelectedSessionId(null);
-    } catch (error) {
-      console.error('Failed to delete conversations:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete some conversations. Please try again.",
-        variant: "destructive",
-      });
+    // If selected specific items, delete those
+    if (selectedSessionIds.size > 0 && selectedSessionIds.size < conversations.length) {
+      try {
+        const deletePromises = Array.from(selectedSessionIds).map(sessionId =>
+          searchAPI.deleteSession(sessionId)
+        );
+        await Promise.all(deletePromises);
+        toast({
+          title: "Deleted",
+          description: `${selectedSessionIds.size} search(es) deleted successfully.`,
+          variant: "success",
+        });
+        setSelectedSessionIds(new Set());
+        await loadChatHistory();
+        setSelectedSessionId(null);
+      } catch (error) {
+        console.error('Failed to delete searches:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete some searches. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } 
+    // If nothing selected or all selected, confirm delete all
+    else {
+      if (!confirm("Are you sure you want to delete ALL search history? This cannot be undone.")) {
+        return;
+      }
+      
+      try {
+        await searchAPI.deleteAllSessions();
+        toast({
+          title: "Deleted",
+          description: "All search history deleted successfully.",
+          variant: "success",
+        });
+        setSelectedSessionIds(new Set());
+        await loadChatHistory();
+        setSelectedSessionId(null);
+      } catch (error) {
+        console.error('Failed to delete all search history:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete all search history. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
-  }, [selectedSessionIds, toast, loadChatHistory]);
+  }, [selectedSessionIds, conversations.length, toast, loadChatHistory]);
 
   // Filter conversations
   const filteredConversations = useMemo(() => {
@@ -1448,6 +1539,35 @@ chatbot.init();`);
     
     return filtered;
   }, [conversations, chatHistorySearch, dateFilter]);
+
+  // Get recent searches from history for Search Test tab
+  const recentSearches = useMemo(() => {
+    // Combine local history and conversation history
+    const allSources = [...localSearchHistory];
+    
+    if (conversations && conversations.length > 0) {
+      for (const conv of conversations) {
+        if (conv.preview && conv.preview.trim()) {
+          allSources.push(conv.preview.trim());
+        }
+      }
+    }
+
+    // Extract unique queries
+    const uniqueQueries = new Set<string>();
+    const result: string[] = [];
+    
+    for (const query of allSources) {
+      const trimmed = query.trim();
+      if (trimmed && !uniqueQueries.has(trimmed)) {
+        uniqueQueries.add(trimmed);
+        result.push(trimmed);
+      }
+      if (result.length >= 2) break; 
+    }
+    
+    return result.slice(0, 2);
+  }, [conversations, localSearchHistory]);
 
   // Get selected conversation messages - CRITICAL: Use strict sessionId matching
   const selectedConversation = useMemo(() => {
@@ -1497,12 +1617,12 @@ chatbot.init();`);
   };
 
   // Load RAG chat history - Don't load history, only show last query/response
+  // Load RAG chat history
   useEffect(() => {
     if (activeTab === 'search-test') {
-      // Don't load history - start with empty state (only show last query/response)
+      // Don't load history - just ensure loading state is false
       setIsLoadingRagHistory(false);
-      // Reset to empty messages when switching to search-test tab
-      setRagMessages([]);
+      // Removed setRagMessages([]) to persist messages across tab switches
     }
   }, [activeTab]);
 
@@ -1522,6 +1642,13 @@ chatbot.init();`);
     };
     // Replace all messages with just the new user message (show only last query)
     setRagMessages([userMessage]);
+    
+    // Update local search history immediately
+    setLocalSearchHistory(prev => {
+      const newHistory = [query, ...prev];
+      // Keep only unique and top 2 locally to avoid unbounded growth
+      return Array.from(new Set(newHistory)).slice(0, 2);
+    });
     
     // Client-side validation before API call
     const validationError = validateMaxTokens(ragSettings.maxTokens, responseType);
@@ -1644,6 +1771,12 @@ chatbot.init();`);
   // Handle search submit
   const handleRagSearchSubmit = useCallback((e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    
+    // Blur input to close suggestions
+    if (ragSearchInputRef.current) {
+      ragSearchInputRef.current.blur();
+    }
+    
     const query = ragSearchInput.trim();
     if (query.length < 3) {
       setRagSearchError("Please enter at least 3 characters");
@@ -1740,43 +1873,15 @@ chatbot.init();`);
                         variant="ghost"
                         className={cn(
                           "w-full justify-start border border-transparent transition-[background-color,border-color,color]",
-                          trainingSubTab === "status"
+                          trainingSubTab === "config"
                             ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
                             : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
                         )}
-                        onClick={(e) => handleTrainingTabClick(e, "status")}
+                        onClick={(e) => handleTrainingTabClick(e, "config")}
                         {...preventScrollOnClick}
                       >
-                        <Power className="h-4 w-4 mr-2" />
-                        Active Status
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className={cn(
-                          "w-full justify-start border border-transparent transition-[background-color,border-color,color]",
-                          trainingSubTab === "prompt"
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
-                            : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
-                        )}
-                        onClick={(e) => handleTrainingTabClick(e, "prompt")}
-                        {...preventScrollOnClick}
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Prompt Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className={cn(
-                          "w-full justify-start border border-transparent transition-[background-color,border-color,color]",
-                          trainingSubTab === "response"
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
-                            : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
-                        )}
-                        onClick={(e) => handleTrainingTabClick(e, "response")}
-                        {...preventScrollOnClick}
-                      >
-                        <MessageCircle className="h-4 w-4 mr-2" />
-                        Response Config
+                        <Settings className="h-4 w-4 mr-2" />
+                        Active Config
                       </Button>
                       <Button
                         variant="ghost"
@@ -1823,45 +1928,15 @@ chatbot.init();`);
                           size="sm"
                           className={cn(
                             "flex items-center gap-2 justify-start h-9 text-xs border border-transparent transition-[background-color,border-color,color]",
-                            trainingSubTab === "status"
+                            trainingSubTab === "config"
                               ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
                               : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
                           )}
-                          onClick={(e) => handleTrainingTabClick(e, "status")}
+                          onClick={(e) => handleTrainingTabClick(e, "config")}
                           {...preventScrollOnClick}
                         >
-                          <Power className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">Status</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={cn(
-                            "flex items-center gap-2 justify-start h-9 text-xs border border-transparent transition-[background-color,border-color,color]",
-                            trainingSubTab === "prompt"
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
-                              : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
-                          )}
-                          onClick={(e) => handleTrainingTabClick(e, "prompt")}
-                          {...preventScrollOnClick}
-                        >
-                          <Edit className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">Prompt</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={cn(
-                            "flex items-center gap-2 justify-start h-9 text-xs border border-transparent transition-[background-color,border-color,color]",
-                            trainingSubTab === "response"
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
-                              : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
-                          )}
-                          onClick={(e) => handleTrainingTabClick(e, "response")}
-                          {...preventScrollOnClick}
-                        >
-                          <MessageSquare className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">Response</span>
+                          <Settings className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">Config</span>
                         </Button>
                         <Button
                           variant="ghost"
@@ -1995,161 +2070,153 @@ chatbot.init();`);
                       </div>
                       )}
 
-                      {/* Active Status Tab */}
-                      {trainingSubTab === "status" && (
-                      <div className="space-y-6 w-full overflow-hidden">
-            {/* Active Status */}
-            <GlassCard>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Power className="h-5 w-5" />
-                  Active Status
-                </CardTitle>
-                <CardDescription>
-                  Enable or disable the search service
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {isLoadingActivation ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Loading activation status...
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label className="text-base">Search Status</Label>
-                        <p className="text-sm text-muted-foreground">
-                          {isActive ? "Search is currently active" : "Search is currently inactive"}
-                        </p>
-                      </div>
-                      <Switch
-                        checked={isActive}
-                        onCheckedChange={async (checked) => {
-                          try {
-                            await updateActivationAsync(checked);
-                          } catch (error) {
-                            console.error("Failed to update activation status:", error);
-                            // Error toast is handled in the hook
-                          }
-                        }}
-                        disabled={isUpdatingActivation}
-                      />
-                    </div>
-                    {isActive && (
-                      <Badge variant="default" className="w-fit">
-                        Active
-                      </Badge>
-                    )}
-                    {isUpdatingActivation && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Updating status...
-                      </div>
-                    )}
-                  </>
-                )}
-              </CardContent>
-            </GlassCard>
-                      </div>
-                      )}
+                      {/* Config Tab (Merged Status, Prompt, Response) */}
+                      {trainingSubTab === "config" && (
+                        <div className="space-y-6 w-full overflow-hidden">
+                          {/* Active Status Section */}
+                          <GlassCard>
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Power className="h-5 w-5" />
+                                Active Status
+                              </CardTitle>
+                              <CardDescription>
+                                Enable or disable the search service
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              {isLoadingActivation ? (
+                                <div className="text-center py-8 text-muted-foreground">
+                                  Loading activation status...
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                      <Label className="text-base">Search Status</Label>
+                                      <p className="text-sm text-muted-foreground">
+                                        {isActive ? "Search is currently active" : "Search is currently inactive"}
+                                      </p>
+                                    </div>
+                                    <Switch
+                                      checked={isActive}
+                                      onCheckedChange={async (checked) => {
+                                        try {
+                                          await updateActivationAsync(checked);
+                                        } catch (error) {
+                                          console.error("Failed to update activation status:", error);
+                                        }
+                                      }}
+                                      disabled={isUpdatingActivation}
+                                    />
+                                  </div>
+                                  {isActive && (
+                                    <Badge variant="default" className="w-fit">
+                                      Active
+                                    </Badge>
+                                  )}
+                                  {isUpdatingActivation && (
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      Updating status...
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </CardContent>
+                          </GlassCard>
 
-                      {/* Prompt Edit Tab */}
-                      {trainingSubTab === "prompt" && (
-                        <PromptEditTab />
-                      )}
+                          {/* Prompt Edit Section */}
+                          <PromptEditTab />
 
-                      {/* Response Configuration Tab */}
-                      {trainingSubTab === "response" && (
-                      <div className="space-y-6 w-full overflow-hidden">
-            {/* Response Config Options */}
-            <GlassCard>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageCircle className="h-5 w-5" />
-                  Response Configuration
-                </CardTitle>
-                <CardDescription>
-                  Configure how the chatbot responds to queries
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {isLoadingResponseConfig ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                    <span className="text-sm text-muted-foreground">Loading response configuration...</span>
-                  </div>
-                ) : (
-                  <>
-                    <div>
-                      <Label htmlFor="response-type">Response Type</Label>
-                      <Select 
-                        value={responseType} 
-                        onValueChange={(value: "long" | "short") => {
-                          const newType = value as "long" | "short";
-                          setResponseType(newType);
-                          
-                          // If maxTokens is set and below new minimum, auto-adjust to minimum
-                          if (ragSettings.maxTokens !== null && ragSettings.maxTokens !== undefined && ragSettings.maxTokens > 0) {
-                            const minRequired = newType === 'long' ? 400 : 200;
-                            
-                            if (ragSettings.maxTokens < minRequired) {
-                              // Auto-adjust to minimum
-                              updateRAGSettings({ maxTokens: minRequired });
-                              setMaxTokensError(null); // Clear error after auto-adjust
-                            } else {
-                              // Validate the current value with new type
-                              const validationError = validateMaxTokens(ragSettings.maxTokens, newType);
-                              if (validationError) {
-                                setMaxTokensError(validationError);
-                              } else {
-                                setMaxTokensError(null);
-                              }
-                            }
-                          }
-                        }}
-                        disabled={isSavingResponseConfig}
-                      >
-                        <SelectTrigger id="response-type" className="mt-2">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="long">Long Responses</SelectItem>
-                          <SelectItem value="short">Short Responses</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {responseType === "long"
-                          ? "Chatbot will provide detailed, comprehensive responses"
-                          : "Chatbot will provide concise, brief responses"}
-                      </p>
-                    </div>
-                    <Button 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleSaveTraining();
-                      }}
-                      disabled={isSavingResponseConfig}
-                      {...preventScrollOnClick}
-                    >
-                      {isSavingResponseConfig ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="h-4 w-4 mr-2" />
-                          Save Configuration
-                        </>
-                      )}
-                    </Button>
-                  </>
-                )}
-              </CardContent>
-            </GlassCard>
-                      </div>
+                          {/* Response Config Section */}
+                          <GlassCard>
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <MessageCircle className="h-5 w-5" />
+                                Response Configuration
+                              </CardTitle>
+                              <CardDescription>
+                                Configure how the chatbot responds to queries
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              {isLoadingResponseConfig ? (
+                                <div className="flex items-center justify-center py-8">
+                                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                                  <span className="text-sm text-muted-foreground">Loading response configuration...</span>
+                                </div>
+                              ) : (
+                                <>
+                                  <div>
+                                    <Label htmlFor="response-type">Response Type</Label>
+                                    <Select 
+                                      value={responseType} 
+                                      onValueChange={(value: "long" | "short") => {
+                                        const newType = value as "long" | "short";
+                                        setResponseType(newType);
+                                        
+                                        // If maxTokens is set and below new minimum, auto-adjust to minimum
+                                        if (ragSettings.maxTokens !== null && ragSettings.maxTokens !== undefined && ragSettings.maxTokens > 0) {
+                                          const minRequired = newType === 'long' ? 400 : 200;
+                                          
+                                          if (ragSettings.maxTokens < minRequired) {
+                                            // Auto-adjust to minimum
+                                            updateRAGSettings({ maxTokens: minRequired });
+                                            setMaxTokensError(null); // Clear error after auto-adjust
+                                          } else {
+                                            // Validate the current value with new type
+                                            const validationError = validateMaxTokens(ragSettings.maxTokens, newType);
+                                            if (validationError) {
+                                              setMaxTokensError(validationError);
+                                            } else {
+                                              setMaxTokensError(null);
+                                            }
+                                          }
+                                        }
+                                      }}
+                                      disabled={isSavingResponseConfig}
+                                    >
+                                      <SelectTrigger id="response-type" className="mt-2">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="long">Long Responses</SelectItem>
+                                        <SelectItem value="short">Short Responses</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {responseType === "long"
+                                        ? "Chatbot will provide detailed, comprehensive responses"
+                                        : "Chatbot will provide concise, brief responses"}
+                                    </p>
+                                  </div>
+                                  <Button 
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleSaveTraining();
+                                    }}
+                                    disabled={isSavingResponseConfig}
+                                    {...preventScrollOnClick}
+                                  >
+                                    {isSavingResponseConfig ? (
+                                      <>
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        Saving...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Save className="h-4 w-4 mr-2" />
+                                        Save Configuration
+                                      </>
+                                    )}
+                                  </Button>
+                                </>
+                              )}
+                            </CardContent>
+                          </GlassCard>
+                        </div>
                       )}
 
                       {/* Chat History Tab */}
@@ -2169,20 +2236,33 @@ chatbot.init();`);
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
-                      variant="destructive"
                       size="sm"
                       onClick={handleDeleteAll}
                       disabled={selectedSessionIds.size === 0}
+                      className="bg-destructive text-destructive-foreground border border-destructive-border"
+                      style={{
+                        backgroundColor: 'hsl(var(--destructive)) !important',
+                      }}
+                      onMouseEnter={(e) => {
+                        const target = e.currentTarget as HTMLButtonElement;
+                        target.style.setProperty('background-color', 'hsl(var(--destructive))', 'important');
+                        target.style.setProperty('border-color', 'hsl(var(--destructive-border))', 'important');
+                      }}
+                      onMouseLeave={(e) => {
+                        const target = e.currentTarget as HTMLButtonElement;
+                        target.style.setProperty('background-color', 'hsl(var(--destructive))', 'important');
+                        target.style.setProperty('border-color', 'hsl(var(--destructive-border))', 'important');
+                      }}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
-                      Delete All
+                      {selectedSessionIds.size > 0 ? `Delete Selected (${selectedSessionIds.size})` : "Delete All"}
                     </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Split Panel Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-450px)] min-h-[600px]">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-280px)] min-h-[400px]">
                   {/* Left Panel - Conversation List */}
                   <div className="lg:col-span-1 border flex flex-col overflow-hidden bg-background/50 backdrop-blur-sm" style={{ borderRadius: 'var(--component-cardRadius, 2px)' }}>
                     {/* Search and Date Filter */}  
@@ -2248,28 +2328,29 @@ chatbot.init();`);
                               onClick={() => handleSelectConversation(conversation.sessionId)}
                             >
                               <div className="flex items-start gap-3">
-                                <div onClick={(e) => e.stopPropagation()}>
+                                <div className="flex-1 min-w-0">
+                                  {/* Search Query - Full text */}
+                                  <p className="text-sm font-medium mb-2 break-words">
+                                    {conversation.preview || "New conversation"}
+                                  </p>
+                                  {/* Date and Time */}
+                                  <div className="text-xs text-muted-foreground mb-1">
+                                    {formatDateTime(conversation.timestamp)}
+                                  </div>
+                                  {/* Search From and Count */}
+                                  <div className="text-xs text-muted-foreground space-y-0.5">
+                                    <div>Search From: {conversation.messageType || 'plugin'}</div>
+                                    <div>Number of times words searched: {conversation.messageCount}</div>
+                                  </div>
+                                </div>
+                                {/* Checkbox on the right */}
+                                <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
                                   <Checkbox
                                     checked={selectedSessionIds.has(conversation.sessionId)}
                                     onCheckedChange={() => {
                                       handleToggleConversationSelection(conversation.sessionId);
                                     }}
                                   />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium line-clamp-2 mb-1">
-                                    {conversation.preview || "New conversation"}
-                                  </p>
-                              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <span className="flex flex-col">
-                                  <span>{formatDateTime(conversation.timestamp)}</span>
-                                  <span className="text-[10px] opacity-75">{formatRelativeTime(conversation.timestamp)}</span>
-                                </span>
-                                <div className="flex items-center gap-1">
-                                  <MessageSquare className="h-3 w-3" />
-                                  <span>{conversation.messageCount}</span>
-                                </div>
-                              </div>
                                 </div>
                               </div>
                             </div>
@@ -2285,22 +2366,16 @@ chatbot.init();`);
                       <>
                         {/* Chat Header */}
                         <div className="p-4 border-b flex items-center justify-between bg-muted/30 backdrop-blur-sm">
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarFallback>
-                                {selectedConversation.userName?.charAt(0).toUpperCase() || "U"}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <h3 className="font-semibold">
-                                {selectedConversation.userName || "User"}
-                              </h3>
-                            </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-base break-words">
+                              {selectedConversation.preview || "Search Query"}
+                            </h3>
                           </div>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteConversation(selectedConversation.sessionId)}
+                            className="flex-shrink-0 ml-2"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -2474,6 +2549,20 @@ chatbot.init();`);
                         <Settings className="h-4 w-4 mr-2" />
                          Customization
                       </Button>
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          "w-full justify-start border border-transparent transition-[background-color,border-color,color]",
+                          settingsSubTab === "questions"
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
+                            : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
+                        )}
+                        onClick={(e) => handleTabClick(e, "questions")}
+                        {...preventScrollOnClick}
+                      >
+                        <HelpCircle className="h-4 w-4 mr-2" />
+                         Questions
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -2560,6 +2649,21 @@ chatbot.init();`);
                           <Settings className="h-3 w-3 flex-shrink-0" />
                           <span className="truncate">Custom</span>
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={cn(
+                            "flex items-center gap-2 justify-start h-9 text-xs border border-transparent transition-[background-color,border-color,color]",
+                            settingsSubTab === "questions"
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground border-[hsl(var(--button-hover-border))]"
+                              : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))]"
+                          )}
+                          onClick={(e) => handleTabClick(e, "questions")}
+                          {...preventScrollOnClick}
+                        >
+                          <HelpCircle className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">Questions</span>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -2573,6 +2677,7 @@ chatbot.init();`);
                         <TabsTrigger value="citations">Citation Formatting</TabsTrigger>
                         <TabsTrigger value="search-configuration">Configuration</TabsTrigger>
                         <TabsTrigger value="search-customization">Customization</TabsTrigger>
+                        <TabsTrigger value="questions">Questions</TabsTrigger>
                       </TabsList>
 
                       {/* Overview Tab */}
@@ -2626,43 +2731,51 @@ chatbot.init();`);
                                 </div>
                               </div>
 
-                              {/* Chatbot Configuration Preview - Real-time */}
+                              {/* Search Configuration Preview - Real-time */}
                               <div className="p-4 border rounded-lg bg-muted/50">
-                                <div className="text-sm font-medium text-muted-foreground mb-2">Chatbot Config</div>
+                                <div className="text-sm font-medium text-muted-foreground mb-2">Search Config</div>
                                 <div className="space-y-1 text-xs">
                                   <div className="flex justify-between">
                                     <span>Title:</span>
-                                    <span className="font-semibold truncate max-w-[120px]">{chatbotTitle || "Not set"}</span>
+                                    <span className="font-semibold truncate max-w-[120px]">{searchTitle || "Not set"}</span>
                                   </div>
                                   <div className="flex justify-between">
                                     <span>Language:</span>
-                                    <span className="font-semibold uppercase">{chatbotLanguage}</span>
+                                    <span className="font-semibold uppercase">{searchLanguage}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>Style:</span>
+                                    <span className="font-semibold capitalize">{searchStyleOption}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>Icon:</span>
+                                    <span className="font-semibold capitalize">{searchIcon}</span>
                                   </div>
                                 </div>
                               </div>
 
-                              {/* Widget Customization Preview - Real-time */}
+                              {/* Search Customization Preview - Real-time */}
                               <div className="p-4 border rounded-lg bg-muted/50">
-                                <div className="text-sm font-medium text-muted-foreground mb-2">Widget</div>
+                                <div className="text-sm font-medium text-muted-foreground mb-2">Customization</div>
                                 <div className="space-y-1 text-xs">
                                   <div className="flex justify-between">
-                                    <span>Position:</span>
-                                    <span className="font-semibold capitalize">{widgetPosition.replace('-', ' ')}</span>
+                                    <span>Form Type:</span>
+                                    <span className="font-semibold capitalize">{searchFormType === 'withBtn' ? 'With Button' : 'Default'}</span>
                                   </div>
                                   <div className="flex justify-between">
-                                    <span>Avatar Size:</span>
-                                    <span className="font-semibold">{widgetAvatarSize}px</span>
+                                    <span>Button Type:</span>
+                                    <span className="font-semibold capitalize">{searchButtonType === 'withLabel' ? 'With Label' : 'Icon Only'}</span>
                                   </div>
                                   <div className="flex justify-between">
-                                    <span>Show Logo:</span>
-                                    <Badge variant={widgetShowLogo ? "default" : "secondary"} className="text-xs px-1.5 py-0">
-                                      {widgetShowLogo ? "Yes" : "No"}
+                                    <span>Recent Search:</span>
+                                    <Badge variant={searchRecentSearch ? "default" : "secondary"} className="text-xs px-1.5 py-0">
+                                      {searchRecentSearch ? "Enabled" : "Disabled"}
                                     </Badge>
                                   </div>
                                   <div className="flex justify-between">
-                                    <span>Show Date/Time:</span>
-                                    <Badge variant={widgetShowDateTime ? "default" : "secondary"} className="text-xs px-1.5 py-0">
-                                      {widgetShowDateTime ? "Yes" : "No"}
+                                    <span>Questions:</span>
+                                    <Badge variant={searchPredefinedQuestions ? "default" : "secondary"} className="text-xs px-1.5 py-0">
+                                      {searchPredefinedQuestions ? "Enabled" : "Disabled"}
                                     </Badge>
                                   </div>
                                 </div>
@@ -3390,6 +3503,9 @@ chatbot.init();`);
                                     </SelectItem>
                                   </SelectContent>
                                 </Select>
+                                {searchIconError && (
+                                  <p className="text-sm text-destructive mt-2">{searchIconError}</p>
+                                )}
                               </div>
 
                               <div>
@@ -3515,6 +3631,8 @@ chatbot.init();`);
                                 questionsList: searchQuestionsList,
                                 questionsPosition: searchQuestionsPosition,
                                 questionsLimit: searchQuestionsLimit,
+                                showRecentSearchPreview: showRecentSearchPreview,
+                                showLoaderPreview: showLoaderPreview,
                                 citationFormatting: searchCitationFormatting ? {
                                   colorScheme: searchCitationFormatting.colorScheme,
                                   layout: searchCitationFormatting.layout,
@@ -3581,6 +3699,9 @@ chatbot.init();`);
                                     <SelectItem value="withLabel">With Label</SelectItem>
                                   </SelectContent>
                                 </Select>
+                                {buttonTypeError && (
+                                  <p className="text-sm text-destructive mt-2">{buttonTypeError}</p>
+                                )}
                               </div>
 
                               {searchButtonType === "withLabel" && (
@@ -3645,164 +3766,7 @@ chatbot.init();`);
                                 </div>
                               )}
 
-                              <div className="flex items-center justify-between py-2">
-                                <div className="space-y-0.5">
-                                  <Label htmlFor="search-predefined-questions">
-                                    Predefined Questions
-                                  </Label>
-                                  <p className="text-xs text-muted-foreground">
-                                    Show predefined question suggestions
-                                  </p>
-                                </div>
-                                <Switch
-                                  id="search-predefined-questions"
-                                  checked={searchPredefinedQuestions}
-                                  onCheckedChange={setSearchPredefinedQuestions}
-                                />
-                              </div>
 
-                              {/* Predefined Questions Configuration - Show when enabled */}
-                              {searchPredefinedQuestions && (
-                                <div className="space-y-6 pt-4 border-t">
-                                  {/* No. of questions limit */}
-                                  <div>
-                                    <Label htmlFor="search-questions-limit">
-                                      No. of questions limit
-                                    </Label>
-                                    <div className="relative mt-2">
-                                      <Input
-                                        id="search-questions-limit"
-                                        type="number"
-                                        value={searchQuestionsLimit}
-                                        onChange={(e) => setSearchQuestionsLimit(parseInt(e.target.value) || 0)}
-                                        min={1}
-                                        max={50}
-                                        className="pr-8"
-                                      />
-                                      {searchQuestionsLimit > 0 && (
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
-                                          onClick={() => setSearchQuestionsLimit(0)}
-                                        >
-                                          <X className="h-3 w-3" />
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  {/* Questions List Management */}
-                                  <div>
-                                    <Label>
-                                      Questions
-                                    </Label>
-                                    <div className="mt-2 space-y-2">
-                                      {/* Add Question Input */}
-                                      <div className="flex gap-2">
-                                        <Input
-                                          placeholder="Enter a question..."
-                                          value={newQuestionText}
-                                          onChange={(e) => setNewQuestionText(e.target.value)}
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter' && newQuestionText.trim()) {
-                                              e.preventDefault();
-                                              setSearchQuestionsList([...searchQuestionsList, newQuestionText.trim()]);
-                                              setNewQuestionText("");
-                                            }
-                                          }}
-                                        />
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="icon"
-                                          onClick={() => {
-                                            if (newQuestionText.trim()) {
-                                              setSearchQuestionsList([...searchQuestionsList, newQuestionText.trim()]);
-                                              setNewQuestionText("");
-                                            }
-                                          }}
-                                          disabled={!newQuestionText.trim()}
-                                        >
-                                          <Plus className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-
-                                      {/* Questions List */}
-                                      {searchQuestionsList.length > 0 && (
-                                        <div className="border rounded-lg">
-                                          <div className="max-h-60 overflow-y-auto">
-                                            {searchQuestionsList.map((question, index) => (
-                                              <div
-                                                key={index}
-                                                className={`flex items-center gap-2 p-2 border-b last:border-b-0 hover:bg-muted/50 ${
-                                                  selectedQuestionIndex === index ? 'bg-muted' : ''
-                                                }`}
-                                                onClick={() => setSelectedQuestionIndex(index)}
-                                              >
-                                                <div className="flex-1 text-sm">{question}</div>
-                                                <div className="flex items-center gap-1">
-                                                  <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-7 w-7"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      if (index > 0) {
-                                                        const newList = [...searchQuestionsList];
-                                                        [newList[index - 1], newList[index]] = [newList[index], newList[index - 1]];
-                                                        setSearchQuestionsList(newList);
-                                                        setSelectedQuestionIndex(index - 1);
-                                                      }
-                                                    }}
-                                                    disabled={index === 0}
-                                                  >
-                                                    <ChevronUp className="h-4 w-4" />
-                                                  </Button>
-                                                  <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-7 w-7"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      if (index < searchQuestionsList.length - 1) {
-                                                        const newList = [...searchQuestionsList];
-                                                        [newList[index], newList[index + 1]] = [newList[index + 1], newList[index]];
-                                                        setSearchQuestionsList(newList);
-                                                        setSelectedQuestionIndex(index + 1);
-                                                      }
-                                                    }}
-                                                    disabled={index === searchQuestionsList.length - 1}
-                                                  >
-                                                    <ChevronDown className="h-4 w-4" />
-                                                  </Button>
-                                                  <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-7 w-7 text-destructive hover:text-destructive"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      const newList = searchQuestionsList.filter((_, i) => i !== index);
-                                                      setSearchQuestionsList(newList);
-                                                      setSelectedQuestionIndex(null);
-                                                    }}
-                                                  >
-                                                    <Trash2 className="h-4 w-4" />
-                                                  </Button>
-                                                </div>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
 
                               <Button
                                 type="button"
@@ -3869,6 +3833,269 @@ chatbot.init();`);
                                 questionsList: searchQuestionsList,
                                 questionsPosition: searchQuestionsPosition,
                                 questionsLimit: searchQuestionsLimit,
+                                showRecentSearchPreview: showRecentSearchPreview,
+                                showLoaderPreview: showLoaderPreview,
+                                citationFormatting: searchCitationFormatting ? {
+                                  colorScheme: searchCitationFormatting.colorScheme,
+                                  layout: searchCitationFormatting.layout,
+                                  showSourceCount: searchCitationFormatting.showSourceCount,
+                                } : undefined,
+                              }}
+                              minHeight={650}
+                            />
+                          </div>
+                        </div>
+                      </TabsContent>
+
+                      {/* Questions Tab */}
+                      <TabsContent value="questions" className="w-full search-customization-tab" style={{ overflow: 'visible' }}>
+                        <div ref={widgetCustomizationRef} className="grid gap-4 grid-cols-1 lg:grid-cols-2 items-start" style={{ overflow: 'visible' }}>
+                          {/* Left: Questions Configuration */}
+                          <div className="space-y-6">
+                            <GlassCard>
+                              <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                  <HelpCircle className="h-5 w-5" />
+                                  Predefined Questions Configuration
+                                </CardTitle>
+                                <CardDescription>
+                                  Manage suggested questions for users to select
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent className="space-y-6">
+                                {isLoadingSearchCustomization ? (
+                                  <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                    <span className="ml-2 text-sm text-muted-foreground">Loading settings...</span>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="flex items-center justify-between py-2">
+                                      <div className="space-y-0.5">
+                                        <Label htmlFor="search-predefined-questions-tab">
+                                          Enable Predefined Questions
+                                        </Label>
+                                        <p className="text-xs text-muted-foreground">
+                                          Show suggested questions in the search bar
+                                        </p>
+                                      </div>
+                                      <Switch
+                                        id="search-predefined-questions-tab"
+                                        checked={searchPredefinedQuestions}
+                                        onCheckedChange={setSearchPredefinedQuestions}
+                                      />
+                                    </div>
+
+                                    {/* Predefined Questions Configuration - Show when enabled */}
+                                    {searchPredefinedQuestions && (
+                                      <div className="space-y-6 pt-4 border-t">
+                                        {/* No. of questions limit */}
+                                        <div>
+                                          <Label htmlFor="search-questions-limit-tab">
+                                            No. of questions limit
+                                          </Label>
+                                          <div className="relative mt-2">
+                                            <Input
+                                              id="search-questions-limit-tab"
+                                              type="number"
+                                              value={searchQuestionsLimit}
+                                              onChange={(e) => setSearchQuestionsLimit(parseInt(e.target.value) || 0)}
+                                              min={1}
+                                              max={50}
+                                              className="pr-8"
+                                            />
+                                            {searchQuestionsLimit > 0 && (
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
+                                                onClick={() => setSearchQuestionsLimit(0)}
+                                              >
+                                                <X className="h-3 w-3" />
+                                              </Button>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        {/* Questions List Management */}
+                                        <div>
+                                          <Label>
+                                            Questions
+                                          </Label>
+                                          <div className="mt-2 space-y-2">
+                                            {/* Add Question Input */}
+                                            <div className="flex gap-2">
+                                              <Input
+                                                placeholder="Enter a question..."
+                                                value={newQuestionText}
+                                                onChange={(e) => setNewQuestionText(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                  if (e.key === 'Enter' && newQuestionText.trim()) {
+                                                    e.preventDefault();
+                                                    setSearchQuestionsList([...searchQuestionsList, newQuestionText.trim()]);
+                                                    setNewQuestionText("");
+                                                  }
+                                                }}
+                                              />
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                onClick={() => {
+                                                  if (newQuestionText.trim()) {
+                                                    setSearchQuestionsList([...searchQuestionsList, newQuestionText.trim()]);
+                                                    setNewQuestionText("");
+                                                  }
+                                                }}
+                                                disabled={!newQuestionText.trim()}
+                                              >
+                                                <Plus className="h-4 w-4" />
+                                              </Button>
+                                            </div>
+
+                                            {/* Questions List */}
+                                            {searchQuestionsList.length > 0 && (
+                                              <div className="border rounded-lg">
+                                                <div className="max-h-60 overflow-y-auto">
+                                                  {searchQuestionsList.map((question, index) => (
+                                                    <div
+                                                      key={index}
+                                                      className={`flex items-center gap-2 p-2 border-b last:border-b-0 hover:bg-muted/50 ${
+                                                        selectedQuestionIndex === index ? 'bg-muted' : ''
+                                                      }`}
+                                                      onClick={() => setSelectedQuestionIndex(index)}
+                                                    >
+                                                      <div className="flex-1 text-sm">{question}</div>
+                                                      <div className="flex items-center gap-1">
+                                                        <Button
+                                                          type="button"
+                                                          variant="ghost"
+                                                          size="icon"
+                                                          className="h-7 w-7"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (index > 0) {
+                                                              const newList = [...searchQuestionsList];
+                                                              [newList[index - 1], newList[index]] = [newList[index], newList[index - 1]];
+                                                              setSearchQuestionsList(newList);
+                                                              setSelectedQuestionIndex(index - 1);
+                                                            }
+                                                          }}
+                                                          disabled={index === 0}
+                                                        >
+                                                          <ChevronUp className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                          type="button"
+                                                          variant="ghost"
+                                                          size="icon"
+                                                          className="h-7 w-7"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (index < searchQuestionsList.length - 1) {
+                                                              const newList = [...searchQuestionsList];
+                                                              [newList[index], newList[index + 1]] = [newList[index + 1], newList[index]];
+                                                              setSearchQuestionsList(newList);
+                                                              setSelectedQuestionIndex(index + 1);
+                                                            }
+                                                          }}
+                                                          disabled={index === searchQuestionsList.length - 1}
+                                                        >
+                                                          <ChevronDown className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                          type="button"
+                                                          variant="ghost"
+                                                          size="icon"
+                                                          className="h-7 w-7 text-destructive hover:text-destructive"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const newList = searchQuestionsList.filter((_, i) => i !== index);
+                                                            setSearchQuestionsList(newList);
+                                                            setSelectedQuestionIndex(null);
+                                                          }}
+                                                        >
+                                                          <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                      </div>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    <Button
+                                      type="button"
+                                      onClick={async (e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        saveCustomizationMutation.mutate({
+                                          searchFormType: searchFormType,
+                                          buttonType: searchButtonType,
+                                          searchButtonText: searchButtonText,
+                                          searchInputPlaceholder: searchInputPlaceholder,
+                                          recentSearch: searchRecentSearch,
+                                          recentSearchTitle: searchRecentSearchTitle,
+                                          predefinedQuestions: searchPredefinedQuestions,
+                                          questionsPosition: searchQuestionsPosition,
+                                          questionsLimit: searchQuestionsLimit,
+                                          questions: searchQuestionsList,
+                                        });
+                                      }}
+                                      {...preventScrollOnClick}
+                                      className="w-auto min-w-[200px] mt-4"
+                                      disabled={saveCustomizationMutation.isPending || isLoadingSearchCustomization}
+                                    >
+                                      <Save className="h-4 w-4 mr-2" />
+                                      {saveCustomizationMutation.isPending ? "Saving..." : "Save Changes"}
+                                    </Button>
+                                  </>
+                                )}
+                              </CardContent>
+                            </GlassCard>
+                          </div>
+
+                          {/* Right: Live Preview - Sticky */}
+                          <div
+                            style={{
+                              position: 'sticky',
+                              top: '24px',
+                              alignSelf: 'flex-start',
+                              width: '100%',
+                              overflow: 'visible',
+                              zIndex: 10,
+                              height: 'fit-content',
+                              maxHeight: 'calc(100vh - 48px)',
+                            }}
+                            className="sticky-live-preview-wrapper"
+                          >
+                            <SearchBarLivePreview
+                              settingsSubTab={settingsSubTab}
+                              previewOverrides={{
+                                title: searchTitle,
+                                styleOption: searchStyleOption,
+                                searchIcon: searchIcon,
+                                loaderType: searchLoaderType,
+                                secondaryColor: searchBackgroundColor,
+                                borderRadius: searchBorderRadius,
+                                resultStyle: searchResultStyle,
+                                searchFormType: searchFormType,
+                                buttonType: searchButtonType,
+                                searchButtonText: searchButtonText,
+                                searchInputPlaceholder: searchInputPlaceholder,
+                                recentSearch: searchRecentSearch,
+                                recentSearchTitle: searchRecentSearchTitle,
+                                predefinedQuestions: searchPredefinedQuestions,
+                                questionsList: searchQuestionsList,
+                                questionsPosition: searchQuestionsPosition,
+                                questionsLimit: searchQuestionsLimit,
+                                showRecentSearchPreview: showRecentSearchPreview,
+                                showLoaderPreview: showLoaderPreview,
                                 citationFormatting: searchCitationFormatting ? {
                                   colorScheme: searchCitationFormatting.colorScheme,
                                   layout: searchCitationFormatting.layout,
@@ -3996,10 +4223,10 @@ chatbot.init();`);
           </TabsContent>
 
           {/* Search Test Tab */}
-          <TabsContent value="search-test" className="space-y-6 w-full overflow-x-hidden">
+          <TabsContent value="search-test" className="space-y-6 w-full overflow-visible">
             <div className="space-y-6 w-full min-w-0 max-w-full">
               {/* Search Box Section */}
-              <GlassCard>
+              <GlassCard className="overflow-visible">
                 <CardContent className="space-y-4 pt-6">
                   {/* Title from configuration */}
                   {searchTitle && (
@@ -4012,7 +4239,7 @@ chatbot.init();`);
                     </div>
                   )}
 
-                  <form onSubmit={handleRagSearchSubmit} className="space-y-4 w-full min-w-0">
+                  <form onSubmit={handleRagSearchSubmit} className="space-y-4 w-full min-w-0 relative">
                     {/* Get border radius value */}
                     {(() => {
                       const getBorderRadiusValue = (borderRadius: string) => {
@@ -4089,6 +4316,7 @@ chatbot.init();`);
                               </div>
                             )}
                             <input
+                              ref={ragSearchInputRef}
                               type="text"
                               className="rag-search-input-field"
                               style={{
@@ -4111,6 +4339,8 @@ chatbot.init();`);
                               placeholder={placeholder}
                               value={ragSearchInput}
                               onChange={handleRagSearchInputChange}
+                              onFocus={() => setRagSearchFocused(true)}
+                              onBlur={() => setTimeout(() => setRagSearchFocused(false), 200)}
                               maxLength={150}
                               minLength={3}
                               autoComplete="off"
@@ -4181,7 +4411,6 @@ chatbot.init();`);
                                     <>
                                       {showButtonLabel ? (
                                         <>
-                                          <SearchIconComponent className="h-4 w-4" style={{ color: buttonTextColor, strokeWidth: '2.5' }} />
                                           <span style={{ color: buttonTextColor, fontSize: '14px', fontWeight: '500' }}>{buttonText}</span>
                                         </>
                                       ) : (
@@ -4201,6 +4430,60 @@ chatbot.init();`);
                         {ragSearchError}
                       </div>
                     )}
+
+                    {/* Recent Searches Dropdown - Show when enabled, focused, AND Predefined Questions are ON */}
+                    {savedSearchRecentSearch && searchPredefinedQuestions && ragSearchFocused && recentSearches.length > 0 && (() => {
+                      // Get border radius value
+                      const getBorderRadiusValue = (borderRadius: string) => {
+                        switch (borderRadius) {
+                          case 'rounded': return '12px';
+                          case 'medium-rounded': return '10px';
+                          case 'semi-rounded': return '8px';
+                          case 'square': return '0px';
+                          default: return '8px';
+                        }
+                      };
+                      const borderRadiusValue = getBorderRadiusValue(searchBorderRadius || 'semi-rounded');
+                      return (
+                        <div 
+                          className="absolute left-0 right-0 top-full mt-2 z-[100] bg-background border border-border shadow-lg overflow-hidden"
+                          style={{
+                            borderRadius: borderRadiusValue
+                          }}
+                        >
+                          <div className="p-3 border-b border-border bg-muted/30">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              {savedSearchRecentSearchTitle || "Recent Searches"}
+                            </p>
+                          </div>
+                          <div className="flex flex-col w-full">
+                            {recentSearches.map((query, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50 cursor-pointer transition-colors border-b border-border/50 last:border-0"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setRagSearchInput(query);
+                                  handleRagQuery(query);
+                                  // Blur input to close suggestions
+                                  if (ragSearchInputRef.current) {
+                                    ragSearchInputRef.current.blur();
+                                  }
+                                }}
+                                onMouseDown={(e) => {
+                                  e.preventDefault(); // Prevent blur
+                                }}
+                              >
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                  <span className="text-sm font-medium text-foreground truncate">{query}</span>
+                                </div>
+                                <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </form>
 
                   {/* Predefined Questions - Only show if enabled */}
@@ -4232,6 +4515,10 @@ chatbot.init();`);
                               onClick={() => {
                                 setRagSearchInput(query);
                                 handleRagQuery(query);
+                                // Blur input to close suggestions
+                                if (ragSearchInputRef.current) {
+                                  ragSearchInputRef.current.blur();
+                                }
                               }}
                               data-testid={`example-query-${index}`}
                             >
@@ -4239,6 +4526,39 @@ chatbot.init();`);
                                 {query}
                               </span>
                               <HelpCircle className="h-4 w-4 flex-shrink-0" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Recent Searches Block - Show when enabled AND Predefined Questions are OFF */}
+                  {savedSearchRecentSearch && !searchPredefinedQuestions && recentSearches.length > 0 && (() => {
+                    return (
+                      <div className="pt-4 border-t border-border space-y-4 w-full min-w-0">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          {savedSearchRecentSearchTitle || "Recent Search"}
+                        </p>
+                        <div className="flex flex-col w-full border border-border rounded-lg overflow-hidden">
+                          {recentSearches.slice(0, 3).map((query, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between gap-3 px-4 py-3 bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors border-b border-border/50 last:border-0"
+                              onClick={() => {
+                                setRagSearchInput(query);
+                                handleRagQuery(query);
+                                // Blur input to close suggestions
+                                if (ragSearchInputRef.current) {
+                                  ragSearchInputRef.current.blur();
+                                }
+                              }}
+                            >
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                <span className="text-sm font-medium text-foreground truncate">{query}</span>
+                              </div>
+                              <div className="text-xs text-muted-foreground">Just now</div>
                             </div>
                           ))}
                         </div>
