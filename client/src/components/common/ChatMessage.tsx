@@ -63,6 +63,9 @@ interface ChatMessageProps {
   avatarOptions?: Array<{ id: string; emoji?: string; image?: string }>;
   // 🎨 Citation formatting (optional, falls back to context)
   citationFormatting?: CitationFormattingOptions;
+  // Hide avatar and make full width (for search history view)
+  hideAvatar?: boolean;
+  fullWidth?: boolean;
 }
 
 // Format timestamp as relative time (e.g., "2 months ago")
@@ -119,6 +122,8 @@ const ChatMessage = React.memo(function ChatMessage({
   widgetFontSize,
   avatarOptions,
   citationFormatting,
+  hideAvatar = false,
+  fullWidth = false,
 }: ChatMessageProps) {
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
 
@@ -558,13 +563,13 @@ const ChatMessage = React.memo(function ChatMessage({
   // Original non-widget structure
   return (
     <div
-      className={`chat-message flex gap-3 ${type === "user" ? "justify-end" : "justify-start"}`}
+      className={`chat-message flex gap-3 ${type === "user" ? "justify-end" : "justify-start"} ${fullWidth ? "w-full" : ""}`}
       data-testid={`message-${type}`}
       role="article"
       aria-label={`${type === "user" ? "User" : "Assistant"} message`}
       aria-live="polite"
     >
-      {type === "assistant" && (
+      {type === "assistant" && !hideAvatar && (
         <Avatar
           className="h-8 w-8 mt-1 rounded-full flex-shrink-0"
           aria-label="AI Assistant avatar"
@@ -575,7 +580,7 @@ const ChatMessage = React.memo(function ChatMessage({
         </Avatar>
       )}
 
-      <div className={`max-w-[80%] min-w-0 ${type === "user" ? "order-first" : ""}`}>
+      <div className={`${fullWidth ? "w-full" : "max-w-[80%]"} min-w-0 ${type === "user" ? "order-first" : ""}`}>
         <Card
           className={`chat-bubble p-4 ${type === "user" ? "ml-auto user-message-bubble" : ""} rounded-lg`}
           style={type === "user" && !isWidget ? {

@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import {
   Bot,
   Settings,
@@ -22,6 +24,8 @@ import {
   HelpCircle,
   X,
   Copy,
+  ThumbsUp,
+  ThumbsDown,
   LayoutDashboard,
   Loader2,
   MessageCircle,
@@ -78,7 +82,7 @@ import { Suspense, lazy } from "react";
 import { TypingAnimation } from "@/components/common/TypingIndicator";
 import TypingIndicator from "@/components/common/TypingIndicator";
 import { useSearch } from "@/hooks/useSearch";
-import { useChat, useChatSessions } from "@/hooks/useChat";
+import { useChat, useChatSessions, useChatFeedback } from "@/hooks/useChat";
 import { usePerformanceMetrics } from "@/contexts/RAGSettingsContext";
 import { Message } from "@/types/components";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
@@ -470,6 +474,9 @@ export default function SearchConfiguration() {
   const [ragSearchError, setRagSearchError] = useState("");
   const [localSearchHistory, setLocalSearchHistory] = useState<string[]>([]); // Track local searches for immediate feedback
   const [maxTokensError, setMaxTokensError] = useState<string | null>(null);
+  const [messageFeedback, setMessageFeedback] = useState<Record<string, "up" | "down" | null>>({});
+  const [messageCopied, setMessageCopied] = useState<Record<string, boolean>>({});
+  const { submitFeedback, isSubmitting } = useChatFeedback();
 
   // Settings Tab State (CSP removed per user request)
   
@@ -595,7 +602,11 @@ export default function SearchConfiguration() {
   const [searchPredefinedQuestions, setSearchPredefinedQuestions] = useState(false);
   const [searchQuestionsPosition, setSearchQuestionsPosition] = useState("below-search");
   const [searchQuestionsLimit, setSearchQuestionsLimit] = useState(5);
+  // Type for questions that can be string or object
+  type QuestionItem = string | { question: string; answer?: string };
+  
   const [searchQuestionsList, setSearchQuestionsList] = useState<string[]>([]);
+  const [searchQuestionsAnswers, setSearchQuestionsAnswers] = useState<Record<number, string>>({});
   const [newQuestionText, setNewQuestionText] = useState("");
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null);
   
@@ -610,6 +621,7 @@ export default function SearchConfiguration() {
   const [savedSearchQuestionsPosition, setSavedSearchQuestionsPosition] = useState("below-search");
   const [savedSearchQuestionsLimit, setSavedSearchQuestionsLimit] = useState(5);
   const [savedSearchQuestionsList, setSavedSearchQuestionsList] = useState<string[]>([]);
+  const [savedSearchQuestionsAnswers, setSavedSearchQuestionsAnswers] = useState<Record<number, string>>({});
 
   // Load configuration data from API
   useEffect(() => {
@@ -647,7 +659,27 @@ export default function SearchConfiguration() {
       setSearchPredefinedQuestions(searchCustomizationData.predefinedQuestions ?? false);
       setSearchQuestionsPosition(searchCustomizationData.questionsPosition || "below-search");
       setSearchQuestionsLimit(searchCustomizationData.questionsLimit || 5);
-      setSearchQuestionsList(searchCustomizationData.questions || []);
+      
+      // Parse questions from API - can be string[] or [{question, answer}]
+      const questionsFromAPI = searchCustomizationData.questions || [];
+      const parsedQuestions: string[] = [];
+      const parsedAnswers: Record<number, string> = {};
+      
+      questionsFromAPI.forEach((item: any, index: number) => {
+        if (typeof item === 'string') {
+          // Simple string format
+          parsedQuestions.push(item);
+        } else if (item && typeof item === 'object' && item.question) {
+          // Object format with question and answer
+          parsedQuestions.push(item.question);
+          if (item.answer) {
+            parsedAnswers[index] = item.answer;
+          }
+        }
+      });
+      
+      setSearchQuestionsList(parsedQuestions);
+      setSearchQuestionsAnswers(parsedAnswers);
       
       // Also initialize saved state with same values
       setSavedSearchFormType(searchCustomizationData.searchFormType || "default");
@@ -659,7 +691,25 @@ export default function SearchConfiguration() {
       setSavedSearchPredefinedQuestions(searchCustomizationData.predefinedQuestions ?? false);
       setSavedSearchQuestionsPosition(searchCustomizationData.questionsPosition || "below-search");
       setSavedSearchQuestionsLimit(searchCustomizationData.questionsLimit || 5);
-      setSavedSearchQuestionsList(searchCustomizationData.questions || []);
+      
+      // Parse questions for saved state
+      const savedQuestionsFromAPI = searchCustomizationData.questions || [];
+      const savedParsedQuestions: string[] = [];
+      const savedParsedAnswers: Record<number, string> = {};
+      
+      savedQuestionsFromAPI.forEach((item: any, index: number) => {
+        if (typeof item === 'string') {
+          savedParsedQuestions.push(item);
+        } else if (item && typeof item === 'object' && item.question) {
+          savedParsedQuestions.push(item.question);
+          if (item.answer) {
+            savedParsedAnswers[index] = item.answer;
+          }
+        }
+      });
+      
+      setSavedSearchQuestionsList(savedParsedQuestions);
+      setSavedSearchQuestionsAnswers(savedParsedAnswers);
     }
   }, [searchCustomizationData]);
 
@@ -715,7 +765,8 @@ export default function SearchConfiguration() {
       predefinedQuestions?: boolean;
       questionsPosition?: string;
       questionsLimit?: number;
-      questions?: string[];
+      questions?: (string | { question: string; answer?: string })[];
+      questionsAnswers?: Record<number, string>;
     }) => searchAPI.saveSearchCustomization(customization),
     onSuccess: () => {
       // Update saved state with current values
@@ -729,6 +780,7 @@ export default function SearchConfiguration() {
       setSavedSearchQuestionsPosition(searchQuestionsPosition);
       setSavedSearchQuestionsLimit(searchQuestionsLimit);
       setSavedSearchQuestionsList(searchQuestionsList);
+      setSavedSearchQuestionsAnswers(searchQuestionsAnswers);
       
       toast({
         title: "Customization Saved",
@@ -1240,7 +1292,6 @@ chatbot.init();`);
             messageId: item.messageId || item.message_id,
             sessionId: sessionIdStr, // Store the validated sessionId string
           });
-          conversation.messageCount += 1;
           
           conversation.messages.push({
             type: 'assistant',
@@ -1258,6 +1309,7 @@ chatbot.init();`);
             // Store topK from API response (item.topK is already set from API mapping)
             topK: item.topK || (item.sources?.length || 0),
           });
+          // Count only assistant messages (responses) since that's what we display
           conversation.messageCount += 1;
           
           // Update preview to first user message (full text, not truncated)
@@ -1643,6 +1695,49 @@ chatbot.init();`);
     // Replace all messages with just the new user message (show only last query)
     setRagMessages([userMessage]);
     
+    // Check if this question has a predefined answer
+    const questionIndex = savedSearchQuestionsList.findIndex(q => q === query);
+    const predefinedAnswer = questionIndex >= 0 ? savedSearchQuestionsAnswers[questionIndex] : null;
+    
+    // If there's a predefined answer, show it instead of making API call
+    if (predefinedAnswer && predefinedAnswer.trim()) {
+      setIsTyping(true);
+      setPendingResponse("Loading predefined answer...");
+      
+      // Simulate a short delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setIsTyping(false);
+      setIsStreaming(true);
+      setStreamingContent("");
+      
+      // Simulate streaming the predefined answer
+      await simulateStreamingResponse(predefinedAnswer, (content) => {
+        setStreamingContent(content);
+      });
+      
+      const assistantMessage: Message = {
+        type: "assistant",
+        content: predefinedAnswer,
+        timestamp: new Date(),
+        ragSettings: ragSettings,
+        queryString: query,
+      };
+      
+      setRagMessages([userMessage, assistantMessage]);
+      setIsStreaming(false);
+      setStreamingContent("");
+      setPendingResponse(null);
+      
+      // Update local search history
+      setLocalSearchHistory(prev => {
+        const newHistory = [query, ...prev];
+        return Array.from(new Set(newHistory)).slice(0, 2);
+      });
+      
+      return;
+    }
+    
     // Update local search history immediately
     setLocalSearchHistory(prev => {
       const newHistory = [query, ...prev];
@@ -1714,6 +1809,11 @@ chatbot.init();`);
         sessionId: searchResponse.session_id,
       };
 
+      // Update current session ID if available
+      if (searchResponse.session_id) {
+        setCurrentSessionId(searchResponse.session_id);
+      }
+
       // Replace messages with just user message and new assistant response (show immediately)
       setRagMessages([userMessage, assistantMessage]);
       setIsStreaming(false);
@@ -1743,7 +1843,7 @@ chatbot.init();`);
       // Replace messages with just user message and error message (show only last response)
       setRagMessages([userMessage, errorMessage]);
     }
-  }, [ragSettings, searchAsync, updateMetrics, validateMaxTokens, responseType]);
+  }, [ragSettings, searchAsync, updateMetrics, validateMaxTokens, responseType, savedSearchQuestionsList, savedSearchQuestionsAnswers]);
 
   const clearRagChat = async () => {
     try {
@@ -2277,15 +2377,7 @@ chatbot.init();`);
                         />
                       </div>
                       <div className="flex items-center gap-2">
-                      <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleSelectAll}
-                          className="flex-shrink-0"
-                        >
-                          <CheckSquare className="h-4 w-4 mr-2" />
-                          Select All
-                        </Button>
+                  
                         <Select value={dateFilter} onValueChange={setDateFilter}>
                           <SelectTrigger className="flex-1">
                             <SelectValue placeholder="Filter by date" />
@@ -2298,7 +2390,15 @@ chatbot.init();`);
                             ))}
                           </SelectContent>
                         </Select>
-                   
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSelectAll}
+                          className="flex-shrink-0"
+                        >
+                          <CheckSquare className="h-4 w-4 mr-2" />
+                          Select All
+                        </Button>
                       </div>
                     </div>
 
@@ -2337,9 +2437,8 @@ chatbot.init();`);
                                   <div className="text-xs text-muted-foreground mb-1">
                                     {formatDateTime(conversation.timestamp)}
                                   </div>
-                                  {/* Search From and Count */}
-                                  <div className="text-xs text-muted-foreground space-y-0.5">
-                                    <div>Search From: {conversation.messageType || 'plugin'}</div>
+                                  {/* Search Count */}
+                                  <div className="text-xs text-muted-foreground">
                                     <div>Number of times words searched: {conversation.messageCount}</div>
                                   </div>
                                 </div>
@@ -2365,7 +2464,7 @@ chatbot.init();`);
                     {selectedConversation ? (
                       <>
                         {/* Chat Header */}
-                        <div className="p-4 border-b flex items-center justify-between bg-muted/30 backdrop-blur-sm">
+                        <div className="p-4 border-b flex items-center justify-between bg-primary text-primary-foreground backdrop-blur-sm">
                           <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-base break-words">
                               {selectedConversation.preview || "Search Query"}
@@ -2375,7 +2474,7 @@ chatbot.init();`);
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteConversation(selectedConversation.sessionId)}
-                            className="flex-shrink-0 ml-2"
+                            className="flex-shrink-0 ml-2 hover:bg-primary/80"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -2426,12 +2525,12 @@ chatbot.init();`);
                                 }
                                 return true;
                               })
+                              // Filter to show only assistant messages (responses), not user queries
+                              .filter((message: ConversationMessage) => message.type === 'assistant')
                               .map((message: ConversationMessage, index: number) => {
                                 // Use topK from message if available, otherwise calculate from citations length
                                 // This represents the actual Top-K value used when the message was created
-                                const actualTopK = message.type === 'assistant' 
-                                  ? (message.topK || (message.citations ? message.citations.length : undefined))
-                                  : undefined;
+                                const actualTopK = message.topK || (message.citations ? message.citations.length : undefined);
                                 
                                 return (
                                   <ChatMessage
@@ -2442,10 +2541,12 @@ chatbot.init();`);
                                     timestamp={message.timestamp}
                                     messageId={message.messageId}
                                     sessionId={message.sessionId}
-                                    showFeedback={true}
+                                    showFeedback={false}
                                     ragSettings={ragSettings}
                                     actualTopK={actualTopK}
                                     citationFormatting={searchCitationFormatting}
+                                    hideAvatar={true}
+                                    fullWidth={true}
                                   />
                                 );
                               })}
@@ -3629,6 +3730,7 @@ chatbot.init();`);
                                 recentSearchTitle: searchRecentSearchTitle,
                                 predefinedQuestions: searchPredefinedQuestions,
                                 questionsList: searchQuestionsList,
+                                questionsAnswers: searchQuestionsAnswers,
                                 questionsPosition: searchQuestionsPosition,
                                 questionsLimit: searchQuestionsLimit,
                                 showRecentSearchPreview: showRecentSearchPreview,
@@ -3773,6 +3875,15 @@ chatbot.init();`);
                                 onClick={async (e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
+                                  // Convert questions to API format
+                                  const questionsForAPI: (string | { question: string; answer?: string })[] = searchQuestionsList.map((question, index) => {
+                                    const answer = searchQuestionsAnswers[index];
+                                    if (answer && answer.trim()) {
+                                      return { question, answer };
+                                    }
+                                    return question; // Return as string if no answer
+                                  });
+                                  
                                   saveCustomizationMutation.mutate({
                                     searchFormType: searchFormType,
                                     buttonType: searchButtonType,
@@ -3783,7 +3894,7 @@ chatbot.init();`);
                                     predefinedQuestions: searchPredefinedQuestions,
                                     questionsPosition: searchQuestionsPosition,
                                     questionsLimit: searchQuestionsLimit,
-                                    questions: searchQuestionsList,
+                                    questions: questionsForAPI,
                                   });
                                 }}
                                 {...preventScrollOnClick}
@@ -3831,6 +3942,7 @@ chatbot.init();`);
                                 recentSearchTitle: searchRecentSearchTitle,
                                 predefinedQuestions: searchPredefinedQuestions,
                                 questionsList: searchQuestionsList,
+                                questionsAnswers: searchQuestionsAnswers,
                                 questionsPosition: searchQuestionsPosition,
                                 questionsLimit: searchQuestionsLimit,
                                 showRecentSearchPreview: showRecentSearchPreview,
@@ -3957,68 +4069,106 @@ chatbot.init();`);
                                             {/* Questions List */}
                                             {searchQuestionsList.length > 0 && (
                                               <div className="border rounded-lg">
-                                                <div className="max-h-60 overflow-y-auto">
+                                                <div className=" [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                                                   {searchQuestionsList.map((question, index) => (
-                                                    <div
-                                                      key={index}
-                                                      className={`flex items-center gap-2 p-2 border-b last:border-b-0 hover:bg-muted/50 ${
-                                                        selectedQuestionIndex === index ? 'bg-muted' : ''
-                                                      }`}
-                                                      onClick={() => setSelectedQuestionIndex(index)}
-                                                    >
-                                                      <div className="flex-1 text-sm">{question}</div>
-                                                      <div className="flex items-center gap-1">
-                                                        <Button
-                                                          type="button"
-                                                          variant="ghost"
-                                                          size="icon"
-                                                          className="h-7 w-7"
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            if (index > 0) {
-                                                              const newList = [...searchQuestionsList];
-                                                              [newList[index - 1], newList[index]] = [newList[index], newList[index - 1]];
+                                                    <div key={index}>
+                                                      <div
+                                                        className={`flex items-center gap-2 p-2 border-b last:border-b-0 hover:bg-muted/50 ${
+                                                          selectedQuestionIndex === index ? 'bg-muted' : ''
+                                                        }`}
+                                                      >
+                                                        <div className="flex-1 text-sm">{question}</div>
+                                                        <div className="flex items-center gap-1">
+                                                          <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-7 w-7"
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              setSelectedQuestionIndex(selectedQuestionIndex === index ? null : index);
+                                                            }}
+                                                            title={selectedQuestionIndex === index ? "Close answer" : "Add/Edit answer"}
+                                                          >
+                                                            <Edit className="h-4 w-4" />
+                                                          </Button>
+                                                          <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-7 w-7 text-destructive hover:text-destructive"
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              const newList = searchQuestionsList.filter((_, i) => i !== index);
+                                                              const newAnswers = { ...searchQuestionsAnswers };
+                                                              // Remove answer for deleted question and reindex remaining answers
+                                                              delete newAnswers[index];
+                                                              const reindexedAnswers: Record<number, string> = {};
+                                                              Object.keys(newAnswers).forEach((key) => {
+                                                                const oldIndex = parseInt(key);
+                                                                if (oldIndex < index) {
+                                                                  reindexedAnswers[oldIndex] = newAnswers[oldIndex];
+                                                                } else if (oldIndex > index) {
+                                                                  reindexedAnswers[oldIndex - 1] = newAnswers[oldIndex];
+                                                                }
+                                                              });
                                                               setSearchQuestionsList(newList);
-                                                              setSelectedQuestionIndex(index - 1);
-                                                            }
-                                                          }}
-                                                          disabled={index === 0}
-                                                        >
-                                                          <ChevronUp className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                          type="button"
-                                                          variant="ghost"
-                                                          size="icon"
-                                                          className="h-7 w-7"
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            if (index < searchQuestionsList.length - 1) {
-                                                              const newList = [...searchQuestionsList];
-                                                              [newList[index], newList[index + 1]] = [newList[index + 1], newList[index]];
-                                                              setSearchQuestionsList(newList);
-                                                              setSelectedQuestionIndex(index + 1);
-                                                            }
-                                                          }}
-                                                          disabled={index === searchQuestionsList.length - 1}
-                                                        >
-                                                          <ChevronDown className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                          type="button"
-                                                          variant="ghost"
-                                                          size="icon"
-                                                          className="h-7 w-7 text-destructive hover:text-destructive"
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            const newList = searchQuestionsList.filter((_, i) => i !== index);
-                                                            setSearchQuestionsList(newList);
-                                                            setSelectedQuestionIndex(null);
-                                                          }}
-                                                        >
-                                                          <Trash2 className="h-4 w-4" />
-                                                        </Button>
+                                                              setSearchQuestionsAnswers(reindexedAnswers);
+                                                              setSelectedQuestionIndex(null);
+                                                            }}
+                                                          >
+                                                            <Trash2 className="h-4 w-4" />
+                                                          </Button>
+                                                        </div>
                                                       </div>
+                                                      {/* Predefined Answer Text Area - Show when question is selected */}
+                                                      {selectedQuestionIndex === index && (
+                                                        <div className="p-3 bg-muted/30 border-b last:border-b-0">
+                                                          <Label htmlFor={`question-answer-${index}`} className="text-sm font-medium mb-2 block">
+                                                            Predefined Answer
+                                                          </Label>
+                                                          <div 
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            className="quill-editor-wrapper"
+                                                          >
+                                                            <ReactQuill
+                                                              theme="snow"
+                                                              value={searchQuestionsAnswers[index] || ''}
+                                                              onChange={(value) => {
+                                                                setSearchQuestionsAnswers({
+                                                                  ...searchQuestionsAnswers,
+                                                                  [index]: value
+                                                                });
+                                                              }}
+                                                              placeholder="Enter a predefined answer for this question..."
+                                                              modules={{
+                                                                toolbar: [
+                                                                  [{ 'header': [1, 2, 3, false] }],
+                                                                  ['bold', 'italic', 'underline', 'strike'],
+                                                                  ['blockquote', 'code-block'],
+                                                                  [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                                                  [{ 'script': 'sub'}, { 'script': 'super' }],
+                                                                  [{ 'indent': '-1'}, { 'indent': '+1' }],
+                                                                  ['link'],
+                                                                  ['clean']
+                                                                ]
+                                                              }}
+                                                              formats={[
+                                                                'header', 'bold', 'italic', 'underline', 'strike',
+                                                                'blockquote', 'code-block', 'list', 'bullet',
+                                                                'script', 'indent', 'link'
+                                                              ]}
+                                                              style={{
+                                                                minHeight: '120px',
+                                                              }}
+                                                              className="min-h-[120px]"
+                                                            />
+                                                          </div>
+                                                          <p className="text-xs text-muted-foreground mt-2">
+                                                            This answer will be shown when users click on this question
+                                                          </p>
+                                                        </div>
+                                                      )}
                                                     </div>
                                                   ))}
                                                 </div>
@@ -4034,6 +4184,15 @@ chatbot.init();`);
                                       onClick={async (e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
+                                        // Convert questions to API format
+                                        const questionsForAPI: (string | { question: string; answer?: string })[] = searchQuestionsList.map((question, index) => {
+                                          const answer = searchQuestionsAnswers[index];
+                                          if (answer && answer.trim()) {
+                                            return { question, answer };
+                                          }
+                                          return question; // Return as string if no answer
+                                        });
+                                        
                                         saveCustomizationMutation.mutate({
                                           searchFormType: searchFormType,
                                           buttonType: searchButtonType,
@@ -4044,7 +4203,7 @@ chatbot.init();`);
                                           predefinedQuestions: searchPredefinedQuestions,
                                           questionsPosition: searchQuestionsPosition,
                                           questionsLimit: searchQuestionsLimit,
-                                          questions: searchQuestionsList,
+                                          questions: questionsForAPI,
                                         });
                                       }}
                                       {...preventScrollOnClick}
@@ -4092,6 +4251,7 @@ chatbot.init();`);
                                 recentSearchTitle: searchRecentSearchTitle,
                                 predefinedQuestions: searchPredefinedQuestions,
                                 questionsList: searchQuestionsList,
+                                questionsAnswers: searchQuestionsAnswers,
                                 questionsPosition: searchQuestionsPosition,
                                 questionsLimit: searchQuestionsLimit,
                                 showRecentSearchPreview: showRecentSearchPreview,
@@ -4792,6 +4952,71 @@ chatbot.init();`);
                                       </div>
                                     );
                                   })()}
+                                  {/* Feedback and Copy Buttons */}
+                                  <div className="flex items-center justify-between gap-2 pt-3 mt-3 border-t border-border/20">
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        className={`chatbot-message-action-button ${messageCopied[message.messageId || ''] ? "active" : ""}`}
+                                        onClick={async () => {
+                                          const messageId = message.messageId || '';
+                                          await copyToClipboard(message.content);
+                                          setMessageCopied(prev => ({ ...prev, [messageId]: true }));
+                                          setTimeout(() => {
+                                            setMessageCopied(prev => ({ ...prev, [messageId]: false }));
+                                          }, 2000);
+                                        }}
+                                        title="Copy message"
+                                      >
+                                        {messageCopied[message.messageId || ''] ? (
+                                          <Check className="h-3 w-3" />
+                                        ) : (
+                                          <Copy className="h-3 w-3" />
+                                        )}
+                                      </button>
+                                      <button
+                                        className={`chatbot-message-action-button ${messageFeedback[message.messageId || ''] === "up" ? "active" : ""}`}
+                                        onClick={() => {
+                                          const messageId = message.messageId || '';
+                                          const newFeedback = messageFeedback[messageId] === "up" ? null : "up";
+                                          setMessageFeedback(prev => ({ ...prev, [messageId]: newFeedback }));
+                                          
+                                          // Submit feedback to API if we have both messageId and sessionId
+                                          if (messageId && currentSessionId && newFeedback) {
+                                            submitFeedback({
+                                              sessionId: currentSessionId,
+                                              messageId: messageId,
+                                              feedback: "positive"
+                                            });
+                                          }
+                                        }}
+                                        disabled={isSubmitting}
+                                        title="Thumbs up"
+                                      >
+                                        <ThumbsUp className="h-3 w-3" />
+                                      </button>
+                                      <button
+                                        className={`chatbot-message-action-button ${messageFeedback[message.messageId || ''] === "down" ? "active" : ""}`}
+                                        onClick={() => {
+                                          const messageId = message.messageId || '';
+                                          const newFeedback = messageFeedback[messageId] === "down" ? null : "down";
+                                          setMessageFeedback(prev => ({ ...prev, [messageId]: newFeedback }));
+                                          
+                                          // Submit feedback to API if we have both messageId and sessionId
+                                          if (messageId && currentSessionId && newFeedback) {
+                                            submitFeedback({
+                                              sessionId: currentSessionId,
+                                              messageId: messageId,
+                                              feedback: "negative"
+                                            });
+                                          }
+                                        }}
+                                        disabled={isSubmitting}
+                                        title="Thumbs down"
+                                      >
+                                        <ThumbsDown className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  </div>
                                 </div>
                               </Suspense>
                             );

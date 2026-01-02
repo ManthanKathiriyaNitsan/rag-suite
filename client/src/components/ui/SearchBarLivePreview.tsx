@@ -32,6 +32,7 @@ interface SearchBarLivePreviewProps {
     recentSearchTitle?: string;
     predefinedQuestions?: boolean;
     questionsList?: string[];
+    questionsAnswers?: Record<number, string>;
     questionsPosition?: string;
     questionsLimit?: number;
     showRecentSearchPreview?: boolean;
@@ -59,6 +60,8 @@ export const SearchBarLivePreview: React.FC<SearchBarLivePreviewProps> = ({
   const [streamingContent, setStreamingContent] = useState("");
   const [showResponse, setShowResponse] = useState(false);
   const [showTestMessage, setShowTestMessage] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [isPredefinedAnswer, setIsPredefinedAnswer] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
@@ -192,20 +195,65 @@ The guide is designed to help developers quickly get started with implementing C
   };
 
   const handleQuestionClick = (question: string) => {
-    // Show message in response area instead of performing search
+    // Set the question in the input
     setPreviewSearchInput(question);
-    setIsSearching(true);
-    setIsTyping(true);
-    setShowResponse(false);
-    setShowTestMessage(false);
-    setStreamingContent("");
     
-    // Simulate typing delay
-    setTimeout(() => {
-      setIsTyping(false);
-      setShowTestMessage(true);
-      setIsSearching(false);
-    }, 500);
+    // Check if this question has a predefined answer
+    const questionsList = previewOverrides.questionsList || [];
+    const questionsAnswers = previewOverrides.questionsAnswers || {};
+    const questionIndex = questionsList.findIndex(q => q === question);
+    const predefinedAnswer = questionIndex >= 0 ? questionsAnswers[questionIndex] : null;
+    
+    // If there's a predefined answer, show it instead of test message
+    if (predefinedAnswer && predefinedAnswer.trim()) {
+      setIsPredefinedAnswer(true); // Mark as predefined answer to hide citations
+      setIsSearching(true);
+      setIsTyping(true);
+      setShowResponse(false);
+      setShowTestMessage(false);
+      setStreamingContent("");
+      
+      // Simulate typing delay
+      setTimeout(() => {
+        setIsTyping(false);
+        setIsStreaming(true);
+        setStreamingContent("");
+        
+        // Simulate streaming the predefined answer
+        const words = predefinedAnswer.split(' ');
+        let currentContent = '';
+        let wordIndex = 0;
+        
+        const streamInterval = setInterval(() => {
+          if (wordIndex < words.length) {
+            currentContent += (wordIndex > 0 ? ' ' : '') + words[wordIndex];
+            setStreamingContent(currentContent);
+            wordIndex++;
+          } else {
+            clearInterval(streamInterval);
+            // Keep streamingContent with full answer, just stop streaming animation
+            setIsStreaming(false);
+            setShowResponse(true);
+            setIsSearching(false);
+          }
+        }, 30);
+      }, 500);
+    } else {
+      setIsPredefinedAnswer(false); // Not a predefined answer
+      // No predefined answer, show test message
+      setIsSearching(true);
+      setIsTyping(true);
+      setShowResponse(false);
+      setShowTestMessage(false);
+      setStreamingContent("");
+      
+      // Simulate typing delay
+      setTimeout(() => {
+        setIsTyping(false);
+        setShowTestMessage(true);
+        setIsSearching(false);
+      }, 500);
+    }
     
     // Blur input to close suggestions
     if (searchInputRef.current) {
@@ -220,6 +268,15 @@ The guide is designed to help developers quickly get started with implementing C
     if (searchInputRef.current) {
       searchInputRef.current.blur();
     }
+
+    // Validate input length
+    if (previewSearchInput.trim().length < 3) {
+      setSearchError("Please enter at least 3 characters");
+      return;
+    }
+
+    // Clear error if validation passes
+    setSearchError("");
 
     if (previewSearchInput.trim().length >= 3) {
       // Show message in response area instead of performing search
@@ -240,11 +297,13 @@ The guide is designed to help developers quickly get started with implementing C
 
   const handleClearSearch = () => {
     setPreviewSearchInput("");
+    setSearchError("");
     setShowResponse(false);
     setShowTestMessage(false);
     setIsTyping(false);
     setIsStreaming(false);
     setStreamingContent("");
+    setIsPredefinedAnswer(false);
   };
 
   return (
@@ -350,7 +409,16 @@ The guide is designed to help developers quickly get started with implementing C
                         }}
                         placeholder={placeholder}
                         value={previewSearchInput}
-                        onChange={(e) => setPreviewSearchInput(e.target.value)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setPreviewSearchInput(value);
+                          // Validate on input change
+                          if (value.length > 0 && value.length < 3) {
+                            setSearchError("Please enter at least 3 characters");
+                          } else {
+                            setSearchError("");
+                          }
+                        }}
                         onFocus={() => setIsFocused(true)}
                         onBlur={() => setTimeout(() => setIsFocused(false), 200)}
                         maxLength={150}
@@ -505,6 +573,12 @@ The guide is designed to help developers quickly get started with implementing C
                     </div>
                   )}
                 </form>
+                {/* Validation Error Message */}
+                {searchError && (
+                  <p className="text-sm text-destructive mt-2 px-1">
+                    {searchError}
+                  </p>
+                )}
 
                 {/* Suggested Questions - Exact replica */}
                 {previewOverrides.predefinedQuestions && displayQuestions.length > 0 && (
@@ -744,12 +818,12 @@ The guide is designed to help developers quickly get started with implementing C
                                 ),
                               }}
                             >
-                              {safeStringConversion(sampleResponse.content)}
+                              {safeStringConversion(streamingContent || sampleResponse.content)}
                             </ReactMarkdown>
                           ) : null}
                         </div>
-                        {/* Citations - Exact replica */}
-                        {showResponse && sampleResponse.citations && sampleResponse.citations.length > 0 && (
+                        {/* Citations - Exact replica - Hide for predefined answers */}
+                        {showResponse && !isPredefinedAnswer && sampleResponse.citations && sampleResponse.citations.length > 0 && (
                           <div className="pt-4 border-t border-border space-y-3 w-full min-w-0">
                             {previewOverrides.citationFormatting?.showSourceCount !== false && (
                               <div className="flex items-center gap-2 flex-wrap">

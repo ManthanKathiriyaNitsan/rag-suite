@@ -333,6 +333,7 @@ export default function ChatbotConfiguration() {
   const [selectedSessionIds, setSelectedSessionIds] = useState<Set<string>>(new Set());
   const [isLoadingChatHistory, setIsLoadingChatHistory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Settings Tab State (CSP removed per user request)
   
@@ -1054,14 +1055,120 @@ chatbot.init();`);
     return found;
   }, [conversations, selectedSessionId]);
 
+  // Track last message to detect new messages
+  const lastMessageId = useMemo(() => {
+    if (!selectedConversation || !selectedConversation.messages.length) return null;
+    const lastMessage = selectedConversation.messages[selectedConversation.messages.length - 1];
+    return lastMessage.messageId || `${lastMessage.timestamp?.getTime()}-${lastMessage.content?.substring(0, 20)}`;
+  }, [selectedConversation]);
+
+  // Function to scroll to bottom - works with ScrollArea viewport
+  const scrollToBottom = useCallback(() => {
+    // Find the ScrollArea viewport element
+    const scrollAreaElement = scrollAreaRef.current;
+    if (!scrollAreaElement) return;
+
+    // Find the viewport inside ScrollArea (Radix UI structure)
+    // The viewport has the class or data attribute from Radix
+    const viewport = scrollAreaElement.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+    if (viewport) {
+      // Use requestAnimationFrame to ensure layout is complete
+      requestAnimationFrame(() => {
+        viewport.scrollTo({
+          top: viewport.scrollHeight,
+          behavior: 'smooth'
+        });
+      });
+    } else {
+      // Fallback: try to find viewport by class or try scrolling messagesEndRef
+      const fallbackViewport = scrollAreaElement.querySelector('.h-full.w-full') as HTMLElement;
+      if (fallbackViewport) {
+        requestAnimationFrame(() => {
+          fallbackViewport.scrollTo({
+            top: fallbackViewport.scrollHeight,
+            behavior: 'smooth'
+          });
+        });
+      } else if (messagesEndRef.current) {
+        requestAnimationFrame(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        });
+      }
+    }
+  }, []);
+
   // Auto-scroll to bottom when conversation or messages change (new messages at bottom)
   useEffect(() => {
-    if (messagesEndRef.current && selectedConversation) {
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+    if (selectedConversation && selectedConversation.messages.length > 0) {
+      // Use multiple timeouts to catch different update scenarios
+      const timeoutId1 = setTimeout(() => {
+        requestAnimationFrame(() => {
+          scrollToBottom();
+        });
+      }, 50);
+      
+      const timeoutId2 = setTimeout(() => {
+        requestAnimationFrame(() => {
+          scrollToBottom();
+        });
+      }, 200);
+      
+      const timeoutId3 = setTimeout(() => {
+        requestAnimationFrame(() => {
+          scrollToBottom();
+        });
+      }, 400);
+      
+      return () => {
+        clearTimeout(timeoutId1);
+        clearTimeout(timeoutId2);
+        clearTimeout(timeoutId3);
+      };
     }
-  }, [selectedConversation, selectedConversation?.messages?.length]);
+  }, [selectedConversation, selectedConversation?.messages?.length, lastMessageId, scrollToBottom]);
+
+  // Also scroll when conversations array updates (catches new messages being added)
+  useEffect(() => {
+    if (selectedConversation && selectedConversation.messages.length > 0) {
+      const timeoutId = setTimeout(() => {
+        requestAnimationFrame(() => {
+          scrollToBottom();
+        });
+      }, 150);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [conversations, selectedSessionId, scrollToBottom]);
+
+  // Watch for DOM changes in the messages container to catch real-time updates
+  useEffect(() => {
+    if (!selectedConversation || !scrollAreaRef.current) return;
+
+    const scrollAreaElement = scrollAreaRef.current;
+    const viewport = scrollAreaElement.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+    if (!viewport) return;
+
+    // Create a MutationObserver to watch for content changes
+    const observer = new MutationObserver(() => {
+      // When content changes, scroll to bottom
+      requestAnimationFrame(() => {
+        scrollToBottom();
+      });
+    });
+
+    // Observe the messages container for changes
+    const messagesContainer = viewport.querySelector('.p-4.space-y-4');
+    if (messagesContainer) {
+      observer.observe(messagesContainer, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [selectedConversation, scrollToBottom]);
 
   // Check if widget customization tab is active for overflow override
   const isWidgetCustomizationTab = settingsSubTab === 'widget-customization';
@@ -1542,7 +1649,7 @@ chatbot.init();`);
                         </div>
 
                         {/* Messages */}
-                        <ScrollArea className="flex-1">
+                        <ScrollArea ref={scrollAreaRef} className="flex-1">
                           <div className="p-4 space-y-4">
                             {[...selectedConversation.messages]
                               .filter(msg => {
@@ -1595,7 +1702,7 @@ chatbot.init();`);
                                 timestamp={message.timestamp}
                                 messageId={message.messageId}
                                 sessionId={message.sessionId}
-                                showFeedback={true}
+                                showFeedback={false}
                               />
                             ))}
                             <div ref={messagesEndRef} />

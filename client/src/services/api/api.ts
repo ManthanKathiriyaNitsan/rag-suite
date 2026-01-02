@@ -214,7 +214,8 @@ export const searchAPI = {
     predefinedQuestions?: boolean;
     questionsPosition?: string;
     questionsLimit?: number;
-    questions?: string[];
+    questions?: (string | { question: string; answer?: string })[];
+    questionsAnswers?: Record<number, string>;
   }) => {
     console.log('🔍 Search API - Saving search customization:', customization);
     try {
