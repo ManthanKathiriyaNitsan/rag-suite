@@ -543,7 +543,8 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
           border: 'none', // No border
           margin: widgetPosition === 'inline' ? '0' : '0',
           padding: '0', // No padding on container
-          minHeight: '100px', // Ensure minimum height for visibility
+          minHeight: '200px', // Ensure minimum height for visibility
+          position: 'relative', // Ensure positioning
         } as React.CSSProperties & { [key: string]: string | number }}
         role="search"
         aria-label="Search Assistant"

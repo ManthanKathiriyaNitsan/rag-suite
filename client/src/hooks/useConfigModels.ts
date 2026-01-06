@@ -83,7 +83,8 @@ export function useAvailableChatModels(provider?: string) {
   const chatModels = useMemo(() => {
     if (!provider || !providers) return [];
     const providerInfo = providers.find(p => p.value.toLowerCase() === provider.toLowerCase());
-    return providerInfo?.chat_models.map(model => model.value) || [];
+    if (!providerInfo || !providerInfo.chat_models || !Array.isArray(providerInfo.chat_models)) return [];
+    return providerInfo.chat_models.map(model => model.value);
   }, [provider, providers]);
 
   return {
@@ -98,7 +99,8 @@ export function useAvailableEmbeddingModels(provider?: string) {
   const embeddingModels = useMemo(() => {
     if (!provider || !providers) return [];
     const providerInfo = providers.find(p => p.value.toLowerCase() === provider.toLowerCase());
-    return providerInfo?.embedding_models.map(model => model.value) || [];
+    if (!providerInfo || !providerInfo.embedding_models || !Array.isArray(providerInfo.embedding_models)) return [];
+    return providerInfo.embedding_models.map(model => model.value);
   }, [provider, providers]);
 
   return {

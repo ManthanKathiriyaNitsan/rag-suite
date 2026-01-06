@@ -129,7 +129,7 @@ const UploadDocumentForm = React.memo(function UploadDocumentForm({ open, onOpen
                 className="file:mr-4 file:py-2 h-18 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/80"
               />
               <p className="text-sm text-muted-foreground mt-1">
-                Supported formats: PDF, DOC, DOCX, TXT, MD, HTML (max 10MB each)
+                Supported formats: PDF, DOC, DOCX, TXT, MD, HTML (max 50MB each)
               </p>
             </div>
             {files && (

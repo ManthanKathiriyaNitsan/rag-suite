@@ -172,12 +172,18 @@ function initSearchWidget(config: SearchWidgetConfig) {
           }
         }
       }
-      // Ensure container is visible
+      // Ensure container is visible - add temporary debug styling
       container.style.display = 'block';
       container.style.visibility = 'visible';
       container.style.opacity = '1';
       container.style.minHeight = '200px';
       container.style.width = '100%';
+      container.style.position = 'relative';
+      // Temporary debug: add visible border and background to see if container exists
+      container.style.border = '2px solid red';
+      container.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
+      container.style.padding = '10px';
+      console.log('🔴 DEBUG: Container styled with red border for visibility');
     } else {
       scriptTag.parentNode.insertBefore(container, scriptTag.nextSibling);
       console.log('✅ Container inserted after script tag (inline)');
@@ -207,15 +213,25 @@ function initSearchWidget(config: SearchWidgetConfig) {
     }
   }
 
-  // Verify container is in DOM
+  // Verify container is in DOM and add test content
   const containerInDOM = document.getElementById('ragsuite-search-widget-container');
   if (containerInDOM) {
     console.log('✅ Container verified in DOM', {
       parentNode: containerInDOM.parentNode?.nodeName,
       display: window.getComputedStyle(containerInDOM).display,
       visibility: window.getComputedStyle(containerInDOM).visibility,
-      opacity: window.getComputedStyle(containerInDOM).opacity
+      opacity: window.getComputedStyle(containerInDOM).opacity,
+      height: window.getComputedStyle(containerInDOM).height,
+      width: window.getComputedStyle(containerInDOM).width
     });
+    
+    // Add temporary test content to verify container is visible
+    const testDiv = document.createElement('div');
+    testDiv.id = 'ragsuite-widget-test';
+    testDiv.style.cssText = 'background: yellow; color: black; padding: 10px; margin: 10px 0; border: 2px solid orange; font-weight: bold; z-index: 999999;';
+    testDiv.textContent = '🔴 TEST: If you see this, the container exists! Widget should render below...';
+    containerInDOM.appendChild(testDiv);
+    console.log('🔴 DEBUG: Added test div to container');
   } else {
     console.error('❌ Container NOT found in DOM after insertion!');
   }
