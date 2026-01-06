@@ -67,7 +67,7 @@ import {
 import { useBranding } from "@/contexts/BrandingContext";
 import { useTranslation } from "@/contexts/I18nContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { cn } from "@/lib/utils";
+import { cn, countCharacters, limitCharacters } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
 import { useProjects } from "@/hooks/useProjects";
 import { Project as APIProject } from "@/services/api/api";
@@ -141,6 +141,7 @@ const AppSidebar = React.memo(function AppSidebar() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectDescription, setNewProjectDescription] = useState("");
+  const MAX_DESCRIPTION_CHARS = 100;
   const [projectToDelete, setProjectToDelete] = useState<APIProject | null>(null);
   const { orgName, logoDataUrl } = useBranding();
   const { t } = useTranslation();
@@ -200,18 +201,8 @@ const AppSidebar = React.memo(function AppSidebar() {
     try {
       await activateProjectAsync(project.id);
       
-      // Invalidate all queries to refresh all data
-      await queryClient.invalidateQueries();
-      
-      toast({
-        title: "Project Switched",
-        description: `Switched to "${project.name}". Refreshing...`,
-      });
-      
-      // Reload the page to refresh the entire application
-      setTimeout(() => {
-        window.location.reload();
-      }, 500); // Small delay to show the toast message
+      // Reload the page immediately - no need to invalidate queries since we're reloading
+      window.location.reload();
     } catch (error: any) {
       toast({
         title: "Error",
@@ -219,7 +210,7 @@ const AppSidebar = React.memo(function AppSidebar() {
         variant: "destructive",
       });
     }
-  }, [activateProjectAsync, toast, queryClient]);
+  }, [activateProjectAsync, toast]);
 
   // Handle create new project
   const handleCreateProject = useCallback(async (e: React.FormEvent) => {
@@ -238,6 +229,17 @@ const AppSidebar = React.memo(function AppSidebar() {
       toast({
         title: "Error",
         description: "Project description is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate character limit
+    const charCount = countCharacters(newProjectDescription);
+    if (charCount > MAX_DESCRIPTION_CHARS) {
+      toast({
+        title: "Error",
+        description: `Project description must be ${MAX_DESCRIPTION_CHARS} characters or less. Current: ${charCount} characters.`,
         variant: "destructive",
       });
       return;
@@ -364,13 +366,13 @@ const AppSidebar = React.memo(function AppSidebar() {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="w-full justify-between h-auto p-3 transition-[background-color,border-color] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))] active:bg-sidebar-accent active:text-sidebar-accent-foreground active:border-[hsl(var(--button-hover-border))]"
+              className="w-full justify-between h-auto p-3 transition-[background-color,border-color] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-[hsl(var(--button-hover-border))] active:bg-sidebar-accent active:text-sidebar-accent-foreground active:border-[hsl(var(--button-hover-border))] min-w-0 overflow-hidden"
               data-testid="dropdown-projects"
               disabled={projectsLoading || !selectedProject}
             >
-              <div className="flex items-center gap-3">
-                <Folder className="h-4 w-4 text-primary" />
-                <div className="text-left">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <Folder className="h-4 w-4 text-primary flex-shrink-0" />
+                <div className="text-left min-w-0 flex-1 overflow-hidden">
                   {projectsLoading ? (
                     <>
                       <div className="font-medium text-sm">Loading...</div>
@@ -378,9 +380,9 @@ const AppSidebar = React.memo(function AppSidebar() {
                     </>
                   ) : selectedProject ? (
                     <>
-                  <div className="font-medium text-sm">{selectedProject.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {selectedProject.description}
+                  <div className="font-medium text-sm truncate">{selectedProject.name}</div>
+                  <div className="text-xs text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={selectedProject.description}>
+                    {limitCharacters(selectedProject.description, MAX_DESCRIPTION_CHARS)}
                   </div>
                     </>
                   ) : (
@@ -427,10 +429,10 @@ const AppSidebar = React.memo(function AppSidebar() {
               >
                 <div className="flex items-center gap-3 flex-1">
                   <Folder className="h-4 w-4" />
-                  <div>
-                    <div className="font-medium text-sm">{project.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {project.description}
+                  <div className="min-w-0 flex-1 overflow-hidden">
+                    <div className="font-medium text-sm truncate">{project.name}</div>
+                    <div className="text-xs text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={project.description}>
+                      {limitCharacters(project.description, MAX_DESCRIPTION_CHARS)}
                     </div>
                   </div>
                 </div>
@@ -568,11 +570,23 @@ const AppSidebar = React.memo(function AppSidebar() {
                 id="project-description"
                 placeholder="Describe this project..."
                 value={newProjectDescription}
-                onChange={(e) => setNewProjectDescription(e.target.value)}
+                onChange={(e) => {
+                  const text = e.target.value;
+                  const charCount = countCharacters(text);
+                  if (charCount <= MAX_DESCRIPTION_CHARS) {
+                    setNewProjectDescription(text);
+                  }
+                }}
                 className="mt-1"
                 rows={3}
                 required
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                {countCharacters(newProjectDescription)} / {MAX_DESCRIPTION_CHARS} characters
+                {countCharacters(newProjectDescription) > MAX_DESCRIPTION_CHARS && (
+                  <span className="text-destructive ml-1">(Limit exceeded)</span>
+                )}
+              </p>
             </div>
             <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button

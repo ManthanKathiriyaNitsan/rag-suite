@@ -37,7 +37,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { cn } from "@/lib/utils";
+import { cn, countCharacters, limitCharacters } from "@/lib/utils";
 
 export default function Projects() {
   const [location, setLocation] = useLocation();
@@ -49,6 +49,7 @@ export default function Projects() {
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectDescription, setNewProjectDescription] = useState("");
+  const MAX_DESCRIPTION_CHARS = 100;
   const { toast } = useToast();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -135,18 +136,8 @@ export default function Projects() {
     try {
       await activateProjectAsync(project.id);
       
-      // Invalidate all queries to refresh all data
-      await queryClient.invalidateQueries();
-      
-      toast({
-        title: "Project Switched",
-        description: `Switched to "${project.name}". Refreshing...`,
-      });
-      
-      // Reload the page to refresh the entire application
-      setTimeout(() => {
-        window.location.reload();
-      }, 500); // Small delay to show the toast message
+      // Reload the page immediately - no need to invalidate queries since we're reloading
+      window.location.reload();
     } catch (error: any) {
       toast({
         title: "Error",
@@ -154,7 +145,7 @@ export default function Projects() {
         variant: "destructive",
       });
     }
-  }, [activateProjectAsync, toast, queryClient]);
+  }, [activateProjectAsync, toast]);
 
   // Handle create new project
   const handleCreateProject = useCallback(async (e: React.FormEvent) => {
@@ -228,6 +219,17 @@ export default function Projects() {
       toast({
         title: "Error",
         description: "Project description is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate character limit
+    const charCount = countCharacters(newProjectDescription);
+    if (charCount > MAX_DESCRIPTION_CHARS) {
+      toast({
+        title: "Error",
+        description: `Project description must be ${MAX_DESCRIPTION_CHARS} characters or less. Current: ${charCount} characters.`,
         variant: "destructive",
       });
       return;
@@ -452,8 +454,8 @@ export default function Projects() {
                           <div className="font-medium flex items-center gap-2">
                             {project.name}
                           </div>
-                          <p className="text-sm text-muted-foreground truncate">
-                            {project.description}
+                          <p className="text-sm text-muted-foreground truncate" title={project.description}>
+                            {limitCharacters(project.description, MAX_DESCRIPTION_CHARS)}
                           </p>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
                             <Calendar className="h-3 w-3" />
@@ -556,12 +558,24 @@ export default function Projects() {
                   id="project-description"
                   placeholder="Describe this project..."
                   value={newProjectDescription}
-                  onChange={(e) => setNewProjectDescription(e.target.value)}
+                  onChange={(e) => {
+                    const text = e.target.value;
+                    const charCount = countCharacters(text);
+                    if (charCount <= MAX_DESCRIPTION_CHARS) {
+                      setNewProjectDescription(text);
+                    }
+                  }}
                   className="mt-1"
                   rows={3}
                   required
                   disabled={isCreating || isUpdating}
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {countCharacters(newProjectDescription)} / {MAX_DESCRIPTION_CHARS} characters
+                  {countCharacters(newProjectDescription) > MAX_DESCRIPTION_CHARS && (
+                    <span className="text-destructive ml-1">(Limit exceeded)</span>
+                  )}
+                </p>
               </div>
               <DialogFooter className="flex-col sm:flex-row gap-2">
                 <Button

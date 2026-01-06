@@ -16,6 +16,7 @@ interface SearchBarProps {
   enableSuggestions?: boolean;
   isWidget?: boolean; // 🎨 Widget-specific styling
   disabled?: boolean; // Disable input in preview mode
+  compact?: boolean; // Reduce padding for compact layout
 }
 
 // Add ref interface for clearing
@@ -33,6 +34,7 @@ export const SearchBar = React.forwardRef<SearchBarRef, SearchBarProps>(function
   enableSuggestions = true,
   isWidget = false, // 🎨 Widget-specific styling
   disabled = false, // Disable input in preview mode
+  compact = false, // Reduce padding for compact layout
 }, ref) {
   const [query, setQuery] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -468,6 +470,8 @@ export const SearchBar = React.forwardRef<SearchBarRef, SearchBarProps>(function
   // Calculate padding: if mic and send buttons, need space for both (40px + 8px gap + 40px + 12px padding = 100px)
   const widgetInputPadding = isWidget 
     ? (showMicButton && showSendButton ? "pl-4 pr-[100px]" : showMicButton || showSendButton ? "pl-4 pr-16" : "pl-4 pr-4")
+    : compact 
+    ? "pl-4 pr-20" // Reduced left padding for compact mode
     : "pl-10 pr-20";
   const widgetInputHeight = isWidget ? "h-14" : "";
   // No background for widget input - transparent
@@ -481,7 +485,7 @@ export const SearchBar = React.forwardRef<SearchBarRef, SearchBarProps>(function
   return (
     <form onSubmit={handleSubmit} className={`relative ${className}`} data-testid="search-bar-container">
       <div className="relative flex items-center">
-        {!isWidget && <Search className="absolute left-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />}
+        {!isWidget && !compact && <Search className="absolute left-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />}
         <div className="relative w-full">
           <Input
             type="text"

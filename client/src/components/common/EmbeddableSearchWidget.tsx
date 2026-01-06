@@ -149,8 +149,10 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
 
   const responseType = (responseConfig as "long" | "short") || "long";
 
-  // Widget positioning - Default to inline for embedded widgets (like Search Test tab)
-  const widgetPosition = (branding.widgetPosition || "inline") as "bottom-right" | "bottom-left" | "top-right" | "top-left" | "center" | "inline" | "fixed";
+  // Widget positioning - Always inline for search widget (like Search Test tab)
+  // Search widget should never be floating - it's always inline
+  const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+  const widgetPosition = isWidgetMode ? "inline" : (branding.widgetPosition || "inline") as "bottom-right" | "bottom-left" | "top-right" | "top-left" | "center" | "inline" | "fixed";
   const widgetZIndex = branding.widgetZIndex || 99999;
   const widgetOffsetX = branding.widgetOffsetX || 20;
   const widgetOffsetY = branding.widgetOffsetY || 20;
@@ -508,6 +510,17 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
     }
   }, [onReady]);
 
+  // Debug: Log when widget renders
+  React.useEffect(() => {
+    console.log('✅ EmbeddableSearchWidget component rendered', {
+      isOpen,
+      widgetPosition,
+      isPreviewMode,
+      searchTitle,
+      searchFormType
+    });
+  }, [isOpen, widgetPosition, isPreviewMode, searchTitle, searchFormType]);
+
   return (
     <React.Fragment>
       {/* Search Window - Always visible, matching Search Test tab exactly */}
@@ -522,18 +535,15 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
           maxWidth: isPreviewMode ? '100%' : (widgetPosition === 'inline' ? '100%' : windowPosition.maxWidth || 'calc(100% - 40px)'),
           maxHeight: isPreviewMode ? '100%' : (widgetPosition === 'inline' ? 'none' : 'calc(100vh - 40px)'),
           zIndex: isPreviewMode ? 1 : (widgetPosition === 'inline' ? 1 : widgetZIndex),
-          backgroundColor: isDarkMode ? '#1a1a1a' : '#ffffff',
-          borderRadius: '12px',
-          boxShadow: widgetPosition === 'inline' 
-            ? (isDarkMode ? '0 2px 8px rgba(0, 0, 0, 0.1)' : '0 2px 8px rgba(0, 0, 0, 0.05)')
-            : (isDarkMode 
-              ? '0 10px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)' 
-              : '0 10px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)'),
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
-          margin: widgetPosition === 'inline' ? '0 auto' : '0',
+          backgroundColor: 'transparent', // Match Search Test tab - no container background
+          borderRadius: '0', // No border radius on container
+          boxShadow: 'none', // No shadow on container
+          display: 'block', // Block display like Search Test tab
+          overflow: 'visible', // Allow overflow for dropdowns
+          border: 'none', // No border
+          margin: widgetPosition === 'inline' ? '0' : '0',
+          padding: '0', // No padding on container
+          minHeight: '100px', // Ensure minimum height for visibility
         } as React.CSSProperties & { [key: string]: string | number }}
         role="search"
         aria-label="Search Assistant"
@@ -541,17 +551,15 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
       >
         {/* No close button - widget is always visible like Search Test tab */}
 
-        {/* Content Area - Scrollable, matching Search Test tab */}
-        <div
-          className="flex-1 overflow-y-auto" 
-          style={{
-            padding: '20px',
-            paddingTop: '16px',
-          }}
-        >
-          <div className="space-y-6 w-full min-w-0">
+        {/* Content Area - Matching Search Test tab exactly */}
+        <div className="space-y-6 w-full min-w-0 max-w-full" style={{
+          padding: '0', // No padding - let GlassCard handle spacing
+        }}>
             {/* Search Box Section - Exact match to Search Test tab */}
-            <GlassCard className="overflow-visible">
+            <GlassCard className="overflow-visible" style={{
+              minHeight: '200px', // Ensure card has minimum height
+              display: 'block', // Ensure it's displayed
+            }}>
               <CardContent className="space-y-4 pt-6">
                 {/* Title with Icon - Matching Search Test tab */}
                 {searchTitle && (
@@ -687,7 +695,7 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                             }}
                             disabled={isSearching || searchInput.trim().length < 3 || isPreviewMode}
                             aria-label="Search"
-                          >
+            >
                             {isSearching ? (
                               <Loader2 className="h-5 w-5 animate-spin" style={{ color: buttonTextColor, strokeWidth: '2.5' }} />
                             ) : (
@@ -734,7 +742,7 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                               handleSearch(query);
                               if (searchInputRef.current) {
                                 searchInputRef.current.blur();
-                              }
+                    }
                             }}
                             onMouseDown={(e) => {
                               e.preventDefault();
@@ -770,7 +778,7 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                             handleSearch(query);
                             if (searchInputRef.current) {
                               searchInputRef.current.blur();
-                            }
+                        }
                           }}
                           data-testid={`example-query-${index}`}
                         >
@@ -800,7 +808,7 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                             handleSearch(query);
                             if (searchInputRef.current) {
                               searchInputRef.current.blur();
-                            }
+                        }
                           }}
                         >
                           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -1104,9 +1112,6 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
               </GlassCard>
             )}
         </div>
-      </div>
-
-        {/* No trigger button - widget is always visible like Search Test tab */}
       </div>
     </React.Fragment>
   );

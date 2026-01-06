@@ -1418,7 +1418,9 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
           zIndex: isPreviewMode ? 1 : Math.max(widgetZIndex, 99999),
           '--widget-bottom-size': `${widgetBottomSpace}px`,
           '--chatbot-color': widgetChatbotColor,
+          '--widget-border-radius': `${widgetTriggerBorderRadius}px`, // CSS variable for border radius
           fontSize: widgetFontSize ? `${widgetFontSize}px` : undefined,
+          borderRadius: `${widgetTriggerBorderRadius}px`, // Apply border radius from configuration
         } as React.CSSProperties & { [key: string]: string | number }}
         role="dialog"
         aria-label="AI Assistant Chat"

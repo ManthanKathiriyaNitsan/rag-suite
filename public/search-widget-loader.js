@@ -68,7 +68,8 @@
   const config = {
     projectId: projectId || windowConfig.projectId,
     apiEndpoint: apiEndpoint || windowConfig.apiEndpoint,
-    position: scriptTag.getAttribute('data-position') || windowConfig.position || 'inline',
+    // For search widget, always use 'inline' (not floating) - ignore data-position attribute
+    position: 'inline',
     zIndex: parseInt(scriptTag.getAttribute('data-z-index') || String(windowConfig.zIndex || 1), 10),
     primaryColor: scriptTag.getAttribute('data-primary-color') || windowConfig.primaryColor,
     title: scriptTag.getAttribute('data-title') || windowConfig.title,

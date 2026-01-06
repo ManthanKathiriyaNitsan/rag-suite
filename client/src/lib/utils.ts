@@ -52,6 +52,22 @@ export function debounce<T extends (...args: any[]) => any>(
 }
 
 /**
+ * Count characters in a text string (excluding leading/trailing whitespace for display)
+ */
+export function countCharacters(text: string): number {
+  if (!text) return 0;
+  return text.length;
+}
+
+/**
+ * Limit text to a maximum number of characters
+ */
+export function limitCharacters(text: string, maxChars: number): string {
+  if (!text || text.length <= maxChars) return text;
+  return text.slice(0, maxChars) + '...';
+}
+
+/**
  * Throttle function to limit the rate of function execution
  */
 export function throttle<T extends (...args: any[]) => any>(

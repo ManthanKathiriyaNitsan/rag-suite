@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
-import { Bot, Upload, Globe, CheckCircle, ArrowLeft, ArrowRight, Folder, Loader2 } from "lucide-react";
+import { Bot, Upload, Globe, CheckCircle, ArrowLeft, ArrowRight, Folder, Loader2, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,7 @@ import { useSettingsAPI } from "@/hooks/useSettingsAPI";
 import { queryClient } from "@/services/queryClient";
 import { onboardingAPI, crawlAPI } from "@/services/api/api";
 import { useToast } from "@/hooks/useToast";
+import { countCharacters, limitCharacters } from "@/lib/utils";
 
 const steps = [
   { id: 1, title: "Branding", description: "Customize your organization", key: "branding" },
@@ -48,6 +49,7 @@ export default function Onboarding() {
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
   const [projectName, setProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
+  const MAX_DESCRIPTION_CHARS = 100;
   const [sourceUrl, setSourceUrl] = useState("");
   const [crawlDepth, setCrawlDepth] = useState(1);
   const [cadence, setCadence] = useState("daily");
@@ -61,6 +63,7 @@ export default function Onboarding() {
   const [isCrawlComplete, setIsCrawlComplete] = useState(false);
   const [hasStartedCrawl, setHasStartedCrawl] = useState(false);
   const [isCreatingDataSourceLocal, setIsCreatingDataSourceLocal] = useState(false);
+  const [isInvalidUrl, setIsInvalidUrl] = useState(false);
 
   const {
     status,
@@ -137,6 +140,7 @@ export default function Onboarding() {
       setHasStartedCrawl(true);
       setIsCrawlStarting(true);
       setIsCrawlComplete(false);
+      setIsInvalidUrl(false);
       
       try {
         await crawlAPI.startCrawl(dataSource.id);
@@ -161,12 +165,24 @@ export default function Onboarding() {
 
   // Poll crawl status when crawl is starting
   useEffect(() => {
-    if (!isCrawlStarting || !dataSourceId || isCrawlComplete) return;
+    if (!isCrawlStarting || !dataSourceId || isCrawlComplete || isInvalidUrl) return;
 
     const pollCrawlStatus = async () => {
       try {
         const status = await onboardingAPI.getCrawlStatus();
         setCrawlStatus(status);
+        
+        // Check if URL is invalid - stop crawling immediately
+        const statusUpper = status?.toUpperCase() || '';
+        if (statusUpper.includes('INVALID_URL') || statusUpper === 'INVALID_URL') {
+          console.log('❌ Invalid URL detected. Stopping crawl.');
+          setIsInvalidUrl(true);
+          setIsCrawlStarting(false);
+          setIsCrawlComplete(false);
+          setHasStartedCrawl(false);
+          setDataSourceId(null); // Reset data source ID so user can create a new one
+          return; // Stop polling
+        }
         
         // Check if crawl is complete (you may need to adjust this based on your backend response)
         // Check for various completion indicators
@@ -182,6 +198,7 @@ export default function Onboarding() {
           console.log('✅ Crawl completed! Status:', status);
           setIsCrawlComplete(true);
           setIsCrawlStarting(false);
+          setIsInvalidUrl(false);
           // Don't auto-advance - let user click Next button manually
         } else {
           console.log('⏳ Crawl still in progress. Status:', status);
@@ -199,7 +216,7 @@ export default function Onboarding() {
     pollCrawlStatus();
     
     return () => clearInterval(interval);
-  }, [isCrawlStarting, dataSourceId, isCrawlComplete]);
+  }, [isCrawlStarting, dataSourceId, isCrawlComplete, isInvalidUrl]);
 
   // Load status on mount and sync current step (but not if we're completing, actively crawling, or manually navigating)
   useEffect(() => {
@@ -286,6 +303,17 @@ export default function Onboarding() {
     } else if (currentStep === 2) {
       // Create project
       if (!projectName.trim() || !projectDescription.trim()) return;
+      
+      // Validate character limit
+      const charCount = countCharacters(projectDescription);
+      if (charCount > MAX_DESCRIPTION_CHARS) {
+        toast({
+          title: "Error",
+          description: `Project description must be ${MAX_DESCRIPTION_CHARS} characters or less. Current: ${charCount} characters.`,
+          variant: "destructive",
+        });
+        return;
+      }
       try {
         const project = await createProjectAsync({
       name: projectName.trim(),
@@ -568,6 +596,7 @@ export default function Onboarding() {
                               className="w-full sm:w-auto text-destructive"
                             >
                               Remove Logo
+                              <Trash2 className="h-4 w-4 ms-2" />
                         </Button>
                           )}
                         </div>
@@ -659,14 +688,35 @@ export default function Onboarding() {
                         id="project-description"
                         placeholder="Describe what this project is for..."
                         value={projectDescription}
-                        onChange={(e) => setProjectDescription(e.target.value)}
+                        onChange={(e) => {
+                          const text = e.target.value;
+                          const charCount = countCharacters(text);
+                          if (charCount <= MAX_DESCRIPTION_CHARS) {
+                            setProjectDescription(text);
+                          }
+                        }}
                         className="mt-1"
                         rows={4}
                         data-testid="textarea-project-description"
+                        maxLength={MAX_DESCRIPTION_CHARS}
                       />
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Provide a brief description of your project
-                      </p>
+                      <div className="flex items-center justify-between mt-1">
+                        <p className="text-xs text-muted-foreground">
+                          Provide a brief description of your project
+                        </p>
+                        <p className={`text-xs font-medium ${
+                          countCharacters(projectDescription) > MAX_DESCRIPTION_CHARS
+                            ? 'text-destructive'
+                            : countCharacters(projectDescription) > MAX_DESCRIPTION_CHARS * 0.8
+                            ? 'text-orange-500'
+                            : 'text-muted-foreground'
+                        }`}>
+                          {countCharacters(projectDescription)} / {MAX_DESCRIPTION_CHARS} characters
+                          {countCharacters(projectDescription) > MAX_DESCRIPTION_CHARS && (
+                            <span className="ml-1">(Limit exceeded)</span>
+                          )}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -683,7 +733,8 @@ export default function Onboarding() {
                         value={sourceUrl}
                         onChange={(e) => setSourceUrl(e.target.value)}
                         data-testid="input-source-url"
-                          className="flex-1"
+                        className="flex-1"
+                        disabled={isCrawlComplete || isCrawlStarting || isCreatingDataSourceLocal || isCreatingDataSourceFromHook}
                       />
                         <Button
                           type="button"
@@ -720,8 +771,39 @@ export default function Onboarding() {
                       </p>
                     </div>
 
+                    {/* Show invalid URL message */}
+                    {isInvalidUrl && (
+                      <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <X className="h-4 w-4 text-red-500" />
+                          <span className="text-sm font-medium text-red-500">Invalid URL</span>
+                        </div>
+                        {crawlStatus && (
+                          <p className="text-xs text-red-400 mt-1 font-mono">Status: {crawlStatus}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-2">
+                          The URL you entered is invalid. Please enter a valid website URL and try again.
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3"
+                          onClick={() => {
+                            setIsInvalidUrl(false);
+                            setCrawlStatus("");
+                            setSourceUrl("");
+                            setHasStartedCrawl(false);
+                            setDataSourceId(null); // Reset data source ID
+                          }}
+                        >
+                          <Globe className="h-4 w-4 mr-2" />
+                          Add New Website
+                        </Button>
+                      </div>
+                    )}
+
                     {/* Show crawl status if crawl is in progress */}
-                    {isCrawlStarting && (
+                    {isCrawlStarting && !isInvalidUrl && (
                       <div className="p-4 bg-muted rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -737,7 +819,7 @@ export default function Onboarding() {
                     )}
 
                     {/* Show success message when crawl completes */}
-                    {isCrawlComplete && !isCrawlStarting && (
+                    {isCrawlComplete && !isCrawlStarting && !isInvalidUrl && (
                       <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <CheckCircle className="h-4 w-4 text-green-500" />
@@ -808,23 +890,14 @@ export default function Onboarding() {
                       <p className="text-sm text-muted-foreground mb-4">
                         Ask a question to see how your AI assistant will respond using your configured data source.
                       </p>
-                      <div className="relative">
                       <SearchBar
                         placeholder="Ask about your documentation..."
                         onSearch={handleTestQuery}
                         showSendButton
                         data-testid="test-query-input"
+                        disabled={!projectId}
+                        compact
                       />
-                        {(isTestingQuery || !projectId) && (
-                          <div className="absolute inset-0 bg-background/50 rounded-md flex items-center justify-center">
-                            {isTestingQuery ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <span className="text-xs text-muted-foreground">No project available</span>
-                            )}
-                          </div>
-                        )}
-                      </div>
                       {isTestingQuery && (
                         <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -986,8 +1059,8 @@ export default function Onboarding() {
                         </div>
                         <div>
                           <span className="text-xs sm:text-sm text-muted-foreground">Description:</span>
-                          <p className="text-sm sm:text-base mt-1 text-muted-foreground">
-                            {projectDescription || "Project description will appear here"}
+                          <p className="text-sm sm:text-base mt-1 text-muted-foreground" title={projectDescription || "Project description will appear here"}>
+                            {projectDescription ? limitCharacters(projectDescription, MAX_DESCRIPTION_CHARS) : "Project description will appear here"}
                           </p>
                         </div>
                       </div>

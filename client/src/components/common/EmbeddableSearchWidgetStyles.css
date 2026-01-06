@@ -12,9 +12,10 @@
   display: block !important;
   visibility: visible !important;
   opacity: 1 !important;
-  z-index: 99999 !important;
+  z-index: 1 !important; /* Changed from 99999 to 1 for inline */
   pointer-events: auto !important;
   isolation: isolate;
+  min-height: 100px !important; /* Ensure it has height */
 }
 
 /* Prevent host page CSS from overriding widget styles */
@@ -24,18 +25,19 @@
 }
 
 /* Search Widget Container - Inline layout (NOT fixed overlay, NOT chatbot) */
+/* Match Search Test tab exactly - transparent background, no border, no shadow */
 .search-widget-container {
   position: relative !important; /* Changed from fixed to relative for inline */
-  display: flex !important;
-  flex-direction: column !important;
-  background: var(--background, #ffffff) !important;
-  border: 1px solid var(--border, rgba(0, 0, 0, 0.1)) !important;
-  border-radius: 12px !important;
-  overflow: hidden !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important; /* Lighter shadow for inline */
+  display: block !important; /* Block display like Search Test tab */
+  background: transparent !important; /* Transparent - match Search Test tab */
+  border: none !important; /* No border */
+  border-radius: 0 !important; /* No border radius */
+  overflow: visible !important; /* Allow overflow for dropdowns */
+  box-shadow: none !important; /* No shadow */
   width: 100% !important;
   max-width: 100% !important;
-  margin: 0 auto !important;
+  margin: 0 !important;
+  padding: 0 !important; /* No padding */
   isolation: isolate !important; /* Prevent style conflicts */
 }
 
@@ -53,16 +55,7 @@
   margin: 0 !important;
 }
 
-/* Dark mode for search widget container */
-@media (prefers-color-scheme: dark) {
-  .search-widget-container {
-    background: #1a1a1a !important;
-    background-color: #1a1a1a !important;
-    color: #ffffff !important;
-    border-color: rgba(255, 255, 255, 0.1) !important;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
-  }
-}
+/* Dark mode handled by React ThemeContext - no media queries needed */
 
 /* Search Widget Trigger Button - Simple search icon (NOT chatbot avatar) */
 #search-widget-trigger,
@@ -85,17 +78,7 @@
   color: #1a1a1a !important;
 }
 
-/* Dark mode for search trigger */
-@media (prefers-color-scheme: dark) {
-  #search-widget-trigger,
-  .search-widget-trigger {
-    background: #1a1a1a !important;
-    background-color: #1a1a1a !important;
-    border-color: rgba(255, 255, 255, 0.1) !important;
-    color: #ffffff !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-  }
-}
+/* Dark mode handled by React ThemeContext - no media queries needed */
 
 .search-widget-trigger:hover {
   transform: scale(1.05);
@@ -195,20 +178,7 @@
   background-color: rgba(0, 0, 0, 0.3);
 }
 
-/* Dark mode scrollbar */
-@media (prefers-color-scheme: dark) {
-  .search-widget-container .flex-1 {
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-  }
-  
-  .search-widget-container .flex-1::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.2);
-  }
-  
-  .search-widget-container .flex-1::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255, 255, 255, 0.3);
-  }
-}
+/* Dark mode scrollbar handled by React ThemeContext - no media queries needed */
 
 /* Search form styles - matching Search Test tab */
 .rag-search-form-wrapper {
@@ -256,15 +226,5 @@
   color: var(--primary, #3b82f6) !important;
 }
 
-/* Dark mode for action buttons */
-@media (prefers-color-scheme: dark) {
-  .chatbot-message-action-button {
-    color: #999 !important;
-  }
-  
-  .chatbot-message-action-button:hover,
-  .chatbot-message-action-button.active {
-    color: #60a5fa !important;
-  }
-}
+/* Dark mode handled by React ThemeContext - no media queries needed */
 

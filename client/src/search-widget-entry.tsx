@@ -109,29 +109,115 @@ function initSearchWidget(config: SearchWidgetConfig) {
       return null;
     })();
 
+  // Set RAGSUITE_PROJECT_ID BEFORE creating container so widget mode is detected
+  (window as any).RAGSUITE_PROJECT_ID = config.projectId;
+  (window as any).RAGSUITE_API_ENDPOINT = config.apiEndpoint;
+
   const container = document.createElement("div");
   container.id = "ragsuite-search-widget-container";
   container.className = "ragsuite-search-widget-root";
+  
+  // Make container visible immediately
+  container.style.display = 'block';
+  container.style.visibility = 'visible';
+  container.style.opacity = '1';
+  container.style.minHeight = '100px';
+  container.style.width = '100%';
+  
+  console.log('📦 Creating widget container', {
+    id: container.id,
+    className: container.className,
+    projectId: config.projectId
+  });
   
   // Insert inline: after script tag or in specified container
   if (config.containerSelector) {
     const targetContainer = document.querySelector(config.containerSelector);
     if (targetContainer) {
       targetContainer.appendChild(container);
+      console.log('✅ Container inserted into:', config.containerSelector);
     } else {
       // Fallback: insert after script tag
       if (scriptTag && scriptTag.parentNode) {
         scriptTag.parentNode.insertBefore(container, scriptTag.nextSibling);
+        console.log('✅ Container inserted after script tag');
       } else {
         document.body.appendChild(container);
+        console.log('✅ Container appended to body (fallback)');
       }
     }
   } else if (scriptTag && scriptTag.parentNode && (config as any).insertAfter !== false) {
     // Insert right after the script tag (inline)
-    scriptTag.parentNode.insertBefore(container, scriptTag.nextSibling);
+    // If script tag is in head, append to body instead
+    if (scriptTag.parentNode === document.head) {
+      // Wait for body to be ready
+      if (document.body) {
+        document.body.appendChild(container);
+        console.log('✅ Container appended to body (script in head)');
+      } else {
+        // If body not ready, wait for DOMContentLoaded
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => {
+            if (document.body) {
+              document.body.appendChild(container);
+              console.log('✅ Container appended to body (after DOMContentLoaded)');
+            }
+          });
+        } else {
+          // TypeScript workaround: use explicit check
+          const bodyElement = document.body as HTMLBodyElement | null;
+          if (bodyElement) {
+            bodyElement.appendChild(container);
+            console.log('✅ Container appended to body (script in head, body ready)');
+          }
+        }
+      }
+      // Ensure container is visible
+      container.style.display = 'block';
+      container.style.visibility = 'visible';
+      container.style.opacity = '1';
+      container.style.minHeight = '200px';
+      container.style.width = '100%';
+    } else {
+      scriptTag.parentNode.insertBefore(container, scriptTag.nextSibling);
+      console.log('✅ Container inserted after script tag (inline)');
+    }
   } else {
     // Fallback: append to body
-    document.body.appendChild(container);
+    if (document.body) {
+      document.body.appendChild(container);
+      console.log('✅ Container appended to body (final fallback)');
+    } else {
+      // Wait for body
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          if (document.body) {
+            document.body.appendChild(container);
+            console.log('✅ Container appended to body (after DOMContentLoaded fallback)');
+          }
+        });
+      } else {
+        // TypeScript workaround: use explicit check
+        const bodyElement = document.body as HTMLBodyElement | null;
+        if (bodyElement) {
+          bodyElement.appendChild(container);
+          console.log('✅ Container appended to body (fallback, body ready)');
+        }
+      }
+    }
+  }
+
+  // Verify container is in DOM
+  const containerInDOM = document.getElementById('ragsuite-search-widget-container');
+  if (containerInDOM) {
+    console.log('✅ Container verified in DOM', {
+      parentNode: containerInDOM.parentNode?.nodeName,
+      display: window.getComputedStyle(containerInDOM).display,
+      visibility: window.getComputedStyle(containerInDOM).visibility,
+      opacity: window.getComputedStyle(containerInDOM).opacity
+    });
+  } else {
+    console.error('❌ Container NOT found in DOM after insertion!');
   }
 
   const root = createRoot(container);
@@ -159,10 +245,35 @@ function initSearchWidget(config: SearchWidgetConfig) {
       // Do nothing - widget stays open
     }, []);
     
+    // Check widget mode - should be true since we set RAGSUITE_PROJECT_ID before creating container
+    const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+    
+    console.log('🔍 SearchWidgetWrapper render', {
+      isWidgetMode,
+      projectId: (window as any).RAGSUITE_PROJECT_ID,
+      isSearchActive,
+      isActivationLoading,
+      hasActivationData: !!activationData
+    });
+    
     React.useEffect(() => {
       const widgetContainer = document.getElementById('ragsuite-search-widget-container');
       if (widgetContainer) {
-        if (!isSearchActive && !isActivationLoading) {
+        // In widget mode, always show the widget (default to active)
+        if (isWidgetMode) {
+          widgetContainer.style.display = 'block';
+          widgetContainer.style.visibility = 'visible';
+          widgetContainer.style.opacity = '1';
+          widgetContainer.style.pointerEvents = 'auto';
+          widgetContainer.style.minHeight = '100px'; // Ensure it has height
+          widgetContainer.style.width = '100%'; // Ensure it has width
+          console.log('✅ Widget container made visible in widget mode', {
+            display: widgetContainer.style.display,
+            visibility: widgetContainer.style.visibility,
+            opacity: widgetContainer.style.opacity,
+            minHeight: widgetContainer.style.minHeight
+          });
+        } else if (!isSearchActive && !isActivationLoading) {
           widgetContainer.style.display = 'none';
           widgetContainer.style.visibility = 'hidden';
           widgetContainer.style.opacity = '0';
@@ -173,19 +284,33 @@ function initSearchWidget(config: SearchWidgetConfig) {
           widgetContainer.style.opacity = '1';
           widgetContainer.style.pointerEvents = 'auto';
         }
+      } else {
+        console.warn('⚠️ Widget container not found');
       }
-    }, [isSearchActive, isActivationLoading, activationData]);
+    }, [isSearchActive, isActivationLoading, activationData, isWidgetMode]);
     
-    const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
-    
-    if (!isSearchActive) {
+    // In widget mode, always render the widget (default to active)
+    if (isWidgetMode) {
+      // Widget mode: always show, don't check activation status
+      console.log('✅ Widget mode: Rendering widget (always visible)', {
+        projectId: (window as any).RAGSUITE_PROJECT_ID,
+        isWidgetMode: true
+      });
+    } else if (!isSearchActive) {
+      console.log('⚠️ Not in widget mode and search not active, returning null');
       return null;
     }
-    
+
     if (isActivationLoading && activationData === undefined && !isWidgetMode) {
+      console.log('⚠️ Activation loading, returning null');
       return null;
     }
-    
+
+    console.log('✅ Rendering EmbeddableSearchWidget component', {
+      isOpen,
+      isWidgetMode,
+      projectId: (window as any).RAGSUITE_PROJECT_ID
+    });
     return (
       <EmbeddableSearchWidget
         isOpen={isOpen}
@@ -215,7 +340,7 @@ function initSearchWidget(config: SearchWidgetConfig) {
   searchWidgetInstance = { root, container };
 
   (window as any).RAGSUITE_API_URL = API_BASE_URL;
-  (window as any).RAGSUITE_PROJECT_ID = config.projectId;
+  // RAGSUITE_PROJECT_ID is already set above before container creation
 
   console.log("RAG Suite Search Widget: Initialized successfully", {
     projectId: config.projectId,
