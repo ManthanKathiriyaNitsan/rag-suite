@@ -302,7 +302,7 @@ button.chatbot-trigger:hover,
   box-shadow: none !important;
 }
 
-/* Chatbot Window */
+/* Chatbot Window - Always use dark mode styling */
 .chatbot-window {
   border-radius: 12px;
   bottom: calc(var(--widget-bottom-size) + 70px);
@@ -321,6 +321,8 @@ button.chatbot-trigger:hover,
   transition: all 0.3s ease;
   visibility: hidden;
   z-index: 99999;
+  background-color: #1a1a1a !important;
+  color: #fff !important;
 }
 
 .chatbot-window.chatbot-window--active,
@@ -408,12 +410,13 @@ button.chatbot-trigger:hover,
   pointer-events: none;
 }
 
-/* Chatbot Messages Area */
+/* Chatbot Messages Area - Always use dark mode styling */
 .chatbot-messages {
   flex: 1;
   overflow-y: auto;
   padding: 15px;
-  scrollbar-color: #c1c1c1 #f1f1f1;
+  background: #1a1a1a !important;
+  scrollbar-color: #969696 #2a2a2a;
   scrollbar-width: thin;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
@@ -431,17 +434,17 @@ button.chatbot-trigger:hover,
 }
 
 .chatbot-messages::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #2a2a2a;
   border-radius: 4px;
 }
 
 .chatbot-messages::-webkit-scrollbar-thumb {
-  background-color: #c1c1c1;
+  background-color: #555;
   border-radius: 4px;
 }
 
 .chatbot-messages::-webkit-scrollbar-thumb:hover {
-  background-color: #a8a8a8;
+  background-color: #777;
 }
 
 .chatbot-conversation {
@@ -855,13 +858,14 @@ button.chatbot-message-action-button.active:focus,
   }
 }
 
-/* Input Area */
+/* Input Area - Always use dark mode styling */
 .chatbot-input {
   border-top: 1px solid #444;
   border-bottom-left-radius: 12px;
   border-bottom-right-radius: 12px;
   padding: 0;
   overflow: hidden;
+  background-color: #2a2a2a !important;
 }
 
 .chatbot-form {
@@ -876,6 +880,8 @@ button.chatbot-message-action-button.active:focus,
   display: flex;
   padding: 10px 5px;
   overflow: hidden;
+  background-color: #1a1a1a !important;
+  border-color: #444 !important;
 }
 
 .chatbot-input-area.disabled {
@@ -885,7 +891,8 @@ button.chatbot-message-action-button.active:focus,
 
 .chatbot-textarea {
   border: none;
-  color: #1a1a1a;
+  color: #fff !important;
+  background-color: #1a1a1a !important;
   flex: 1;
   font-size: 16px;
   height: auto;
@@ -899,12 +906,12 @@ button.chatbot-message-action-button.active:focus,
 }
 
 .chatbot-textarea::placeholder {
-  color: #9ca3af;
+  color: #888 !important;
 }
 
 .chatbot-input-footer {
-
-  color: #666;
+  background-color: #2a2a2a !important;
+  color: #ccc !important;
   padding: 8px 10px;
   text-align: center;
   font-size: 12px !important;
@@ -929,7 +936,7 @@ button.chatbot-message-action-button.active:focus,
   background: transparent !important;
   background-color: transparent !important;
   border: none !important;
-  color: #666 !important;
+  color: #ccc !important;
   cursor: pointer;
   line-height: 1;
   padding: 8px;
@@ -939,7 +946,7 @@ button.chatbot-message-action-button.active:focus,
   box-shadow: none !important;
 }
 
-/* Add hover color to send button */
+/* Add hover color to send button - Always use dark mode styling */
 .chatbot-send-button:hover,
 .chatbot-send-button:hover * {
   color: var(--chatbot-color) !important;
@@ -960,10 +967,10 @@ button.chatbot-message-action-button.active:focus,
   width: 24px;
 }
 
-/* Hint Bubble */
+/* Hint Bubble - Always use dark mode styling */
 .chatbot-hint {
-  background: #f1f1f1;
-  color: #1a1a1a;
+  background-color: #2a2a2a !important;
+  color: #fff !important;
   border-radius: 10px;
   bottom: calc(var(--widget-bottom-size) + var(--avatar-size, 60px) + 12px);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
@@ -990,15 +997,57 @@ button.chatbot-message-action-button.active:focus,
   right: auto;
 }
 
-/* Light Mode Explicit Styles */
+/* Always use dark mode styling - Override light mode defaults */
 .chatbot-aside code,
 .chatbot-aside pre {
-  background-color: #f5f5f5;
-  color: #1a1a1a;
+  background-color: #2a2a2a !important;
+  color: #fff !important;
 }
 
 .chatbot-message-text {
-  color: #1a1a1a;
+  color: #fff !important;
+}
+
+.chatbot-welcome-title {
+  color: #fff !important;
+}
+
+.chatbot-welcome-subtitle,
+.chatbot-message-time {
+  color: #ccc !important;
+}
+
+.chatbot-message-action-button {
+  color: #999 !important;
+}
+
+.chatbot-message-action-text {
+  color: #999 !important;
+}
+
+.chatbot-aside blockquote {
+  border-left-color: #555 !important;
+  color: #ccc !important;
+}
+
+.chatbot-aside hr {
+  border-top-color: #444 !important;
+}
+
+.chatbot-message-text a {
+  color: #60a5fa !important;
+}
+
+.chatbot-message-text a:hover {
+  color: #93c5fd !important;
+}
+
+.chatbot-window {
+  color: #fff !important;
+}
+
+.chatbot-aside ul li:before {
+  background: #fff !important;
 }
 
 /* Dark Mode Support */
@@ -1099,8 +1148,8 @@ button.chatbot-message-action-button.active:focus,
   }
 
   .bot-message .chatbot-message-text {
-    background-color: #2a2a2a;
-    color: #fff;
+    background-color: #2a2a2a !important;
+    color: #fff !important;
   }
 
   .chatbot-hint {
@@ -1159,17 +1208,30 @@ button.chatbot-message-action-button.active:focus,
   }
 }
 
-/* Light mode overrides - removed white background forcing */
-/* Bot messages will use natural card background */
+/* Always use dark mode styling - Override any light mode styles */
+.bot-message .chatbot-message-text {
+  background-color: #2a2a2a !important;
+  color: #fff !important;
+}
+
+.bot-message .chatbot-message-text * {
+  color: #fff !important;
+}
+
+/* Ensure bot message background is always dark */
+:root:not(.dark) .bot-message .chatbot-message-text,
+:not(.dark) .bot-message .chatbot-message-text {
+  background-color: #2a2a2a !important;
+  color: #fff !important;
+}
 
 :root:not(.dark) .bot-message .chatbot-message-text *,
 :not(.dark) .bot-message .chatbot-message-text * {
-  background-color: transparent !important;
-  color: #ffffff !important;
+  color: #fff !important;
 }
 
 :root:not(.dark) .chatbot-message-text a,
 :not(.dark) .chatbot-message-text a {
-  color: hsl(var(--primary)) !important;
+  color: #60a5fa !important;
 }
 

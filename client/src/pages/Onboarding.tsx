@@ -877,17 +877,20 @@ export default function Onboarding() {
                 )}
 
                 {/* Navigation Buttons */}
-                <div className="flex flex-col sm:flex-row justify-between gap-3 pt-4 sm:pt-6 border-t">
-                  <Button
-                    variant="outline"
-                    onClick={handleBack}
-                    disabled={currentStep === 1 || isSavingBranding || isCreatingProject || isCreatingDataSourceFromHook || isCreatingDataSourceLocal}
-                    data-testid="button-back"
-                    className="w-full sm:w-auto"
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back
-                  </Button>
+                <div className={`flex flex-col sm:flex-row gap-3 pt-4 sm:pt-6 border-t ${currentStep === 1 ? 'justify-end' : 'justify-between'}`}>
+                  {/* Only show Back button if not on Step 1 (Branding) */}
+                  {currentStep > 1 && (
+                    <Button
+                      variant="outline"
+                      onClick={handleBack}
+                      disabled={isSavingBranding || isCreatingProject || isCreatingDataSourceFromHook || isCreatingDataSourceLocal}
+                      data-testid="button-back"
+                      className="w-full sm:w-auto"
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Back
+                    </Button>
+                  )}
 
                   {currentStep < 4 ? (
                     <Button

@@ -241,12 +241,7 @@ const Login = React.memo(function Login() {
                 
               </form>
               
-              <div className="pt-4 border-t">
-                <div className="bg-muted/30 rounded-lg p-3 text-center">
-                  <p className="text-xs text-muted-foreground mb-1">Demo Account</p>
-                  <p className="text-sm font-mono text-foreground">admin / demo1234</p>
-                </div>
-              </div>
+         
 
               <div className="text-sm p-0 h-auto text-center">
               Don't have an account?{" "}
@@ -262,7 +257,7 @@ const Login = React.memo(function Login() {
           
           <div className="text-center mt-8">
             <p className="text-xs text-muted-foreground">
-              © 2024 RAGSuite. Enterprise AI Platform.
+              © 2026 RAGSuite. Enterprise AI Platform.
             </p>
           </div>
         </div>

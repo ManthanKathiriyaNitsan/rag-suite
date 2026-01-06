@@ -184,7 +184,7 @@ const ForgotPassword = React.memo(function ForgotPassword() {
 
             <div className="text-center mt-8">
               <p className="text-xs text-muted-foreground">
-                © 2024 RAGSuite. Enterprise AI Platform.
+                  © 2026 RAGSuite. Enterprise AI Platform.
               </p>
             </div>
           </div>

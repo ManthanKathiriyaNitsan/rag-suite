@@ -52,11 +52,32 @@ export function useSearchCitation() {
     queryKey: ['search-citation'],
     queryFn: async () => {
       console.log('🔍 useSearchCitation - Fetching citation settings...');
-      const apiData = await searchAPI.getSearchCitation();
-      console.log('🔍 useSearchCitation - API data received:', apiData);
-      const mappedData = mapApiToFrontend(apiData);
-      console.log('🔍 useSearchCitation - Mapped data:', mappedData);
-      return mappedData;
+      try {
+        const apiData = await searchAPI.getSearchCitation();
+        console.log('🔍 useSearchCitation - API data received:', apiData);
+        const mappedData = mapApiToFrontend(apiData);
+        console.log('🔍 useSearchCitation - Mapped data:', mappedData);
+        return mappedData;
+      } catch (error: any) {
+        // If error is 401 in widget mode, API already returns defaults
+        // But if it's a different error, return defaults here too
+        const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+        if (isWidgetMode && error?.response?.status === 401) {
+          console.log('ℹ️ useSearchCitation - 401 in widget mode, using default citation settings');
+          return mapApiToFrontend({
+            citation_style: 'detailed',
+            layout: 'vertical',
+            numbering_style: 'brackets',
+            color_scheme: 'default',
+            show_snippets: true,
+            show_urls: true,
+            show_source_count: true,
+            enable_hover_effects: true,
+            max_snippet_length: 150,
+          });
+        }
+        throw error;
+      }
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: false,

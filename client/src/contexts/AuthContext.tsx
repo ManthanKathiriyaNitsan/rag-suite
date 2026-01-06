@@ -68,9 +68,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Clear error when it changes
   useEffect(() => {
     if (loginError) {
-      setError(loginError.message || 'Login failed');
+      // Extract user-friendly error message from API response
+      let errorMessage = 'Login failed. Please check your credentials.';
+      
+      if (loginError instanceof Error) {
+        // Check if it's an Axios error with response data
+        const axiosError = loginError as any;
+        if (axiosError.response?.data) {
+          // Try to get error message from response
+          const responseData = axiosError.response.data;
+          
+          // FastAPI typically returns error in 'detail' field
+          if (responseData.detail) {
+            errorMessage = typeof responseData.detail === 'string' 
+              ? responseData.detail 
+              : JSON.stringify(responseData.detail);
+          } 
+          // Some APIs return 'message' field
+          else if (responseData.message) {
+            errorMessage = responseData.message;
+          }
+          // Some APIs return 'error' field
+          else if (responseData.error) {
+            errorMessage = responseData.error;
+          }
+        }
+        
+        // If no response data, check status code for common errors
+        if (axiosError.response?.status === 401) {
+          errorMessage = 'Invalid username or password. Please try again.';
+        } else if (axiosError.response?.status === 403) {
+          errorMessage = 'Access denied. Please contact your administrator.';
+        } else if (axiosError.response?.status === 404) {
+          errorMessage = 'Login endpoint not found. Please contact support.';
+        } else if (axiosError.response?.status >= 500) {
+          errorMessage = 'Server error. Please try again later.';
+        } else if (axiosError.response?.status === 400) {
+          errorMessage = 'Invalid request. Please check your input.';
+        } else if (axiosError.message && !axiosError.message.includes('status code')) {
+          // Use the error message if it's not the generic Axios status code message
+          errorMessage = axiosError.message;
+        }
+      }
+      
+      setError(errorMessage);
     } else if (logoutError) {
-      setError(logoutError.message || 'Logout failed');
+      // Extract user-friendly error message for logout
+      let errorMessage = 'Logout failed.';
+      
+      if (logoutError instanceof Error) {
+        const axiosError = logoutError as any;
+        if (axiosError.response?.data?.detail) {
+          errorMessage = axiosError.response.data.detail;
+        } else if (axiosError.response?.data?.message) {
+          errorMessage = axiosError.response.data.message;
+        } else if (axiosError.message && !axiosError.message.includes('status code')) {
+          errorMessage = axiosError.message;
+        }
+      }
+      
+      setError(errorMessage);
     } else {
       setError(null);
     }

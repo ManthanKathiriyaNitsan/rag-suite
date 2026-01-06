@@ -43,7 +43,7 @@ widgetFiles.forEach(file => {
 
 // 3. Copy search-widget-loader.js from public/ to v1/ as loader.js
 const loaderSource = join(publicDir, 'search-widget-loader.js');
-const loaderDest = join(v1Dir, 'loader.js'); // Copy as loader.js to match script tag requests
+const loaderDest = join(v1Dir, 'loader.js');
 
 if (existsSync(loaderSource)) {
   copyFileSync(loaderSource, loaderDest);

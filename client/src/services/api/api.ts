@@ -325,7 +325,13 @@ export const searchAPI = {
       // Extract response_type from nested data structure
       const responseType = response.data?.data?.response_type || 'long';
       return responseType;
-    } catch (error) {
+    } catch (error: any) {
+      // Handle 401 Unauthorized in widget mode gracefully
+      const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+      if (isWidgetMode && error?.response?.status === 401) {
+        console.log('ℹ️ Response config 401 Unauthorized in widget mode - backend may not support projectId for this endpoint yet. Returning default "long".');
+        return 'long'; // Default to 'long' response type
+      }
       console.error('❌ Get response config failed:', error);
       throw error;
     }
@@ -501,6 +507,26 @@ export const searchAPI = {
       console.log('🔍 Final citation data to return:', finalData);
       return finalData;
     } catch (error: any) {
+      // Check if we're in widget mode (external website)
+      const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+      
+      // If 401 in widget mode, backend may not support projectId for this endpoint yet
+      // Return default citation settings so widget can still function
+      if (error?.response?.status === 401 && isWidgetMode) {
+        console.log('ℹ️ Search citation 401 Unauthorized in widget mode - backend may not support projectId for this endpoint yet. Returning default citation settings.');
+        return {
+          citation_style: 'detailed',
+          layout: 'vertical',
+          numbering_style: 'brackets',
+          color_scheme: 'default',
+          show_snippets: true,
+          show_urls: true,
+          show_source_count: true,
+          enable_hover_effects: true,
+          max_snippet_length: 150,
+        };
+      }
+      
       console.error('❌ Get search citation failed:', error);
       console.error('❌ Error details:', {
         message: error?.message,
