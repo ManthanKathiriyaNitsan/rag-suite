@@ -1,18 +1,36 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useEffect } from 'react';
 import { documentAPI, Document, DocumentMetadata, DocumentContent, UploadResponse } from '@/services/api/api';
 
 // 📄 Documents hook - Get all documents
 export const useDocuments = () => {
   const queryClient = useQueryClient();
 
+  // Check for CORB/CORS errors - disable polling if present
+  const hasCORBError = typeof window !== 'undefined' && (window as any).__HAS_CORB_CORS_ERROR;
+
   // Get all documents
   const documentsQuery = useQuery({
     queryKey: ['documents'],
     queryFn: documentAPI.getDocuments,
-    staleTime: 30000, // 30 seconds
-    refetchInterval: 10000, // Refetch every 10 seconds for live updates
+    staleTime: 60000, // 60 seconds
+    refetchInterval: hasCORBError ? false : 60000, // Refetch every 60 seconds (reduced from 10s), disabled on CORB errors
+    refetchOnWindowFocus: false, // Disabled to prevent excessive requests
+    retry: 1, // Only retry once on failure
+    retryDelay: 2000, // Wait 2 seconds before retry
   });
+
+  // Handle CORB/CORS errors
+  useEffect(() => {
+    if (documentsQuery.error) {
+      const error: any = documentsQuery.error;
+      const isCORBError = error.message?.includes('CORB') || error.message?.includes('Cross-Origin');
+      const isCORSError = error.code === 'ERR_NETWORK' || error.message?.includes('CORS') || error.message?.includes('blocked');
+      if ((isCORBError || isCORSError) && typeof window !== 'undefined') {
+        (window as any).__HAS_CORB_CORS_ERROR = true;
+      }
+    }
+  }, [documentsQuery.error]);
 
   // Upload document
   const uploadDocumentMutation = useMutation({
@@ -107,6 +125,9 @@ export const useDocumentContent = (id: string) => {
 
 // 📄 Document statistics hook - Get document statistics
 export const useDocumentStats = () => {
+  // Check for CORB/CORS errors - disable polling if present
+  const hasCORBError = typeof window !== 'undefined' && (window as any).__HAS_CORB_CORS_ERROR;
+
   const statsQuery = useQuery({
     queryKey: ['document-stats'],
     queryFn: async () => {
@@ -141,9 +162,24 @@ export const useDocumentStats = () => {
         byType,
       };
     },
-    staleTime: 60000, // 1 minute
-    refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 120000, // 2 minutes
+    refetchInterval: hasCORBError ? false : 120000, // Refetch every 2 minutes (reduced from 30s), disabled on CORB errors
+    refetchOnWindowFocus: false, // Disabled to prevent excessive requests
+    retry: 1, // Only retry once on failure
+    retryDelay: 2000, // Wait 2 seconds before retry
   });
+
+  // Handle CORB/CORS errors
+  useEffect(() => {
+    if (statsQuery.error) {
+      const error: any = statsQuery.error;
+      const isCORBError = error.message?.includes('CORB') || error.message?.includes('Cross-Origin');
+      const isCORSError = error.code === 'ERR_NETWORK' || error.message?.includes('CORS') || error.message?.includes('blocked');
+      if ((isCORBError || isCORSError) && typeof window !== 'undefined') {
+        (window as any).__HAS_CORB_CORS_ERROR = true;
+      }
+    }
+  }, [statsQuery.error]);
 
   return {
     stats: statsQuery.data,

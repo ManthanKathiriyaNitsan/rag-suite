@@ -130,6 +130,9 @@ const ChatMessage = React.memo(function ChatMessage({
   // 💬 Use feedback hook
   const { submitFeedback, isSubmitting } = useChatFeedback();
   const [copied, setCopied] = useState(false);
+  
+  // 🖼️ Track avatar image load errors
+  const [avatarImageError, setAvatarImageError] = useState(false);
 
   // 🎨 Get theme for syntax highlighting
   const { theme } = useTheme();
@@ -309,25 +312,64 @@ const ChatMessage = React.memo(function ChatMessage({
     const isBot = type === "assistant";
     const isUser = type === "user";
     const messageClass = isBot ? "bot-message" : "user-message";
-    const isCustomAvatarImage = widgetAvatar && (widgetAvatar.startsWith("http") || widgetAvatar.startsWith("data:"));
+    // Check if widgetAvatar is a custom image (URL or data URL) or a default avatar
+    // Valid formats: http://, https://, data:image/, or default-* IDs
+    const isCustomAvatarImage = widgetAvatar && 
+      !widgetAvatar.startsWith("default-") && 
+      (widgetAvatar.startsWith("http://") || 
+       widgetAvatar.startsWith("https://") || 
+       widgetAvatar.startsWith("data:"));
     const isDefaultGradient = widgetChatbotColor === "gradient";
     const isCustomGradient = widgetChatbotColor && widgetChatbotColor.startsWith("linear-gradient");
-    const selectedAvatar = avatarOptions?.find(a => a.id === widgetAvatar) || { image: "/avatars/avatar-1.png" };
+    
+    // Get API base URL for absolute avatar paths (works on external websites)
+    const getApiBaseUrl = () => {
+      if (typeof window !== 'undefined' && (window as any).RAGSUITE_API_URL) {
+        return (window as any).RAGSUITE_API_URL;
+      }
+      return 'http://192.168.0.101:8000/api/v1';
+    };
+    const apiBaseUrl = getApiBaseUrl();
+    
+    // Default avatar options with absolute URLs
+    const defaultAvatarOptions = [
+      { id: "default-1", image: `${apiBaseUrl}/avatars/avatar-1.png` },
+      { id: "default-2", image: `${apiBaseUrl}/avatars/avatar-2.png` },
+      { id: "default-3", image: `${apiBaseUrl}/avatars/avatar-3.png` },
+      { id: "default-4", image: `${apiBaseUrl}/avatars/avatar-4.png` },
+    ];
+    
+    const avatarOptionsList = avatarOptions || defaultAvatarOptions;
+    const selectedAvatar = avatarOptionsList.find(a => a.id === widgetAvatar) || defaultAvatarOptions[0];
     const isDefaultAvatarImage = selectedAvatar && selectedAvatar.image;
+    const defaultAvatarUrl = defaultAvatarOptions[0].image;
+    
+    // Always use avatar images (no need to skip - they're absolute URLs now)
+    const shouldSkipAvatarImage = false;
 
     return (
       <div className={`chatbot-message ${messageClass}`} data-testid={`message-${type}`}>
         {isBot && (
           <div className="chatbot-message__avatar">
-            {isCustomAvatarImage ? (
+            {!avatarImageError && !shouldSkipAvatarImage && isCustomAvatarImage ? (
               <img
                 className="chatbot-avatar-image"
                 src={widgetAvatar}
                 alt="Avatar"
                 width={30}
                 height={30}
+                style={{
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                }}
+                onError={(e) => {
+                  // Fallback to default avatar image if custom image fails to load
+                  const target = e.target as HTMLImageElement;
+                  target.src = defaultAvatarUrl;
+                  setAvatarImageError(false);
+                }}
               />
-            ) : isDefaultAvatarImage ? (
+            ) : !avatarImageError && !shouldSkipAvatarImage && isDefaultAvatarImage ? (
               <img
                 className="chatbot-avatar-image"
                 src={selectedAvatar.image}
@@ -338,23 +380,34 @@ const ChatMessage = React.memo(function ChatMessage({
                   borderRadius: '50%',
                   objectFit: 'cover',
                 }}
+                onError={(e) => {
+                  // Fallback to default avatar-1 if selected avatar fails to load
+                  const target = e.target as HTMLImageElement;
+                  if (target.src !== defaultAvatarUrl) {
+                    target.src = defaultAvatarUrl;
+                    setAvatarImageError(false);
+                  }
+                }}
               />
             ) : (
-              <div
+              <img
+                className="chatbot-avatar-image"
+                src={defaultAvatarUrl}
+                alt="Avatar"
+                width={30}
+                height={30}
                 style={{
-                  width: '30px',
-                  height: '30px',
                   borderRadius: '50%',
-                  backgroundColor: (isDefaultGradient || isCustomGradient) ? undefined : widgetChatbotColor || '#1F2937',
-                  backgroundImage: isDefaultGradient ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : (isCustomGradient ? widgetChatbotColor : undefined),
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '14px',
+                  objectFit: 'cover',
                 }}
-              >
-                🤖
-              </div>
+                onError={(e) => {
+                  // If default avatar fails, try other avatars
+                  const target = e.target as HTMLImageElement;
+                  const currentIndex = defaultAvatarOptions.findIndex(a => a.image === target.src);
+                  const nextIndex = (currentIndex + 1) % defaultAvatarOptions.length;
+                  target.src = defaultAvatarOptions[nextIndex].image;
+                }}
+              />
             )}
           </div>
         )}

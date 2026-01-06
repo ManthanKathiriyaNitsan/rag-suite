@@ -253,8 +253,21 @@ export const useCrawlSites = () => {
       );
     };
 
-    // Poll every 0.5 seconds for very smooth progress updates (catches all intermediate values)
+    // Check if we have CORB/CORS errors - stop polling if so
+    const hasCORBError = typeof window !== 'undefined' && (window as any).__HAS_CORB_CORS_ERROR;
+    if (hasCORBError) {
+      return; // Stop polling if CORB/CORS errors detected
+    }
+
+    // Poll every 3 seconds (reduced from 0.5s to prevent excessive requests)
     const intervalId = setInterval(() => {
+      // Check again for CORB/CORS errors
+      const hasCORBError = typeof window !== 'undefined' && (window as any).__HAS_CORB_CORS_ERROR;
+      if (hasCORBError) {
+        clearInterval(intervalId);
+        return;
+      }
+
       const sitesWithJobs = getSitesWithJobs();
       if (sitesWithJobs.length === 0) return;
 
@@ -302,7 +315,19 @@ export const useCrawlSites = () => {
               }
             })
             .catch((error) => {
-              // Silently handle errors during polling
+              // Check for CORB/CORS errors and stop polling
+              const isCORBError = error.message?.includes('CORB') || error.message?.includes('Cross-Origin');
+              const isCORSError = error.code === 'ERR_NETWORK' || error.message?.includes('CORS') || error.message?.includes('blocked');
+              
+              if (isCORBError || isCORSError) {
+                if (typeof window !== 'undefined') {
+                  (window as any).__HAS_CORB_CORS_ERROR = true;
+                }
+                clearInterval(intervalId);
+                return;
+              }
+
+              // Silently handle other errors during polling
               if (error?.response?.status === 404) {
                 // Job completed or not found, remove job_id
                 queryClient.setQueryData<CrawlSite[]>(['crawl-sites'], (oldSites = []) => {
@@ -316,7 +341,7 @@ export const useCrawlSites = () => {
             });
         }
       });
-    }, 500); // Poll every 0.5 seconds for very smooth progress updates
+    }, 3000); // Poll every 3 seconds (reduced from 0.5s to prevent excessive requests)
 
     return () => clearInterval(intervalId);
   }, [sitesQuery.data, queryClient]);

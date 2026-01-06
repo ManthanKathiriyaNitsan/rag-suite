@@ -143,7 +143,7 @@ const Profile = React.memo(function Profile() {
 
         {/* Profile Settings Tabs */}
         <Tabs defaultValue="general" className="space-y-6">
-          <TabsList className="grid grid-cols-2 w-full h-full  lg:grid-cols-4">
+          <TabsList className="grid grid-cols-2 w-full h-full">
             <TabsTrigger value="general" className="flex items-center gap-2" data-testid="tab-general">
               <User className="h-4 w-4" />
               General
@@ -152,14 +152,16 @@ const Profile = React.memo(function Profile() {
               <Shield className="h-4 w-4" />
               Security
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2" data-testid="tab-notifications">
+            {/* Notifications tab - Hidden */}
+            {/* <TabsTrigger value="notifications" className="flex items-center gap-2" data-testid="tab-notifications">
               <Bell className="h-4 w-4" />
               Notifications
-            </TabsTrigger>
-            <TabsTrigger value="privacy" className="flex items-center gap-2" data-testid="tab-privacy">
+            </TabsTrigger> */}
+            {/* Privacy tab - Hidden */}
+            {/* <TabsTrigger value="privacy" className="flex items-center gap-2" data-testid="tab-privacy">
               <Key className="h-4 w-4" />
               Privacy
-            </TabsTrigger>
+            </TabsTrigger> */}
           </TabsList>
 
           {/* General Settings */}
@@ -373,8 +375,8 @@ const Profile = React.memo(function Profile() {
             </div>
           </TabsContent>
 
-          {/* Notification Settings */}
-          <TabsContent value="notifications" className="space-y-6">
+          {/* Notification Settings - Hidden */}
+          {/* <TabsContent value="notifications" className="space-y-6">
             <GlassCard>
               <CardHeader>
                 <CardTitle>Notification Preferences</CardTitle>
@@ -454,10 +456,10 @@ const Profile = React.memo(function Profile() {
                 </div>
               </CardContent>
             </GlassCard>
-          </TabsContent>
+          </TabsContent> */}
 
-          {/* Privacy Settings */}
-          <TabsContent value="privacy" className="space-y-6">
+          {/* Privacy Settings - Hidden */}
+          {/* <TabsContent value="privacy" className="space-y-6">
             <GlassCard>
               <CardHeader>
                 <CardTitle>Privacy Settings</CardTitle>
@@ -511,7 +513,7 @@ const Profile = React.memo(function Profile() {
                 </div>
               </CardContent>
             </GlassCard>
-          </TabsContent>
+          </TabsContent> */}
         </Tabs>
       </div>
     </div>

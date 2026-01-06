@@ -76,17 +76,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [loginError, logoutError]); // Only depend on actual values
 
+  // Check if we're in widget mode (external website with projectId)
+  const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+  const projectId = isWidgetMode ? (window as any).RAGSUITE_PROJECT_ID : null;
+
   // 🔐 Debug authentication state changes
   useEffect(() => {
-    console.log('🔐 Auth state changed:', {
-      isAuthenticated,
-      user: user?.username,
-      token: token ? 'present' : 'missing',
-      isLoading: isInitializing || isLoggingIn || isLoggingOut,
-      isInitializing,
-      error
-    });
-  }, [isAuthenticated, user, token, isInitializing, isLoggingIn, isLoggingOut, error]);
+    // In widget mode, authentication works via projectId, not user login
+    if (isWidgetMode) {
+      console.log('🔐 Widget mode: Authenticated via projectId', {
+        projectId: projectId,
+        isWidgetMode: true,
+        isLoading: isInitializing || isLoggingIn || isLoggingOut,
+        isInitializing
+      });
+    } else {
+      console.log('🔐 Auth state changed:', {
+        isAuthenticated,
+        user: user?.username,
+        token: token ? 'present' : 'missing',
+        isLoading: isInitializing || isLoggingIn || isLoggingOut,
+        isInitializing,
+        error
+      });
+    }
+  }, [isAuthenticated, user, token, isInitializing, isLoggingIn, isLoggingOut, error, isWidgetMode, projectId]);
 
   // Clear error function
   const clearError = () => {

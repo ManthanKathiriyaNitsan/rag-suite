@@ -58,6 +58,7 @@ import { useChatbotSettings } from "@/hooks/useChatbotSettings";
 import { useConfigModels, useAvailableChatModels, useAvailableEmbeddingModels, useAvailableModels } from "@/hooks/useConfigModels";
 import { usePrompt } from "@/hooks/usePrompt";
 import { useChatbotActivation } from "@/hooks/useChatbotActivation";
+import { useProjects } from "@/hooks/useProjects";
 import { Slider } from "@/components/ui/slider";
 import { FileText, Zap, Trash2, CheckCircle2, Circle } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -226,6 +227,9 @@ export default function ChatbotConfiguration() {
     isSavingConfiguration,
     isSavingCustomization,
   } = useChatbotSettings();
+  
+  // Get current project ID for widget embedding
+  const { activeProjectId } = useProjects();
   const [activeTab, setActiveTab] = useState("training");
   const [settingsSubTab, setSettingsSubTab] = useState("overview");
   const [trainingSubTab, setTrainingSubTab] = useState("overview");
@@ -625,17 +629,48 @@ export default function ChatbotConfiguration() {
   }, [modelProvider]); // Only run when provider changes
 
   // Integrations Tab State
-  const [webScript, setWebScript] = useState(`<!-- Chatbot Widget Script -->
+  // Generate dynamic embed script based on current configuration
+  const generateWebScript = useCallback(() => {
+    // Get API endpoint from environment or use default
+    const apiEndpoint = import.meta.env.VITE_API_BASE_URL || 
+      'http://192.168.0.101:8000/api/v1';
+    const widgetVersion = 'v1';
+    
+    // Use current project ID for widget embedding
+    const projectId = activeProjectId || 'your-project-id-here';
+    
+    return `<!-- RAG Suite Chatbot Widget -->
+<!-- Add this script before the closing </body> tag -->
 <script>
   (function() {
-    // Chatbot initialization code
-    window.ChatbotWidget = {
-      init: function(config) {
-        // Initialize chatbot
-      }
-    };
+    var script = document.createElement('script');
+    script.src = '${apiEndpoint}/widget/${widgetVersion}/loader.js';
+    script.setAttribute('data-ragsuite-project-id', '${projectId}');
+    script.setAttribute('data-api-endpoint', '${apiEndpoint}');
+    script.setAttribute('data-position', 'bottom-right');
+    script.async = true;
+    document.head.appendChild(script);
   })();
-</script>`);
+</script>
+
+<!-- Alternative: Advanced Configuration -->
+<!--
+<script>
+  window.ragSuiteConfig = {
+    projectId: '${projectId}',
+    apiEndpoint: '${apiEndpoint}',
+    position: 'bottom-right',
+    zIndex: 99999,
+    primaryColor: '#007bff',
+    title: 'AI Assistant',
+    welcomeMessage: 'Hello! How can I help you?'
+  };
+</script>
+<script src="${apiEndpoint}/widget/${widgetVersion}/loader.js" async></script>
+-->`;
+  }, [activeProjectId]);
+
+  const [webScript, setWebScript] = useState(generateWebScript());
   const [mobileScript, setMobileScript] = useState(`// Mobile SDK Integration
 import ChatbotSDK from '@company/chatbot-sdk';
 
@@ -903,13 +938,25 @@ chatbot.init();`);
       return;
     }
 
+    // Check for CORB/CORS errors - stop polling if present
+    const hasCORBError = typeof window !== 'undefined' && (window as any).__HAS_CORB_CORS_ERROR;
+    if (hasCORBError) {
+      return; // Stop polling if CORB/CORS errors detected
+    }
+
     // Initial load
     loadChatHistory();
 
-    // Set up polling interval (refresh every 30 seconds for real-time updates)
+    // Set up polling interval (refresh every 60 seconds - reduced from 30s to prevent excessive requests)
     const intervalId = setInterval(() => {
+      // Check again for CORB/CORS errors
+      const hasCORBError = typeof window !== 'undefined' && (window as any).__HAS_CORB_CORS_ERROR;
+      if (hasCORBError) {
+        clearInterval(intervalId);
+        return;
+      }
       loadChatHistory();
-    }, 30000);
+    }, 60000); // Increased from 30s to 60s
 
     return () => clearInterval(intervalId);
   }, [activeTab, trainingSubTab, loadChatHistory]);
@@ -3053,10 +3100,35 @@ chatbot.init();`);
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline">
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      setWebScript(generateWebScript());
+                      toast({
+                        title: "Script Regenerated",
+                        description: "New embed script generated with current settings",
+                        variant: "success",
+                      });
+                    }}
+                  >
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Regenerate
                   </Button>
+                </div>
+                <div className="p-4 bg-muted rounded-lg space-y-2">
+                  <p className="text-sm font-medium">Installation Instructions:</p>
+                  <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                    <li>Copy the script above</li>
+                    <li>Paste it before the closing <code className="bg-background px-1 rounded">&lt;/body&gt;</code> tag in your HTML</li>
+                    <li>Replace <code className="bg-background px-1 rounded">your-project-id-here</code> with your actual project ID (automatically filled if you have an active project)</li>
+                    <li>Save and refresh your website</li>
+                    <li>The chatbot widget will appear on your page</li>
+                  </ol>
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Note:</strong> Make sure your backend is configured to serve widget files at <code className="bg-background px-1 rounded">/widget/v1/</code> endpoint
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </GlassCard>

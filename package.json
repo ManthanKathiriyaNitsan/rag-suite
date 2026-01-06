@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:widget": "vite build --config vite.widget.config.ts && node scripts/post-build-widget.js",
+    "build:search-widget": "vite build --config vite.search-widget.config.ts && node scripts/post-build-search-widget.js",
+    "build:all": "npm run build && npm run build:widget && npm run build:search-widget",
     "preview": "vite preview",
+    "preview:widget": "vite preview --config vite.widget.config.ts",
     "check": "tsc"
   },
   "dependencies": {
@@ -130,6 +134,7 @@
     "http-proxy-middleware": "^3.0.5",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.17",
+    "terser": "^5.44.1",
     "tsx": "^4.19.1",
     "typescript": "5.6.3",
     "vite": "^5.4.19"

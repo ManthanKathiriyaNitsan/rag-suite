@@ -241,18 +241,18 @@ The guide is designed to help developers quickly get started with implementing C
     } else {
       setIsPredefinedAnswer(false); // Not a predefined answer
       // No predefined answer, show test message
-      setIsSearching(true);
-      setIsTyping(true);
-      setShowResponse(false);
-      setShowTestMessage(false);
-      setStreamingContent("");
-      
-      // Simulate typing delay
-      setTimeout(() => {
-        setIsTyping(false);
-        setShowTestMessage(true);
-        setIsSearching(false);
-      }, 500);
+    setIsSearching(true);
+    setIsTyping(true);
+    setShowResponse(false);
+    setShowTestMessage(false);
+    setStreamingContent("");
+    
+    // Simulate typing delay
+    setTimeout(() => {
+      setIsTyping(false);
+      setShowTestMessage(true);
+      setIsSearching(false);
+    }, 500);
     }
     
     // Blur input to close suggestions

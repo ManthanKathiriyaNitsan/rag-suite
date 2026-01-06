@@ -6,13 +6,24 @@ export function useChatbotActivation() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // Check if we're in widget mode (external website)
+  const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+
   // Get activation status
   const activationQuery = useQuery({
     queryKey: ['chatbot-activation'],
     queryFn: chatbotAPI.getActivationStatus,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 300000, // 5 minutes - data is fresh for 5 minutes
     refetchOnWindowFocus: false,
     refetchOnMount: true,
+    refetchOnReconnect: false, // Disable refetch on reconnect to prevent infinite loops
+    // Disable polling in widget mode to prevent CORB/CORS issues and infinite requests
+    // Settings will still update when widget is opened/closed or page is refreshed
+    refetchInterval: false, // Disabled to prevent infinite requests
+    // Enable query in widget mode even if not authenticated
+    enabled: true,
+    retry: 1, // Only retry once on failure
+    retryDelay: 1000, // Wait 1 second before retry
   });
 
   // Update activation status mutation
@@ -38,11 +49,14 @@ export function useChatbotActivation() {
     },
   });
 
-  // Extract is_active from response, default to true if not available
+  // Extract is_active from response
+  // Default to true (enabled) if not available - show widget by default, only hide if explicitly disabled
+  // This allows widget to work even if backend doesn't support activation endpoint with projectId
   const isActive = activationQuery.data?.is_active ?? true;
 
   return {
     activationData: activationQuery.data,
+    activationQuery, // Expose full query object for access to data property
     isActive,
     isLoading: activationQuery.isLoading,
     isError: activationQuery.isError,

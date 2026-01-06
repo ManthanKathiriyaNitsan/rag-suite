@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { X, Mic, Send, Trash2, ThumbsUp, ThumbsDown, Copy, Check } from "lucide-react";
+import { X, Send, Trash2, ThumbsUp, ThumbsDown, Copy, Check } from "lucide-react";
 import { useRAGSettings } from "@/contexts/RAGSettingsContext";
 import { testChatAPIConnection } from "@/services/api/api";
 // 🌐 Import our global API hooks
@@ -7,6 +7,7 @@ import { useSearch } from "@/hooks/useSearch";
 import { useChat, useChatFeedback } from "@/hooks/useChat";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useBranding } from "@/contexts/BrandingContext";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { cn, copyToClipboard } from "@/lib/utils";
 import "./EmbeddableWidgetStyles.css";
 // 📝 Import markdown support for message rendering
@@ -97,6 +98,9 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
   
   // 🎨 Use theme for markdown rendering
   const { theme } = useTheme();
+  
+  // 🔐 Use authentication context to check if user is authenticated
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuthContext();
   
   // Use preview overrides if provided, otherwise use branding context values
   const widgetZIndex = previewOverrides?.widgetZIndex !== undefined ? previewOverrides.widgetZIndex : branding.widgetZIndex;
@@ -242,10 +246,33 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
 
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
-  // 💬 Load chat history from API on mount (skip in preview mode)
+  // Check if we're in widget mode (external website with projectId)
+  const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+
+  // 💬 Load chat history from API on mount (works in both authenticated mode and widget mode)
   useEffect(() => {
     // In preview mode, only show welcome message, don't load chat history
       if (isPreviewMode) {
+        setMessages([
+          {
+            type: "assistant",
+            content: welcomeMessage,
+            timestamp: new Date(),
+          },
+        ]);
+        setIsLoadingHistory(false);
+        return;
+      }
+
+    // 🔐 Wait for auth to finish initializing before checking (only if not in widget mode)
+    if (!isWidgetMode && isAuthLoading) {
+      return; // Wait for auth to finish loading
+    }
+
+    // 🔐 Load chat history if:
+    // 1. User is authenticated (main website), OR
+    // 2. We're in widget mode (external website with projectId)
+    if (!isAuthenticated && !isWidgetMode) {
         setMessages([
           {
             type: "assistant",
@@ -312,7 +339,7 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
     };
 
     loadChatHistory();
-  }, [welcomeMessage, isPreviewMode]);
+  }, [welcomeMessage, isPreviewMode, isAuthenticated, isAuthLoading, isWidgetMode]);
 
   // 💬 Update welcome message when it changes (for preview)
   useEffect(() => {
@@ -391,9 +418,6 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
   const [isStreaming, setIsStreaming] = useState(false);
   const [pendingResponse, setPendingResponse] = useState<string | null>(null);
 
-  // 🎤 Voice recognition state
-  const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [inputValue, setInputValue] = useState("");
 
@@ -885,18 +909,39 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
     }
   }, [messages, setMessages, isPreviewMode]);
 
-  // Avatar options (matching ChatbotConfiguration)
+  // Get API base URL for absolute avatar paths (works on external websites)
+  const getApiBaseUrl = () => {
+    if (typeof window !== 'undefined' && (window as any).RAGSUITE_API_URL) {
+      return (window as any).RAGSUITE_API_URL;
+    }
+    return 'http://192.168.0.101:8000/api/v1';
+  };
+
+  const apiBaseUrl = getApiBaseUrl();
+  
+  // Avatar options with absolute URLs (works on external websites)
   const avatarOptions = [
-    { id: "default-1", image: "/avatars/avatar-1.png" },
-    { id: "default-2", image: "/avatars/avatar-2.png" },
-    { id: "default-3", image: "/avatars/avatar-3.png" },
-    { id: "default-4", image: "/avatars/avatar-4.png" },
+    { id: "default-1", image: `${apiBaseUrl}/avatars/avatar-1.png` },
+    { id: "default-2", image: `${apiBaseUrl}/avatars/avatar-2.png` },
+    { id: "default-3", image: `${apiBaseUrl}/avatars/avatar-3.png` },
+    { id: "default-4", image: `${apiBaseUrl}/avatars/avatar-4.png` },
   ];
 
+  // Default avatar image URL (always use avatar-1.png as fallback)
+  const defaultAvatarUrl = avatarOptions[0].image;
+
   // Check if widgetAvatar is a custom image (URL or data URL) or a default avatar
-  const isCustomAvatarImage = widgetAvatar && !widgetAvatar.startsWith("default-") && (widgetAvatar.startsWith("http") || widgetAvatar.startsWith("data:"));
+  // Valid formats: http://, https://, data:image/, or default-* IDs
+  const isCustomAvatarImage = widgetAvatar && 
+    !widgetAvatar.startsWith("default-") && 
+    (widgetAvatar.startsWith("http://") || 
+     widgetAvatar.startsWith("https://") || 
+     widgetAvatar.startsWith("data:"));
   const selectedAvatar = avatarOptions.find(a => a.id === widgetAvatar) || avatarOptions[0];
   const isDefaultAvatarImage = selectedAvatar && selectedAvatar.image;
+  
+  // Always use avatar images (no need to skip - they're absolute URLs now)
+  const shouldSkipAvatarImage = false;
   
   // Check if widgetChatbotColor is a custom gradient
   const isCustomGradient = widgetChatbotColor && widgetChatbotColor.startsWith("linear-gradient");
@@ -941,184 +986,6 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
     const diffInYears = Math.floor(diffInMonths / 12);
     return `${diffInYears} year${diffInYears > 1 ? 's' : ''} ago`;
   };
-
-  // 🎤 Voice recognition handlers with improved cross-browser support
-  const startRecognition = useCallback(async () => {
-    // Check HTTPS requirement (microphone access requires secure context)
-    if (location.protocol !== 'https:' && 
-        location.hostname !== 'localhost' && 
-        location.hostname !== '127.0.0.1') {
-      console.error('🎤 Microphone access requires HTTPS');
-      alert('Microphone access requires HTTPS. Please use https:// or localhost.');
-      return;
-    }
-
-    // Check browser support
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
-    if (!SpeechRecognition) {
-      // Detect browser and show appropriate message
-      const userAgent = navigator.userAgent.toLowerCase();
-      const isFirefox = userAgent.indexOf('firefox') > -1;
-      const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
-      
-      let message = "Voice input is not supported in this browser.";
-      if (isFirefox) {
-        message = "Firefox doesn't support voice input. Please use Chrome, Edge, or Safari.";
-      } else if (isMobile) {
-        message = "Please use Chrome or Safari on mobile devices for voice input.";
-      } else {
-        message = "Your browser doesn't support voice input. Please use Chrome, Edge, or Safari.";
-      }
-      
-      console.warn('🎤 Speech recognition not supported:', message);
-      alert(message);
-      return;
-    }
-
-    // First, request microphone permission using getUserMedia
-    // This will show the browser's native permission prompt
-    try {
-      console.log('🎤 Requesting microphone permission...');
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Permission granted, stop the stream and proceed with recognition
-      stream.getTracks().forEach(track => track.stop());
-      console.log('🎤 Microphone permission granted, starting recognition...');
-      proceedWithRecognition(SpeechRecognition);
-    } catch (err: any) {
-      console.error('🎤 Microphone permission error:', err);
-      setIsListening(false);
-      
-      let errorMessage = "Failed to access microphone.";
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        errorMessage = "Microphone permission was denied. Please allow microphone access and try again.";
-      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        errorMessage = "No microphone found. Please connect a microphone and try again.";
-      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-        errorMessage = "Microphone is being used by another application. Please close other apps using the microphone.";
-      }
-      
-      alert(`Microphone Access Error\n\n${errorMessage}`);
-      return;
-    }
-
-    function proceedWithRecognition(SpeechRecognition: any) {
-      try {
-        const recognition = new SpeechRecognition();
-        recognitionRef.current = recognition;
-        
-        // Better language detection - use browser's preferred language
-        const browserLang = navigator.language || navigator.languages?.[0] || 'en-US';
-        recognition.lang = browserLang;
-        recognition.interimResults = true;
-        recognition.maxAlternatives = 1;
-        recognition.continuous = false;
-
-        let finalTranscript = "";
-
-        recognition.onstart = () => {
-          console.log('🎤 Speech recognition started');
-          setIsListening(true);
-        };
-
-        recognition.onresult = (event: any) => {
-          let interimTranscript = "";
-          finalTranscript = "";
-
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0]?.transcript || "";
-            if (event.results[i].isFinal) {
-              finalTranscript += transcript + " ";
-            } else {
-              interimTranscript += transcript;
-            }
-          }
-
-          const combined = (finalTranscript + interimTranscript).trim();
-          if (combined) {
-            setInputValue(combined);
-          }
-        };
-
-        recognition.onerror = (event: any) => {
-          console.error('🎤 Speech recognition error:', event.error);
-          setIsListening(false);
-          
-          let errorMessage = "Failed to capture voice input.";
-          let errorTitle = "Voice Recognition Error";
-          
-          switch (event.error) {
-            case 'not-allowed':
-              errorTitle = "Microphone Permission Denied";
-              errorMessage = "Microphone permission was denied. Please refresh the page and allow microphone access when prompted.";
-              break;
-            case 'no-speech':
-              errorTitle = "No Speech Detected";
-              errorMessage = "No speech detected. Please speak clearly into your microphone.";
-              break;
-            case 'audio-capture':
-              errorTitle = "Microphone Error";
-              errorMessage = "Microphone not found or is being used by another application. Please check your microphone connection.";
-              break;
-            case 'network':
-              errorTitle = "Network Error";
-              errorMessage = "Network error. Please check your internet connection and try again.";
-              break;
-            case 'aborted':
-              // User stopped, no error needed
-              return;
-            case 'service-not-allowed':
-              errorTitle = "Service Not Allowed";
-              errorMessage = "Speech recognition service is not allowed. Please check your browser settings.";
-              break;
-            default:
-              errorMessage = event.error ? String(event.error) : "Failed to capture voice input.";
-          }
-
-          alert(`${errorTitle}\n\n${errorMessage}`);
-        };
-
-        recognition.onend = () => {
-          console.log('🎤 Speech recognition ended');
-          setIsListening(false);
-          if (finalTranscript.trim()) {
-            setInputValue(finalTranscript.trim());
-          }
-        };
-
-        recognition.start();
-      } catch (err: any) {
-        console.error('🎤 Speech recognition error:', err);
-        setIsListening(false);
-        alert(err?.message || "Unable to start microphone. Please check microphone permissions.");
-      }
-    }
-  }, []);
-
-  const stopRecognition = useCallback(() => {
-    const rec = recognitionRef.current;
-    try {
-      if (rec) rec.stop();
-    } catch {
-      // ignore
-    }
-    setIsListening(false);
-  }, []);
-
-  const handleMicClick = useCallback(() => {
-    if (isListening) {
-      stopRecognition();
-    } else {
-      startRecognition();
-    }
-  }, [isListening, startRecognition, stopRecognition]);
-
-  // 🧹 Cleanup recognition on unmount
-  useEffect(() => {
-    return () => {
-      stopRecognition();
-    };
-  }, [stopRecognition]);
 
   // 📝 Input handlers
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -1196,8 +1063,18 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                 alt="Avatar"
                 width={30}
                 height={30}
+                style={{
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                }}
+                onError={(e) => {
+                  // Fallback to default avatar image if custom image fails to load
+                  const target = e.target as HTMLImageElement;
+                  target.src = defaultAvatarUrl;
+                  target.style.display = 'block';
+                }}
               />
-            ) : isDefaultAvatarImage ? (
+            ) : !shouldSkipAvatarImage && isDefaultAvatarImage ? (
               <img
                 className="chatbot-avatar-image"
                 src={selectedAvatar.image}
@@ -1208,23 +1085,33 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                   borderRadius: '50%',
                   objectFit: 'cover',
                 }}
+                onError={(e) => {
+                  // Fallback to default avatar-1 if selected avatar fails to load
+                  const target = e.target as HTMLImageElement;
+                  if (target.src !== defaultAvatarUrl) {
+                    target.src = defaultAvatarUrl;
+                  }
+                }}
               />
             ) : (
-              <div
+              <img
+                className="chatbot-avatar-image"
+                src={defaultAvatarUrl}
+                alt="Avatar"
+                width={30}
+                height={30}
                 style={{
-                  width: '30px',
-                  height: '30px',
                   borderRadius: '50%',
-                  backgroundColor: (isDefaultGradient || isCustomGradient) ? undefined : widgetChatbotColor,
-                  backgroundImage: isDefaultGradient ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : (isCustomGradient ? widgetChatbotColor : undefined),
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '14px',
+                  objectFit: 'cover',
                 }}
-              >
-                🤖
-              </div>
+                onError={(e) => {
+                  // If default avatar also fails, try other avatars
+                  const target = e.target as HTMLImageElement;
+                  const currentIndex = avatarOptions.findIndex(a => a.image === target.src);
+                  const nextIndex = (currentIndex + 1) % avatarOptions.length;
+                  target.src = avatarOptions[nextIndex].image;
+                }}
+              />
             )}
           </div>
         )}
@@ -1414,13 +1301,12 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
             width: `${widgetAvatarSize}px`,
             height: `${widgetAvatarSize}px`,
             borderRadius: `${widgetTriggerBorderRadius}px`,
-            backgroundColor: 'transparent',
-            backgroundImage: 'none',
-            background: 'transparent',
+            backgroundColor: widgetChatbotColor || '#007bff',
+            backgroundImage: widgetChatbotColor?.startsWith('linear-gradient') ? widgetChatbotColor : undefined,
             border: 'none',
-            borderColor: 'transparent',
             outline: 'none',
-            boxShadow: 'none',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            transition: 'all 0.3s ease',
           } as React.CSSProperties}
           data-testid="button-widget-launcher"
           aria-label={isOpen ? "Close AI Assistant" : "Open AI Assistant"}
@@ -1439,8 +1325,14 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
               style={{
                 borderRadius: `${widgetTriggerBorderRadius}px`,
               }}
+              onError={(e) => {
+                // Fallback to default avatar image if custom image fails to load
+                const target = e.target as HTMLImageElement;
+                target.src = defaultAvatarUrl;
+                target.style.display = 'block';
+              }}
             />
-          ) : isDefaultAvatarImage ? (
+          ) : !shouldSkipAvatarImage && isDefaultAvatarImage ? (
             <img
               src={selectedAvatar.image}
               alt="Avatar"
@@ -1450,11 +1342,32 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                 borderRadius: `${widgetTriggerBorderRadius}px`,
                 objectFit: 'cover',
               }}
+              onError={(e) => {
+                // Fallback to default avatar-1 if selected avatar fails to load
+                const target = e.target as HTMLImageElement;
+                if (target.src !== defaultAvatarUrl) {
+                  target.src = defaultAvatarUrl;
+                }
+              }}
             />
           ) : (
-            <span style={{ fontSize: `${Math.min(widgetAvatarSize * 0.6, 32)}px` }}>
-              🤖
-            </span>
+            <img
+              src={defaultAvatarUrl}
+              alt="Avatar"
+              width={widgetAvatarSize}
+              height={widgetAvatarSize}
+              style={{
+                borderRadius: `${widgetTriggerBorderRadius}px`,
+                objectFit: 'cover',
+              }}
+              onError={(e) => {
+                // If default avatar fails, try other avatars
+                const target = e.target as HTMLImageElement;
+                const currentIndex = avatarOptions.findIndex(a => a.image === target.src);
+                const nextIndex = (currentIndex + 1) % avatarOptions.length;
+                target.src = avatarOptions[nextIndex].image;
+              }}
+            />
           )}
         </button>
         {/* Hint Bubble */}
@@ -1561,8 +1474,18 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                   alt={widgetTitle}
                   width={80}
                   height={80}
+                  style={{
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                  }}
+                  onError={(e) => {
+                    // Fallback to default avatar image if custom image fails to load
+                    const target = e.target as HTMLImageElement;
+                    target.src = defaultAvatarUrl;
+                    target.style.display = 'block';
+                  }}
                 />
-              ) : isDefaultAvatarImage ? (
+              ) : !shouldSkipAvatarImage && isDefaultAvatarImage ? (
                 <img
                   className="chatbot-avatar"
                   src={selectedAvatar.image}
@@ -1573,23 +1496,33 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                     borderRadius: '50%',
                     objectFit: 'cover',
                   }}
+                  onError={(e) => {
+                    // Fallback to default avatar-1 if selected avatar fails to load
+                    const target = e.target as HTMLImageElement;
+                    if (target.src !== defaultAvatarUrl) {
+                      target.src = defaultAvatarUrl;
+                    }
+                  }}
                 />
               ) : (
-                <div
+                <img
+                  className="chatbot-avatar"
+                  src={defaultAvatarUrl}
+                  alt={widgetTitle}
+                  width={80}
+                  height={80}
                   style={{
-                    width: '80px',
-                    height: '80px',
                     borderRadius: '50%',
-                    backgroundColor: (isDefaultGradient || isCustomGradient) ? undefined : widgetChatbotColor,
-                    backgroundImage: isDefaultGradient ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : (isCustomGradient ? widgetChatbotColor : undefined),
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '40px',
+                    objectFit: 'cover',
                   }}
-                >
-                  🤖
-                </div>
+                  onError={(e) => {
+                    // If default avatar fails, try other avatars
+                    const target = e.target as HTMLImageElement;
+                    const currentIndex = avatarOptions.findIndex(a => a.image === target.src);
+                    const nextIndex = (currentIndex + 1) % avatarOptions.length;
+                    target.src = avatarOptions[nextIndex].image;
+                  }}
+                />
               )}
             </div>
             <div className="chatbot-welcome-text">
@@ -1619,8 +1552,18 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                       alt="Avatar"
                       width={30}
                       height={30}
+                      style={{
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                      }}
+                      onError={(e) => {
+                        // Fallback to default avatar image if custom image fails to load
+                        const target = e.target as HTMLImageElement;
+                        target.src = defaultAvatarUrl;
+                        target.style.display = 'block';
+                      }}
                     />
-                  ) : isDefaultAvatarImage ? (
+                  ) : !shouldSkipAvatarImage && isDefaultAvatarImage ? (
                     <img
                       className="chatbot-avatar-image"
                       src={selectedAvatar.image}
@@ -1631,23 +1574,33 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                         borderRadius: '50%',
                         objectFit: 'cover',
                       }}
+                      onError={(e) => {
+                        // Fallback to default avatar-1 if selected avatar fails to load
+                        const target = e.target as HTMLImageElement;
+                        if (target.src !== defaultAvatarUrl) {
+                          target.src = defaultAvatarUrl;
+                        }
+                      }}
                     />
                   ) : (
-                    <div
+                    <img
+                      className="chatbot-avatar-image"
+                      src={defaultAvatarUrl}
+                      alt="Avatar"
+                      width={30}
+                      height={30}
                       style={{
-                        width: '30px',
-                        height: '30px',
                         borderRadius: '50%',
-                        backgroundColor: (isDefaultGradient || isCustomGradient) ? undefined : widgetChatbotColor,
-                        backgroundImage: isDefaultGradient ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : (isCustomGradient ? widgetChatbotColor : undefined),
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '14px',
+                        objectFit: 'cover',
                       }}
-                    >
-                      🤖
-                    </div>
+                      onError={(e) => {
+                        // If default avatar fails, try other avatars
+                        const target = e.target as HTMLImageElement;
+                        const currentIndex = avatarOptions.findIndex(a => a.image === target.src);
+                        const nextIndex = (currentIndex + 1) % avatarOptions.length;
+                        target.src = avatarOptions[nextIndex].image;
+                      }}
+                    />
                   )}
                 </div>
                 <div className="chatbot-message__content">
@@ -1671,8 +1624,18 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                       alt="Avatar"
                       width={30}
                       height={30}
+                      style={{
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                      }}
+                      onError={(e) => {
+                        // Fallback to default avatar image if custom image fails to load
+                        const target = e.target as HTMLImageElement;
+                        target.src = defaultAvatarUrl;
+                        target.style.display = 'block';
+                      }}
                     />
-                  ) : isDefaultAvatarImage ? (
+                  ) : !shouldSkipAvatarImage && isDefaultAvatarImage ? (
                     <img
                       className="chatbot-avatar-image"
                       src={selectedAvatar.image}
@@ -1683,23 +1646,33 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                         borderRadius: '50%',
                         objectFit: 'cover',
                       }}
+                      onError={(e) => {
+                        // Fallback to default avatar-1 if selected avatar fails to load
+                        const target = e.target as HTMLImageElement;
+                        if (target.src !== defaultAvatarUrl) {
+                          target.src = defaultAvatarUrl;
+                        }
+                      }}
                     />
                   ) : (
-                    <div
+                    <img
+                      className="chatbot-avatar-image"
+                      src={defaultAvatarUrl}
+                      alt="Avatar"
+                      width={30}
+                      height={30}
                       style={{
-                        width: '30px',
-                        height: '30px',
                         borderRadius: '50%',
-                        backgroundColor: (isDefaultGradient || isCustomGradient) ? undefined : widgetChatbotColor,
-                        backgroundImage: isDefaultGradient ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : (isCustomGradient ? widgetChatbotColor : undefined),
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '14px',
+                        objectFit: 'cover',
                       }}
-                    >
-                      🤖
-                    </div>
+                      onError={(e) => {
+                        // If default avatar fails, try other avatars
+                        const target = e.target as HTMLImageElement;
+                        const currentIndex = avatarOptions.findIndex(a => a.image === target.src);
+                        const nextIndex = (currentIndex + 1) % avatarOptions.length;
+                        target.src = avatarOptions[nextIndex].image;
+                      }}
+                    />
                   )}
                 </div>
                 <div className="chatbot-message__content">
@@ -1809,16 +1782,6 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
                 disabled={isPreviewMode}
               />
               <div className="chatbot-input-buttons">
-                <button
-                  type="button"
-                  className={`chatbot-voice-button ${isListening ? 'is-listening' : ''}`}
-                  id="speech_chatbot_message_button"
-                  onClick={handleMicClick}
-                  aria-label="Voice Input"
-                  disabled={isPreviewMode}
-                >
-                  <Mic className="chatbot-icon" />
-                </button>
                 <button
                   type="submit"
                   className="chatbot-send-button"

@@ -87,6 +87,7 @@ import { usePerformanceMetrics } from "@/contexts/RAGSettingsContext";
 import { Message } from "@/types/components";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { useProjects } from "@/hooks/useProjects";
 import "@/components/common/EmbeddableWidgetStyles.css";
 // 📝 Import markdown support for proper formatting
 import ReactMarkdown from "react-markdown";
@@ -1070,27 +1071,66 @@ export default function SearchConfiguration() {
     }
   }, [modelProvider]); // Only run when provider changes
 
+  // Get current project ID for widget embedding
+  const { activeProjectId } = useProjects();
+
   // Integrations Tab State
-  const [webScript, setWebScript] = useState(`<!-- Chatbot Widget Script -->
+  // Generate dynamic embed script based on current configuration
+  const generateWebScript = useCallback(() => {
+    // Get API endpoint from environment or use default
+    const apiEndpoint = import.meta.env.VITE_API_BASE_URL || 
+      'http://192.168.0.101:8000/api/v1';
+    const widgetVersion = 'v1';
+    
+    // Use current project ID for widget embedding
+    const projectId = activeProjectId || 'your-project-id-here';
+    
+    return `<!-- RAG Suite Search Widget -->
+<!-- Add this script before the closing </body> tag -->
 <script>
   (function() {
-    // Chatbot initialization code
-    window.ChatbotWidget = {
-      init: function(config) {
-        // Initialize chatbot
-      }
-    };
+    var script = document.createElement('script');
+    script.src = '${apiEndpoint}/search-widget/${widgetVersion}/loader.js';
+    script.setAttribute('data-ragsuite-project-id', '${projectId}');
+    script.setAttribute('data-api-endpoint', '${apiEndpoint}');
+    script.setAttribute('data-position', 'bottom-right');
+    script.async = true;
+    document.head.appendChild(script);
   })();
-</script>`);
-  const [mobileScript, setMobileScript] = useState(`// Mobile SDK Integration
-import ChatbotSDK from '@company/chatbot-sdk';
+</script>
 
-const chatbot = new ChatbotSDK({
+<!-- Alternative: Advanced Configuration -->
+<!--
+<script>
+  window.ragSuiteSearchConfig = {
+    projectId: '${projectId}',
+    apiEndpoint: '${apiEndpoint}',
+    position: 'bottom-right',
+    zIndex: 99999,
+    primaryColor: '#007bff',
+    title: 'Search Assistant',
+    welcomeMessage: 'Hello! I can help you search for information.'
+  };
+</script>
+<script src="${apiEndpoint}/search-widget/${widgetVersion}/loader.js" async></script>
+-->`;
+  }, [activeProjectId]);
+
+  const [webScript, setWebScript] = useState(generateWebScript());
+  const [mobileScript, setMobileScript] = useState(`// Mobile SDK Integration
+import SearchSDK from '@company/search-sdk';
+
+const search = new SearchSDK({
   apiKey: 'YOUR_API_KEY',
   endpoint: 'https://api.example.com'
 });
 
-chatbot.init();`);
+search.init();`);
+
+  // Update web script when project ID changes
+  useEffect(() => {
+    setWebScript(generateWebScript());
+  }, [activeProjectId, generateWebScript]);
 
   // Mock chat history data
   const mockChatHistory: ChatHistory[] = [
@@ -1377,13 +1417,25 @@ chatbot.init();`);
     if ((activeTab === 'training' && (trainingSubTab === 'history' || trainingSubTab === 'overview')) || 
         (activeTab === 'search-test' && savedSearchRecentSearch)) {
 
+    // Check for CORB/CORS errors - stop polling if present
+    const hasCORBError = typeof window !== 'undefined' && (window as any).__HAS_CORB_CORS_ERROR;
+    if (hasCORBError) {
+      return; // Stop polling if CORB/CORS errors detected
+    }
+
     // Initial load
     loadChatHistory();
 
-    // Set up polling interval (refresh every 30 seconds for real-time updates)
+    // Set up polling interval (refresh every 60 seconds - reduced from 30s to prevent excessive requests)
     const intervalId = setInterval(() => {
+      // Check again for CORB/CORS errors
+      const hasCORBError = typeof window !== 'undefined' && (window as any).__HAS_CORB_CORS_ERROR;
+      if (hasCORBError) {
+        clearInterval(intervalId);
+        return;
+      }
       loadChatHistory();
-    }, 30000);
+    }, 60000); // Increased from 30s to 60s
 
     return () => clearInterval(intervalId);
     }
@@ -2468,7 +2520,7 @@ chatbot.init();`);
                           <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-base break-words">
                               {selectedConversation.preview || "Search Query"}
-                            </h3>
+                              </h3>
                           </div>
                           <Button
                             variant="ghost"
@@ -4072,34 +4124,34 @@ chatbot.init();`);
                                                 <div className=" [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                                                   {searchQuestionsList.map((question, index) => (
                                                     <div key={index}>
-                                                      <div
-                                                        className={`flex items-center gap-2 p-2 border-b last:border-b-0 hover:bg-muted/50 ${
-                                                          selectedQuestionIndex === index ? 'bg-muted' : ''
-                                                        }`}
-                                                      >
-                                                        <div className="flex-1 text-sm">{question}</div>
-                                                        <div className="flex items-center gap-1">
-                                                          <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-7 w-7"
-                                                            onClick={(e) => {
-                                                              e.stopPropagation();
+                                                    <div
+                                                      className={`flex items-center gap-2 p-2 border-b last:border-b-0 hover:bg-muted/50 ${
+                                                        selectedQuestionIndex === index ? 'bg-muted' : ''
+                                                      }`}
+                                                    >
+                                                      <div className="flex-1 text-sm">{question}</div>
+                                                      <div className="flex items-center gap-1">
+                                                        <Button
+                                                          type="button"
+                                                          variant="ghost"
+                                                          size="icon"
+                                                          className="h-7 w-7"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
                                                               setSelectedQuestionIndex(selectedQuestionIndex === index ? null : index);
                                                             }}
                                                             title={selectedQuestionIndex === index ? "Close answer" : "Add/Edit answer"}
-                                                          >
+                                                        >
                                                             <Edit className="h-4 w-4" />
-                                                          </Button>
-                                                          <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-7 w-7 text-destructive hover:text-destructive"
-                                                            onClick={(e) => {
-                                                              e.stopPropagation();
-                                                              const newList = searchQuestionsList.filter((_, i) => i !== index);
+                                                        </Button>
+                                                        <Button
+                                                          type="button"
+                                                          variant="ghost"
+                                                          size="icon"
+                                                          className="h-7 w-7 text-destructive hover:text-destructive"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const newList = searchQuestionsList.filter((_, i) => i !== index);
                                                               const newAnswers = { ...searchQuestionsAnswers };
                                                               // Remove answer for deleted question and reindex remaining answers
                                                               delete newAnswers[index];
@@ -4112,14 +4164,14 @@ chatbot.init();`);
                                                                   reindexedAnswers[oldIndex - 1] = newAnswers[oldIndex];
                                                                 }
                                                               });
-                                                              setSearchQuestionsList(newList);
+                                                            setSearchQuestionsList(newList);
                                                               setSearchQuestionsAnswers(reindexedAnswers);
-                                                              setSelectedQuestionIndex(null);
-                                                            }}
-                                                          >
-                                                            <Trash2 className="h-4 w-4" />
-                                                          </Button>
-                                                        </div>
+                                                            setSelectedQuestionIndex(null);
+                                                          }}
+                                                        >
+                                                          <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                      </div>
                                                       </div>
                                                       {/* Predefined Answer Text Area - Show when question is selected */}
                                                       {selectedQuestionIndex === index && (
@@ -4284,7 +4336,7 @@ chatbot.init();`);
                   Web Integration
                 </CardTitle>
                 <CardDescription>
-                  Embed the chatbot widget on your website
+                  Embed the search widget on your website
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -4316,7 +4368,17 @@ chatbot.init();`);
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline">
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      setWebScript(generateWebScript());
+                      toast({
+                        title: "Regenerated",
+                        description: "Search widget script has been regenerated",
+                        variant: "success",
+                      });
+                    }}
+                  >
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Regenerate
                   </Button>

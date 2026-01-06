@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useMemo, useCallback } from "react";
 import { Link, useLocation } from "wouter";
-import { User, Settings, LogOut, Shield, Bell, HelpCircle, CreditCard } from "lucide-react";
+import { User, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -151,18 +151,19 @@ const UserDropdown = React.memo(function UserDropdown({ user }: UserDropdownProp
               </DropdownMenuItem>
             </Link>
 
-            <DropdownMenuItem className="flex items-center gap-3 p-3 cursor-pointer hover-elevate" data-testid="menu-security">
+            {/* Security - Hidden for now */}
+            {/* <DropdownMenuItem className="flex items-center gap-3 p-3 cursor-pointer hover-elevate" data-testid="menu-security">
               <Shield className="h-4 w-4" />
               <div className="flex-1">
                 <p className="font-medium">Security</p>
                 <p className="text-xs text-muted-foreground">Password and authentication</p>
               </div>
-            </DropdownMenuItem>
+            </DropdownMenuItem> */}
           </div>
 
-          <DropdownMenuSeparator />
+          {/* Quick Actions - Hidden for now */}
+          {/* <DropdownMenuSeparator />
 
-          {/* Quick Actions */}
           <div className="p-2">
             <DropdownMenuLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Quick Actions
@@ -198,7 +199,7 @@ const UserDropdown = React.memo(function UserDropdown({ user }: UserDropdownProp
                 <p className="text-xs text-muted-foreground">Documentation and contact</p>
               </div>
             </DropdownMenuItem>
-          </div>
+          </div> */}
 
           <DropdownMenuSeparator />
 

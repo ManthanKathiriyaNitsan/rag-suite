@@ -34,12 +34,19 @@ export const useAuth = () => {
   const [token, setToken] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
+  // Check if we're in widget mode (external website with projectId)
+  const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+  const projectId = isWidgetMode ? (window as any).RAGSUITE_PROJECT_ID : null;
+
   // 🔧 FIXED: Sync with localStorage on mount and storage changes
   useEffect(() => {
     const syncAuthState = () => {
       const currentUser = getCurrentUser();
       const currentToken = getCurrentToken();
-      const isAuth = !!(currentUser && currentToken);
+      
+      // In widget mode, treat as authenticated if projectId is present
+      // Otherwise, check for user login
+      const isAuth = isWidgetMode ? !!projectId : !!(currentUser && currentToken);
 
       setUser(currentUser);
       setToken(currentToken);
@@ -61,7 +68,7 @@ export const useAuth = () => {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []); // Empty dependency array - runs only on mount
+  }, [isWidgetMode, projectId]); // Include widget mode variables to update auth state when projectId is set
 
   // Login mutation
   const loginMutation = useMutation({
@@ -161,6 +168,15 @@ export const useAuth = () => {
       const userData = localStorage.getItem('user_data');
       const token = localStorage.getItem('auth_token');
       const expiresAt = localStorage.getItem('token_expires');
+
+      // Check if we're in widget mode (external website with projectId)
+      const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+      
+      // In widget mode, don't check for user login - authentication is via projectId
+      if (isWidgetMode) {
+        // Widget mode uses projectId for authentication, not user login
+        return null; // Return null but don't log "No valid user data" in widget mode
+      }
 
       console.log('🔐 Getting current user:', {
         userData: userData ? 'present' : 'missing',

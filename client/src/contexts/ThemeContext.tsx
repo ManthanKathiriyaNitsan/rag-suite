@@ -140,30 +140,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // Check local storage first
     if (typeof window !== "undefined") {
       const savedTheme = localStorage.getItem("ui-theme") as Theme | null;
-      if (savedTheme) {
+      if (savedTheme === "light" || savedTheme === "dark") {
         return savedTheme;
       }
-      // Fallback to system preference
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        return "dark";
-      }
     }
+    // Default to light if nothing in localStorage
     return "light"; 
   });
 
-  // Listen for system theme changes
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e: MediaQueryListEvent) => {
-      // Only update if user hasn't explicitly set a preference
-      if (!localStorage.getItem("ui-theme")) {
-        setTheme(e.matches ? "dark" : "light");
-      }
-    };
-    
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
+  // System theme detection removed - theme is now only stored in localStorage
 
   // Default theme data
   const defaultThemeData: ThemeData = useMemo(() => ({
@@ -290,16 +275,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
   });
 
-  // Reset theme to defaults when user changes (logout/login)
+  // Reset theme to default when user changes (logout/login)
   useEffect(() => {
     if (!isAuthenticated) {
-      // User logged out - reset to system preference
-      console.log('🔄 User logged out, checking system theme...');
-      localStorage.removeItem("ui-theme"); // Clear user preference
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        setTheme("dark");
+      // User logged out - check localStorage, default to light if not set
+      console.log('🔄 User logged out, checking theme from localStorage...');
+      const savedTheme = localStorage.getItem("ui-theme") as Theme | null;
+      if (savedTheme === "light" || savedTheme === "dark") {
+        setTheme(savedTheme);
       } else {
+        // Default to light if nothing in localStorage
         setTheme("light");
+        localStorage.setItem("ui-theme", "light");
       }
     }
   }, [isAuthenticated, user?.id]);

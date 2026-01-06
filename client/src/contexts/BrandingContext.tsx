@@ -166,26 +166,41 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const { isAuthenticated, user } = useAuthContext();
   
+  // Check if we're in widget mode (running on external website with projectId)
+  const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+  
   // Use React Query to fetch branding from settings API - fully dynamic, no localStorage
   const brandingQuery = useQuery({
     queryKey: ['settings'],
     queryFn: settingsAPI.getSettings,
-    staleTime: 0, // Always consider data stale to ensure fresh data
-    refetchOnWindowFocus: true,
+    staleTime: 300000, // 5 minutes - data is fresh for 5 minutes
+    refetchOnWindowFocus: false, // Disable refetch on focus to prevent infinite requests
     refetchOnMount: true,
-    refetchOnReconnect: true,
-    enabled: isAuthenticated, // Only fetch when authenticated
+    refetchOnReconnect: false, // Disable refetch on reconnect to prevent infinite loops
+    enabled: isAuthenticated || isWidgetMode, // Fetch when authenticated OR in widget mode
+    // Disable polling to prevent CORB/CORS issues and infinite requests
+    // Settings will update when widget is opened/closed or page is refreshed
+    refetchInterval: false, // Disabled to prevent infinite requests
+    retry: 1, // Only retry once on failure
+    retryDelay: 1000, // Wait 1 second before retry
   });
 
   // Fetch chatbot settings (configuration + customization) for widget
+  // In widget mode, this fetches settings using projectId from API headers
+  // Disable polling to prevent CORB/CORS issues and infinite requests
   const chatbotSettingsQuery = useQuery({
     queryKey: ['chatbot-settings'],
     queryFn: chatbotAPI.getSettings,
-    staleTime: 0,
-    refetchOnWindowFocus: true,
+    staleTime: 300000, // 5 minutes - data is fresh for 5 minutes
+    refetchOnWindowFocus: false, // Disable refetch on focus to prevent infinite requests
     refetchOnMount: true,
-    refetchOnReconnect: true,
-    enabled: isAuthenticated, // Only fetch when authenticated
+    refetchOnReconnect: false, // Disable refetch on reconnect to prevent infinite loops
+    enabled: isAuthenticated || isWidgetMode, // Fetch when authenticated OR in widget mode
+    // Disable polling to prevent CORB/CORS issues and infinite requests
+    // Settings will update when widget is opened/closed or page is refreshed
+    refetchInterval: false, // Disabled to prevent infinite requests
+    retry: 1, // Only retry once on failure
+    retryDelay: 1000, // Wait 1 second before retry
   });
 
   // Local state for widget settings - initialized from chatbot API or defaults
@@ -209,6 +224,13 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (chatbotSettingsQuery.data?.customization) {
       const customization = chatbotSettingsQuery.data.customization;
+      console.log('🎨 Widget: Applying customization settings from API', {
+        widgetChatbotColor: customization.widget_chatbot_color,
+        widgetAvatar: customization.widget_avatar,
+        widgetTitle: chatbotSettingsQuery.data.configuration?.chatbot_title,
+        welcomeMessage: chatbotSettingsQuery.data.configuration?.welcome_message,
+        isWidgetMode,
+      });
       setWidgetSettings({
         widgetZIndex: customization.widget_z_index ?? DEFAULT_BRANDING.widgetZIndex,
         widgetPosition: (customization.widget_position as typeof DEFAULT_BRANDING.widgetPosition) || DEFAULT_BRANDING.widgetPosition,
@@ -225,7 +247,7 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
         widgetTriggerBorderRadius: customization.widget_trigger_border_radius ?? DEFAULT_BRANDING.widgetTriggerBorderRadius,
       });
     }
-  }, [chatbotSettingsQuery.data]);
+  }, [chatbotSettingsQuery.data, isWidgetMode]);
 
   // Sync chatbot configuration API data to orgName
   useEffect(() => {
@@ -274,8 +296,13 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
     };
   }, [brandingQuery.data, chatbotSettingsQuery.data?.configuration, widgetSettings]);
 
-  // Refetch settings when user changes (login/logout)
+  // Refetch settings when user changes (login/logout) - but NOT in widget mode
   useEffect(() => {
+    // Skip this effect in widget mode to prevent unnecessary requests
+    if (isWidgetMode) {
+      return;
+    }
+    
     if (isAuthenticated && user) {
       // User logged in - refetch settings for new user
       console.log('🔄 User changed, refetching branding settings...');
@@ -300,7 +327,7 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
         widgetTriggerBorderRadius: DEFAULT_BRANDING.widgetTriggerBorderRadius,
       });
     }
-  }, [isAuthenticated, user?.id, queryClient]);
+  }, [isAuthenticated, user?.id, queryClient, isWidgetMode]);
 
   // Apply primary color globally via CSS variable used by Tailwind tokens: bg-primary, text-primary, etc.
   useEffect(() => {

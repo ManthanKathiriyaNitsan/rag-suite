@@ -1,8 +1,8 @@
 /**
- * WIDGET CSS ISOLATION
+ * SEARCH WIDGET CSS ISOLATION
  * 
  * All styles in this file are scoped to prevent conflicts with host page styles.
- * The widget container has class "ragsuite-widget-root" which provides isolation.
+ * The widget container has class "ragsuite-search-widget-root" which provides isolation.
  * 
  * For embedded widgets, these styles are loaded separately and should not conflict
  * with the host page's CSS due to specific class names (chatbot-aside, chatbot-window, etc.)
@@ -10,7 +10,9 @@
 
 /* Widget Container Base Styles - Ensure visibility */
 .ragsuite-widget-root,
-#ragsuite-widget-container {
+#ragsuite-widget-container,
+.ragsuite-search-widget-root,
+#ragsuite-search-widget-container {
   position: relative !important;
   display: block !important;
   visibility: visible !important;
@@ -21,7 +23,9 @@
 
 /* Prevent host page CSS from overriding widget styles */
 .ragsuite-widget-root *,
-#ragsuite-widget-container * {
+#ragsuite-widget-container *,
+.ragsuite-search-widget-root *,
+#ragsuite-search-widget-container * {
   box-sizing: border-box !important;
 }
 
@@ -29,7 +33,11 @@
 .ragsuite-widget-root .chatbot-header .chatbot-delete,
 .ragsuite-widget-root .chatbot-header .chatbot-close,
 #ragsuite-widget-container .chatbot-header .chatbot-delete,
-#ragsuite-widget-container .chatbot-header .chatbot-close {
+#ragsuite-widget-container .chatbot-header .chatbot-close,
+.ragsuite-search-widget-root .chatbot-header .chatbot-delete,
+.ragsuite-search-widget-root .chatbot-header .chatbot-close,
+#ragsuite-search-widget-container .chatbot-header .chatbot-delete,
+#ragsuite-search-widget-container .chatbot-header .chatbot-close {
   background: transparent !important;
   background-color: transparent !important;
 }

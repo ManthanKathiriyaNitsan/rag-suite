@@ -541,7 +541,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
 
             <div className="flex items-center gap-1">
 
-              <Button
+              {/* <Button
 
                 variant="ghost"
 
@@ -571,7 +571,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
 
                 </Badge>
 
-              </Button>
+              </Button> */}
 
               <Button
 

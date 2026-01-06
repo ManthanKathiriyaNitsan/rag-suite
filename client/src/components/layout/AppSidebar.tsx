@@ -113,11 +113,12 @@ const menuItems = [
 ];
 
 const settingsItems = [
-  {
-    title: "API Keys",
-    url: "/api-keys",
-    icon: Database,
-  },
+  // Temporarily hidden
+  // {
+  //   title: "API Keys",
+  //   url: "/api-keys",
+  //   icon: Database,
+  // },
   {
     title: "System Health",
     url: "/system-health",

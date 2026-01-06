@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { 
   projectAPI, 
   Project, 
@@ -11,13 +12,31 @@ import {
 export const useProjects = () => {
   const queryClient = useQueryClient();
 
+  // Check for CORB/CORS errors - disable polling if present
+  const hasCORBError = typeof window !== 'undefined' && (window as any).__HAS_CORB_CORS_ERROR;
+
   // Get all projects
   const projectsQuery = useQuery({
     queryKey: ['projects'],
     queryFn: projectAPI.getProjects,
-    staleTime: 30000, // 30 seconds
-    refetchInterval: 10000, // Refetch every 10 seconds for live updates
+    staleTime: 60000, // 60 seconds
+    refetchInterval: hasCORBError ? false : 60000, // Refetch every 60 seconds (reduced from 10s), disabled on CORB errors
+    refetchOnWindowFocus: false, // Disabled to prevent excessive requests
+    retry: 1, // Only retry once on failure
+    retryDelay: 2000, // Wait 2 seconds before retry
   });
+
+  // Handle CORB/CORS errors
+  useEffect(() => {
+    if (projectsQuery.error) {
+      const error: any = projectsQuery.error;
+      const isCORBError = error.message?.includes('CORB') || error.message?.includes('Cross-Origin');
+      const isCORSError = error.code === 'ERR_NETWORK' || error.message?.includes('CORS') || error.message?.includes('blocked');
+      if ((isCORBError || isCORSError) && typeof window !== 'undefined') {
+        (window as any).__HAS_CORB_CORS_ERROR = true;
+      }
+    }
+  }, [projectsQuery.error]);
 
   // Create project
   const createProjectMutation = useMutation({

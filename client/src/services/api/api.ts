@@ -1,7 +1,17 @@
 import axios from 'axios';
 
 // 🌐 API Configuration - Unified API base URL for all endpoints
-const API_BASE_URL = 'http://192.168.0.108:8000/api/v1';
+// For widget mode, use window.RAGSUITE_API_URL if available (set by widget-entry.tsx)
+const getApiBaseUrl = () => {
+  // Check if we're in widget mode (running on external website)
+  if (typeof window !== 'undefined' && (window as any).RAGSUITE_API_URL) {
+    return (window as any).RAGSUITE_API_URL;
+  }
+  // Default API URL for main app
+  return 'http://192.168.0.101:8000/api/v1';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // 📡 Create axios instance - This is your unified API client
 export const apiClient = axios.create({
@@ -15,6 +25,11 @@ export const apiClient = axios.create({
 // 🔧 Add request interceptor for debugging and authentication
 apiClient.interceptors.request.use(
   (config) => {
+    // Update baseURL dynamically if widget API URL is set (for widget mode)
+    if (typeof window !== 'undefined' && (window as any).RAGSUITE_API_URL) {
+      config.baseURL = (window as any).RAGSUITE_API_URL;
+    }
+
     // Add authentication token if available (check both token storage keys for compatibility)
     const token = localStorage.getItem('auth-token') || localStorage.getItem('auth_token');
 
@@ -24,14 +39,27 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    console.log('🌐 API Request:', {
-      method: config.method?.toUpperCase(),
-      url: config.url,
-      baseURL: config.baseURL,
-      fullURL: `${config.baseURL}${config.url}`,
-      hasAuth: !!config.headers.Authorization,
-      hasToken: !!token,
-    });
+    // 🔑 For widget mode: Include projectId in requests if available
+    // This allows the backend to authenticate widget requests without requiring user login
+    if (typeof window !== 'undefined' && (window as any).RAGSUITE_PROJECT_ID) {
+      const projectId = (window as any).RAGSUITE_PROJECT_ID;
+      // Add projectId as header (backend should check X-Project-ID header)
+      config.headers['X-Project-ID'] = projectId;
+      // Also add as query parameter for compatibility (some backends prefer query params)
+      if (!config.params) {
+        config.params = {};
+      }
+      config.params.project_id = projectId;
+    }
+
+    // Only log requests in development mode to reduce console spam
+    if (import.meta.env.DEV && !config.url?.includes('/health') && !config.url?.includes('/status')) {
+      console.log('🌐 API Request:', {
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        baseURL: config.baseURL,
+      });
+    }
     return config;
   },
   (error) => {
@@ -43,28 +71,66 @@ apiClient.interceptors.request.use(
 // 🔧 Add response interceptor for debugging
 apiClient.interceptors.response.use(
   (response) => {
-    console.log('✅ API Response:', {
-      status: response.status,
-      url: response.config.url,
-      data: response.data,
-    });
+    // Only log responses in development mode and skip health/status endpoints
+    if (import.meta.env.DEV && !response.config.url?.includes('/health') && !response.config.url?.includes('/status')) {
+      console.log('✅ API Response:', {
+        status: response.status,
+        url: response.config.url,
+      });
+    }
     return response;
   },
   (error) => {
-    console.error('❌ API Error:', {
-      message: error.message,
-      code: error.code,
-      status: error.response?.status,
-      url: error.config?.url,
-      fullURL: error.config ? `${error.config.baseURL}${error.config.url}` : 'unknown',
-    });
+    // Suppress excessive error logging for CORB/CORS errors to prevent console spam
+    const isCORBError = error.message?.includes('CORB') || error.message?.includes('Cross-Origin');
+    const isCORSError = error.code === 'ERR_NETWORK' || error.message?.includes('CORS') || error.message?.includes('blocked');
+    
+    // Track CORB/CORS errors to stop polling
+    if (isCORBError || isCORSError) {
+      // Mark that we have CORB/CORS issues
+      if (typeof window !== 'undefined') {
+        (window as any).__HAS_CORB_CORS_ERROR = true;
+      }
+      // Log CORB/CORS errors only once to prevent spam
+      if (!(window as any).__CORB_ERROR_LOGGED) {
+        console.warn('⚠️ CORB/CORS Error: Cross-origin requests are being blocked. Please configure CORS headers on the backend server.');
+        (window as any).__CORB_ERROR_LOGGED = true;
+      }
+      // Don't log every CORB/CORS error to reduce spam
+      return Promise.reject(error);
+    }
+    
+    // Only log non-CORB/CORS errors in development or for important endpoints
+    if (import.meta.env.DEV || (error.response?.status && error.response.status >= 500)) {
+      console.error('❌ API Error:', {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        url: error.config?.url,
+      });
+    }
 
-    if (error.code === 'ERR_NETWORK') {
-      console.error('🌐 Network Error: Cannot reach the server. Check if the API server is running at:', API_BASE_URL);
+    if (error.code === 'ERR_NETWORK' && !isCORBError) {
+      // Only log network errors once
+      if (!(window as any).__NETWORK_ERROR_LOGGED) {
+        console.error('🌐 Network Error: Cannot reach the server. Check if the API server is running at:', API_BASE_URL);
+        (window as any).__NETWORK_ERROR_LOGGED = true;
+      }
     }
 
     // Check if it's a 401 Unauthorized error
     if (error.response?.status === 401) {
+      // Check if we're in widget mode
+      const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+      const isActivationEndpoint = error.config?.url?.includes('/activate') || error.config?.url?.includes('/activation');
+      
+      // In widget mode, 401s on activation endpoints are expected if backend doesn't support projectId yet
+      // Suppress these errors to prevent console spam
+      if (isWidgetMode && isActivationEndpoint) {
+        // Don't log - this is expected behavior when backend doesn't support projectId authentication
+        return Promise.reject(error);
+      }
+      
       // Don't automatically log out on 401 - let the user stay logged in
       // Only logout when user explicitly clicks logout button
       // If it's a login request that fails, that's expected and should be handled by the login component
@@ -73,9 +139,10 @@ apiClient.interceptors.response.use(
       if (isLoginRequest) {
         console.warn('🔐 Login failed - invalid credentials');
       } else {
-        // Log the error but don't clear tokens or redirect
-        // The backend will reject the request, but user stays logged in
-        console.warn('🔐 Authentication failed (401) - request rejected but user remains logged in');
+        // Only log 401 errors in development mode to reduce console spam
+        if (import.meta.env.DEV) {
+          console.warn('🔐 Authentication failed (401) - request rejected but user remains logged in');
+        }
       }
     }
 
@@ -142,8 +209,28 @@ export const searchAPI = {
 
       console.log('🔄 Mapped Response:', mappedResponse);
       return mappedResponse;
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ API Error:', error);
+      
+      // Check if we're in widget mode (external website)
+      const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+      
+      // If 401 in widget mode, backend may not support projectId for this endpoint yet
+      // Return a default response to allow widget to function
+      if (error?.response?.status === 401 && isWidgetMode) {
+        console.log('ℹ️ Search 401 Unauthorized in widget mode - backend may not support projectId for this endpoint yet. Returning default response.');
+        return {
+          success: false,
+          answer: 'Search is currently unavailable. Please check your project ID configuration.',
+          sources: [],
+          message: 'Search endpoint requires authentication',
+          timestamp: new Date().toISOString(),
+          request_id: '',
+          message_id: '',
+          session_id: ''
+        };
+      }
+      
       // Throw error - no mock fallback
       throw error;
     }
@@ -599,7 +686,17 @@ export const chatAPI = {
       });
       console.log('✅ Feedback Response:', response.data);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      // Check if we're in widget mode (external website)
+      const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+      
+      // If 401 in widget mode, backend doesn't support projectId for this endpoint yet
+      // Silently fail - feedback is nice to have but not critical for widget functionality
+      if (error?.response?.status === 401 && isWidgetMode) {
+        console.log('ℹ️ Feedback submission 401 Unauthorized in widget mode - backend may not support projectId for this endpoint yet. Feedback not submitted.');
+        return { success: false, message: 'Feedback submission not available in widget mode' };
+      }
+      
       console.error('❌ Feedback Error:', error);
       throw error;
     }
@@ -627,7 +724,17 @@ export const chatAPI = {
         sources: item.sources || [],
         createdAt: item.created_at,
       }));
-    } catch (error) {
+    } catch (error: any) {
+      // Check if we're in widget mode (external website)
+      const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+      
+      // If 401 in widget mode, backend doesn't support projectId for this endpoint yet
+      // Return empty array so widget shows welcome message (chat history not available)
+      if (error?.response?.status === 401 && isWidgetMode) {
+        console.log('ℹ️ Chat history 401 Unauthorized in widget mode - backend may not support projectId for this endpoint yet. Returning empty history.');
+        return [];
+      }
+      
       console.error('❌ Chat History Error:', error);
       throw error;
     }
@@ -2262,9 +2369,13 @@ export const settingsAPI = {
       console.log('✅ Settings retrieved successfully:', response.data);
       return response.data;
     } catch (error: any) {
-      // If 404, return default settings
-      if (error?.response?.status === 404) {
-        console.log('ℹ️ No settings found, returning defaults');
+      // Check if we're in widget mode (external website)
+      const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+      
+      // If 404 or 401 in widget mode, return default settings (widget should still work)
+      if (error?.response?.status === 404 || (error?.response?.status === 401 && isWidgetMode)) {
+        const statusMsg = error?.response?.status === 401 ? '401 Unauthorized (backend may not accept projectId yet)' : '404 Not Found';
+        console.log(`ℹ️ Settings ${statusMsg}, returning defaults for widget mode`);
         return {
           org_name: 'RAGSuite',
           logo_data_url: null,
@@ -2381,9 +2492,13 @@ export const chatbotAPI = {
       console.log('✅ Chatbot settings retrieved successfully:', response.data);
       return response.data;
     } catch (error: any) {
-      // If 404, return default settings
-      if (error?.response?.status === 404) {
-        console.log('ℹ️ No chatbot settings found, returning defaults');
+      // Check if we're in widget mode (external website)
+      const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+      
+      // If 404 or 401 in widget mode, return default settings (widget should still work)
+      if (error?.response?.status === 404 || (error?.response?.status === 401 && isWidgetMode)) {
+        const statusMsg = error?.response?.status === 401 ? '401 Unauthorized (backend may not accept projectId yet)' : '404 Not Found';
+        console.log(`ℹ️ Chatbot settings ${statusMsg}, returning defaults for widget mode`);
         return {
           configuration: {
             chatbot_title: '',
@@ -2442,13 +2557,38 @@ export const chatbotAPI = {
 
   // Get chatbot activation status
   getActivationStatus: async (): Promise<{ success: boolean; is_active: boolean }> => {
-    console.log('⚙️ Chatbot API - Fetching activation status');
+    const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+    
+    // Only log in development mode
+    if (import.meta.env.DEV) {
+      console.log('⚙️ Chatbot API - Fetching activation status');
+    }
+    
     try {
       const response = await apiClient.get<{ success: boolean; is_active: boolean }>('/chatbot/activate');
-      console.log('✅ Activation status fetched successfully:', response.data);
+      
+      if (import.meta.env.DEV) {
+        console.log('✅ Activation status fetched successfully:', response.data);
+      }
+      
       return response.data;
-    } catch (error) {
-      console.error('❌ Get activation status failed:', error);
+    } catch (error: any) {
+      // If 401 in widget mode, backend doesn't support projectId for this endpoint yet
+      // Default to true (show widget) - only hide if we explicitly know it's disabled
+      // This allows the widget to work even if backend doesn't support activation endpoint with projectId
+      // This is expected behavior - don't log as error
+      if (error?.response?.status === 401 && isWidgetMode) {
+        if (import.meta.env.DEV) {
+          console.log('ℹ️ Activation status 401 Unauthorized in widget mode - backend may not support projectId for this endpoint yet. Defaulting to enabled (show widget).');
+        }
+        return { success: true, is_active: true };
+      }
+      
+      // For other errors, only log in development mode
+      if (import.meta.env.DEV) {
+        console.error('❌ Get activation status failed:', error);
+      }
+      
       throw error;
     }
   },
@@ -2473,16 +2613,40 @@ export const chatbotAPI = {
 export const searchActivationAPI = {
   // Get search activation status
   getActivationStatus: async (): Promise<{ is_active: boolean }> => {
-    console.log('🔍 Search Activation API - Fetching activation status');
+    const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
+    
+    // Only log in development mode
+    if (import.meta.env.DEV) {
+      console.log('🔍 Search Activation API - Fetching activation status');
+    }
+    
     try {
       const response = await apiClient.get<{ success: boolean; data: { is_active: boolean }; message: string }>('/search/activate');
-      console.log('✅ Search activation status fetched successfully:', response.data);
+      
+      if (import.meta.env.DEV) {
+        console.log('✅ Search activation status fetched successfully:', response.data);
+      }
+      
       // Server returns: { success: true, data: { is_active: true/false }, message: "..." }
       // Extract the data object which contains is_active
       const responseData = response.data.data || { is_active: true };
       return responseData;
-    } catch (error) {
-      console.error('❌ Get search activation status failed:', error);
+    } catch (error: any) {
+      // In widget mode, if we get 401, return default active status
+      // This ensures widget shows by default if backend doesn't support projectId for this endpoint
+      // This is expected behavior - don't log as error
+      if (isWidgetMode && error?.response?.status === 401) {
+        if (import.meta.env.DEV) {
+          console.log('ℹ️ Search activation API returned 401 in widget mode - backend may not support projectId authentication yet. Defaulting to active.');
+        }
+        return { is_active: true };
+      }
+      
+      // For other errors, only log in development mode
+      if (import.meta.env.DEV) {
+        console.error('❌ Get search activation status failed:', error);
+      }
+      
       throw error;
     }
   },
