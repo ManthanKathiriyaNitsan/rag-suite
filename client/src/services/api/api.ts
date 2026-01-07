@@ -54,11 +54,11 @@ apiClient.interceptors.request.use(
 
     // Only log requests in development mode to reduce console spam
     if (import.meta.env.DEV && !config.url?.includes('/health') && !config.url?.includes('/status')) {
-      console.log('🌐 API Request:', {
-        method: config.method?.toUpperCase(),
-        url: config.url,
-        baseURL: config.baseURL,
-      });
+    console.log('🌐 API Request:', {
+      method: config.method?.toUpperCase(),
+      url: config.url,
+      baseURL: config.baseURL,
+    });
     }
     return config;
   },
@@ -73,10 +73,10 @@ apiClient.interceptors.response.use(
   (response) => {
     // Only log responses in development mode and skip health/status endpoints
     if (import.meta.env.DEV && !response.config.url?.includes('/health') && !response.config.url?.includes('/status')) {
-      console.log('✅ API Response:', {
-        status: response.status,
-        url: response.config.url,
-      });
+    console.log('✅ API Response:', {
+      status: response.status,
+      url: response.config.url,
+    });
     }
     return response;
   },
@@ -113,7 +113,7 @@ apiClient.interceptors.response.use(
     if (error.code === 'ERR_NETWORK' && !isCORBError) {
       // Only log network errors once
       if (!(window as any).__NETWORK_ERROR_LOGGED) {
-        console.error('🌐 Network Error: Cannot reach the server. Check if the API server is running at:', API_BASE_URL);
+      console.error('🌐 Network Error: Cannot reach the server. Check if the API server is running at:', API_BASE_URL);
         (window as any).__NETWORK_ERROR_LOGGED = true;
       }
     }
@@ -141,7 +141,7 @@ apiClient.interceptors.response.use(
       } else {
         // Only log 401 errors in development mode to reduce console spam
         if (import.meta.env.DEV) {
-          console.warn('🔐 Authentication failed (401) - request rejected but user remains logged in');
+        console.warn('🔐 Authentication failed (401) - request rejected but user remains logged in');
         }
       }
     }
@@ -2587,14 +2587,14 @@ export const chatbotAPI = {
     
     // Only log in development mode
     if (import.meta.env.DEV) {
-      console.log('⚙️ Chatbot API - Fetching activation status');
+    console.log('⚙️ Chatbot API - Fetching activation status');
     }
     
     try {
       const response = await apiClient.get<{ success: boolean; is_active: boolean }>('/chatbot/activate');
       
       if (import.meta.env.DEV) {
-        console.log('✅ Activation status fetched successfully:', response.data);
+      console.log('✅ Activation status fetched successfully:', response.data);
       }
       
       return response.data;
@@ -2605,14 +2605,14 @@ export const chatbotAPI = {
       // This is expected behavior - don't log as error
       if (error?.response?.status === 401 && isWidgetMode) {
         if (import.meta.env.DEV) {
-          console.log('ℹ️ Activation status 401 Unauthorized in widget mode - backend may not support projectId for this endpoint yet. Defaulting to enabled (show widget).');
+        console.log('ℹ️ Activation status 401 Unauthorized in widget mode - backend may not support projectId for this endpoint yet. Defaulting to enabled (show widget).');
         }
         return { success: true, is_active: true };
       }
       
       // For other errors, only log in development mode
       if (import.meta.env.DEV) {
-        console.error('❌ Get activation status failed:', error);
+      console.error('❌ Get activation status failed:', error);
       }
       
       throw error;
@@ -2643,14 +2643,14 @@ export const searchActivationAPI = {
     
     // Only log in development mode
     if (import.meta.env.DEV) {
-      console.log('🔍 Search Activation API - Fetching activation status');
+    console.log('🔍 Search Activation API - Fetching activation status');
     }
     
     try {
       const response = await apiClient.get<{ success: boolean; data: { is_active: boolean }; message: string }>('/search/activate');
       
       if (import.meta.env.DEV) {
-        console.log('✅ Search activation status fetched successfully:', response.data);
+      console.log('✅ Search activation status fetched successfully:', response.data);
       }
       
       // Server returns: { success: true, data: { is_active: true/false }, message: "..." }
@@ -3131,6 +3131,70 @@ export interface HardQueriesResponse {
 }
 
 // 📊 Analytics API functions
+// 👤 User Profile API type definitions
+export interface UserProfile {
+  id: number;
+  username: string;
+  email: string;
+  is_active: boolean;
+  is_admin: boolean;
+  created_at: string;
+  last_login: string;
+}
+
+export interface UpdateProfilePayload {
+  username?: string;
+  email?: string;
+}
+
+export interface UpdatePasswordPayload {
+  current_password: string;
+  new_password: string;
+  confirm_password: string;
+}
+
+// 👤 User Profile API functions
+export const userAPI = {
+  // Get user profile
+  getProfile: async (): Promise<UserProfile> => {
+    console.log('👤 User API - Getting profile');
+    try {
+      const response = await apiClient.get('/user/profile');
+      console.log('✅ User profile retrieved successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Get user profile failed:', error);
+      throw error;
+    }
+  },
+
+  // Update user profile
+  updateProfile: async (payload: UpdateProfilePayload): Promise<UserProfile> => {
+    console.log('👤 User API - Updating profile:', payload);
+    try {
+      const response = await apiClient.put('/user/profile', payload);
+      console.log('✅ User profile updated successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Update user profile failed:', error);
+      throw error;
+    }
+  },
+
+  // Update password
+  updatePassword: async (payload: UpdatePasswordPayload): Promise<void> => {
+    console.log('👤 User API - Updating password');
+    try {
+      const response = await apiClient.put('/user/profile/password', payload);
+      console.log('✅ Password updated successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Update password failed:', error);
+      throw error;
+    }
+  },
+};
+
 export const analyticsAPI = {
   // Get analytics overview
   getOverview: async (): Promise<AnalyticsOverviewData> => {

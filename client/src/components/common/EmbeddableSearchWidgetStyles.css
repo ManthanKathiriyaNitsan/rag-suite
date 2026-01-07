@@ -1,100 +1,705 @@
 /**
- * SEARCH WIDGET CSS
+ * SEARCH WIDGET CSS - COMPLETE ISOLATION
  * 
- * Minimal CSS - Most styling comes from Tailwind classes
- * This file only contains widget-specific positioning and isolation
+ * This file ensures the search widget matches Search Test tab EXACTLY
+ * with complete isolation from host page CSS using !important flags
  */
 
-/* Widget Container Base Styles */
+/* ============================================
+   WIDGET CONTAINER BASE - COMPLETE ISOLATION
+   ============================================ */
 .ragsuite-search-widget-root,
 #ragsuite-search-widget-container {
   position: relative !important;
   display: block !important;
   visibility: visible !important;
   opacity: 1 !important;
-  z-index: 1 !important; /* Changed from 99999 to 1 for inline */
+  z-index: 1 !important;
   pointer-events: auto !important;
-  isolation: isolate;
-  min-height: 100px !important; /* Ensure it has height */
+  isolation: isolate !important;
+  min-height: 100px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+  color: inherit !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
 }
 
 /* Prevent host page CSS from overriding widget styles */
 .ragsuite-search-widget-root *,
-#ragsuite-search-widget-container * {
+#ragsuite-search-widget-container *,
+.ragsuite-search-widget-root *::before,
+#ragsuite-search-widget-container *::before,
+.ragsuite-search-widget-root *::after,
+#ragsuite-search-widget-container *::after {
   box-sizing: border-box !important;
 }
 
-/* Search Widget Container - Inline layout (NOT fixed overlay, NOT chatbot) */
-/* Match Search Test tab exactly - transparent background, no border, no shadow */
+/* Reset all inherited styles */
+.ragsuite-search-widget-root h1,
+.ragsuite-search-widget-root h2,
+.ragsuite-search-widget-root h3,
+.ragsuite-search-widget-root h4,
+.ragsuite-search-widget-root h5,
+.ragsuite-search-widget-root h6,
+#ragsuite-search-widget-container h1,
+#ragsuite-search-widget-container h2,
+#ragsuite-search-widget-container h3,
+#ragsuite-search-widget-container h4,
+#ragsuite-search-widget-container h5,
+#ragsuite-search-widget-container h6 {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-weight: inherit !important;
+  line-height: inherit !important;
+  font-size: inherit !important;
+}
+
+.ragsuite-search-widget-root p,
+#ragsuite-search-widget-container p {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.ragsuite-search-widget-root button,
+#ragsuite-search-widget-container button,
+.ragsuite-search-widget-root input,
+#ragsuite-search-widget-container input,
+.ragsuite-search-widget-root textarea,
+#ragsuite-search-widget-container textarea,
+.ragsuite-search-widget-root select,
+#ragsuite-search-widget-container select {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+
+/* ============================================
+   SEARCH WIDGET CONTAINER
+   ============================================ */
 .search-widget-container {
-  position: relative !important; /* Changed from fixed to relative for inline */
-  display: block !important; /* Block display like Search Test tab */
-  background: transparent !important; /* Transparent - match Search Test tab */
-  border: none !important; /* No border */
-  border-radius: 0 !important; /* No border radius */
-  overflow: visible !important; /* Allow overflow for dropdowns */
-  box-shadow: none !important; /* No shadow */
+  position: relative !important;
+  display: block !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+  box-shadow: none !important;
   width: 100% !important;
   max-width: 100% !important;
   margin: 0 !important;
-  padding: 0 !important; /* No padding */
-  isolation: isolate !important; /* Prevent style conflicts */
+  padding: 0 !important;
+  isolation: isolate !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+  color: inherit !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
 }
 
-/* Fixed positioning only when explicitly set */
-.search-widget-container[data-position="fixed"],
-.search-widget-container[data-position="center"],
-.search-widget-container[data-position="bottom-right"],
-.search-widget-container[data-position="bottom-left"],
-.search-widget-container[data-position="top-right"],
-.search-widget-container[data-position="top-left"] {
-  position: fixed !important;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
-  width: 600px !important;
-  max-width: calc(100% - 40px) !important;
+/* ============================================
+   GLASS CARD - Match Search Test tab exactly
+   ============================================ */
+/* Target all possible GlassCard class combinations - CRITICAL for glassmorphic effect */
+.ragsuite-search-widget-root .glass-card-light,
+#ragsuite-search-widget-container .glass-card-light,
+.search-widget-container .glass-card-light,
+.ragsuite-search-widget-root .glass-card-dark,
+#ragsuite-search-widget-container .glass-card-dark,
+.search-widget-container .glass-card-dark,
+.ragsuite-search-widget-root [class*="glass-card"],
+#ragsuite-search-widget-container [class*="glass-card"],
+.search-widget-container [class*="glass-card"],
+.ragsuite-search-widget-root [class*="backdrop-blur"],
+#ragsuite-search-widget-container [class*="backdrop-blur"],
+.search-widget-container [class*="backdrop-blur"],
+/* Also target divs that contain GlassCard classes */
+.ragsuite-search-widget-root div[class*="glass-card-light"],
+#ragsuite-search-widget-container div[class*="glass-card-light"],
+.search-widget-container div[class*="glass-card-light"],
+.ragsuite-search-widget-root div[class*="glass-card-dark"],
+#ragsuite-search-widget-container div[class*="glass-card-dark"],
+.search-widget-container div[class*="glass-card-dark"],
+/* Target by border and backdrop-blur classes */
+.ragsuite-search-widget-root .border.backdrop-blur-md,
+#ragsuite-search-widget-container .border.backdrop-blur-md,
+.search-widget-container .border.backdrop-blur-md {
+  background: rgba(255, 255, 255, 0.25) !important; /* Match globals.css glass-card-light */
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  border-radius: 12px !important;
+  box-shadow: 0px 1px 5px -1px rgba(0, 0, 0, 0.2) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  transition: all 0.3s !important;
+  color: rgba(0, 0, 0, 0.9) !important;
+  /* Ensure backdrop filter works */
+  isolation: isolate !important;
+  transform: translateZ(0) !important;
+  will-change: transform !important;
+}
+
+/* Dark mode GlassCard */
+[data-theme="dark"] .ragsuite-search-widget-root .glass-card-dark,
+[data-theme="dark"] #ragsuite-search-widget-container .glass-card-dark,
+[data-theme="dark"] .search-widget-container .glass-card-dark,
+.dark .ragsuite-search-widget-root .glass-card-dark,
+.dark #ragsuite-search-widget-container .glass-card-dark,
+.dark .search-widget-container .glass-card-dark,
+[data-theme="dark"] .ragsuite-search-widget-root [class*="glass-card"],
+[data-theme="dark"] #ragsuite-search-widget-container [class*="glass-card"],
+[data-theme="dark"] .search-widget-container [class*="glass-card"],
+.dark .ragsuite-search-widget-root [class*="glass-card"],
+.dark #ragsuite-search-widget-container [class*="glass-card"],
+.dark .search-widget-container [class*="glass-card"],
+[data-theme="dark"] .ragsuite-search-widget-root div[class*="glass-card-dark"],
+[data-theme="dark"] #ragsuite-search-widget-container div[class*="glass-card-dark"],
+[data-theme="dark"] .search-widget-container div[class*="glass-card-dark"],
+.dark .ragsuite-search-widget-root div[class*="glass-card-dark"],
+.dark #ragsuite-search-widget-container div[class*="glass-card-dark"],
+.dark .search-widget-container div[class*="glass-card-dark"],
+[data-theme="dark"] .ragsuite-search-widget-root .border.backdrop-blur-md,
+[data-theme="dark"] #ragsuite-search-widget-container .border.backdrop-blur-md,
+[data-theme="dark"] .search-widget-container .border.backdrop-blur-md,
+.dark .ragsuite-search-widget-root .border.backdrop-blur-md,
+.dark #ragsuite-search-widget-container .border.backdrop-blur-md,
+.dark .search-widget-container .border.backdrop-blur-md {
+  background: rgba(0, 0, 0, 0.2) !important; /* Match globals.css glass-card-dark */
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0px 1px 5px -1px rgba(0, 0, 0, 0.3) !important;
+  color: #ffffff !important;
+}
+
+/* ============================================
+   TITLE SECTION - Match Search Test tab
+   ============================================ */
+.ragsuite-search-widget-root h3,
+#ragsuite-search-widget-container h3,
+.search-widget-container h3 {
+  font-size: 16px !important; /* text-base */
+  font-weight: 600 !important; /* font-semibold */
+  line-height: 1.5 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ============================================
+   SEARCH FORM - Match Search Test tab exactly
+   ============================================ */
+.ragsuite-search-widget-root .rag-search-form-wrapper,
+#ragsuite-search-widget-container .rag-search-form-wrapper,
+.search-widget-container .rag-search-form-wrapper {
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.ragsuite-search-widget-root .rag-search-form-inner,
+#ragsuite-search-widget-container .rag-search-form-inner,
+.search-widget-container .rag-search-form-inner {
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.ragsuite-search-widget-root .rag-search-input-field,
+#ragsuite-search-widget-container .rag-search-input-field,
+.search-widget-container .rag-search-input-field {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+  font-family: inherit !important;
+}
+
+.ragsuite-search-widget-root .rag-search-clear-button,
+#ragsuite-search-widget-container .rag-search-clear-button,
+.search-widget-container .rag-search-clear-button,
+.ragsuite-search-widget-root .rag-search-submit-button,
+#ragsuite-search-widget-container .rag-search-submit-button,
+.search-widget-container .rag-search-submit-button {
+  transition: opacity 0.2s, background-color 0.2s, border-radius 0.2s !important;
+  box-sizing: border-box !important;
+}
+
+/* ============================================
+   SUGGESTIONS - Match Search Test tab exactly
+   ============================================ */
+/* Suggestions label */
+.ragsuite-search-widget-root .pt-4 p.text-sm.font-semibold,
+#ragsuite-search-widget-container .pt-4 p.text-sm.font-semibold,
+.search-widget-container .pt-4 p.text-sm.font-semibold,
+.ragsuite-search-widget-root [class*="space-y-4"] p[class*="text-sm"][class*="font-semibold"],
+#ragsuite-search-widget-container [class*="space-y-4"] p[class*="text-sm"][class*="font-semibold"],
+.search-widget-container [class*="space-y-4"] p[class*="text-sm"][class*="font-semibold"] {
+  font-size: 14px !important; /* text-sm */
+  font-weight: 600 !important; /* font-semibold */
+  line-height: 1.5 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Suggestions chips - Match Search Test tab exactly - HORIZONTAL LAYOUT */
+.ragsuite-search-widget-root .flex.flex-wrap.gap-3,
+#ragsuite-search-widget-container .flex.flex-wrap.gap-3,
+.search-widget-container .flex.flex-wrap.gap-3 {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 12px !important; /* gap-3 = 0.75rem = 12px */
+  width: 100% !important;
+}
+
+/* Individual suggestion chips - HORIZONTAL, not vertical */
+.ragsuite-search-widget-root .flex.flex-wrap.gap-3 > div,
+#ragsuite-search-widget-container .flex.flex-wrap.gap-3 > div,
+.search-widget-container .flex.flex-wrap.gap-3 > div,
+.ragsuite-search-widget-root [class*="flex"][class*="flex-wrap"][class*="gap-3"] > div,
+#ragsuite-search-widget-container [class*="flex"][class*="flex-wrap"][class*="gap-3"] > div,
+.search-widget-container [class*="flex"][class*="flex-wrap"][class*="gap-3"] > div {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important; /* gap-2 */
+  padding: 12px 16px !important; /* px-4 py-3 */
+  background: rgba(0, 0, 0, 0.03) !important; /* bg-muted/30 */
+  border: 1px solid rgba(0, 0, 0, 0.1) !important; /* border border-border */
+  border-radius: 8px !important; /* Match border radius */
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  box-sizing: border-box !important;
+  width: auto !important; /* Auto width for horizontal layout */
+  min-width: 200px !important; /* sm:min-w-[200px] */
+  flex: 1 1 auto !important; /* sm:flex-1 */
+  max-width: 100% !important; /* sm:max-w-full */
   margin: 0 !important;
 }
 
-/* Dark mode handled by React ThemeContext - no media queries needed */
+.ragsuite-search-widget-root .flex.flex-wrap.gap-3 > div:hover,
+#ragsuite-search-widget-container .flex.flex-wrap.gap-3 > div:hover,
+.search-widget-container .flex.flex-wrap.gap-3 > div:hover {
+  background: rgba(0, 0, 0, 0.05) !important; /* hover:bg-muted/50 */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important; /* hover:shadow-sm */
+}
 
-/* Search Widget Trigger Button - Simple search icon (NOT chatbot avatar) */
-#search-widget-trigger,
-.search-widget-trigger {
-  position: fixed !important;
-  width: 60px !important;
-  height: 60px !important;
-  border-radius: 50% !important;
-  border: 1px solid var(--border, rgba(0, 0, 0, 0.1)) !important;
-  background: var(--background, #ffffff) !important;
-  background-color: #ffffff !important;
+/* Suggestions text inside chips */
+.ragsuite-search-widget-root .flex.flex-wrap.gap-3 > div > span,
+#ragsuite-search-widget-container .flex.flex-wrap.gap-3 > div > span,
+.search-widget-container .flex.flex-wrap.gap-3 > div > span {
+  font-size: 14px !important; /* text-sm */
+  font-weight: 500 !important; /* font-medium */
+  line-height: 1.5 !important;
+  flex: 1 !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Remove debug red border/background from container - CRITICAL */
+.ragsuite-search-widget-root,
+#ragsuite-search-widget-container {
+  border: none !important;
+  background-color: transparent !important;
+  padding: 0 !important;
+}
+
+/* Ensure CardContent has proper padding */
+.ragsuite-search-widget-root .p-6,
+#ragsuite-search-widget-container .p-6,
+.search-widget-container .p-6,
+.ragsuite-search-widget-root [class*="p-6"],
+#ragsuite-search-widget-container [class*="p-6"],
+.search-widget-container [class*="p-6"] {
+  padding: 24px !important; /* p-6 = 1.5rem = 24px */
+}
+
+/* Dark mode suggestions */
+[data-theme="dark"] .ragsuite-search-widget-root .flex.flex-wrap.gap-3 > div,
+[data-theme="dark"] #ragsuite-search-widget-container .flex.flex-wrap.gap-3 > div,
+[data-theme="dark"] .search-widget-container .flex.flex-wrap.gap-3 > div,
+.dark .ragsuite-search-widget-root .flex.flex-wrap.gap-3 > div,
+.dark #ragsuite-search-widget-container .flex.flex-wrap.gap-3 > div,
+.dark .search-widget-container .flex.flex-wrap.gap-3 > div {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .ragsuite-search-widget-root .flex.flex-wrap.gap-3 > div:hover,
+[data-theme="dark"] #ragsuite-search-widget-container .flex.flex-wrap.gap-3 > div:hover,
+[data-theme="dark"] .search-widget-container .flex.flex-wrap.gap-3 > div:hover,
+.dark .ragsuite-search-widget-root .flex.flex-wrap.gap-3 > div:hover,
+.dark #ragsuite-search-widget-container .flex.flex-wrap.gap-3 > div:hover,
+.dark .search-widget-container .flex.flex-wrap.gap-3 > div:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ============================================
+   RECENT SEARCHES - Match Search Test tab exactly
+   ============================================ */
+/* Recent searches label */
+.ragsuite-search-widget-root .text-xs.font-semibold.text-muted-foreground,
+#ragsuite-search-widget-container .text-xs.font-semibold.text-muted-foreground,
+.search-widget-container .text-xs.font-semibold.text-muted-foreground,
+.ragsuite-search-widget-root [class*="text-xs"][class*="font-semibold"][class*="text-muted"],
+#ragsuite-search-widget-container [class*="text-xs"][class*="font-semibold"][class*="text-muted"],
+.search-widget-container [class*="text-xs"][class*="font-semibold"][class*="text-muted"] {
+  font-size: 12px !important; /* text-xs */
+  font-weight: 600 !important; /* font-semibold */
+  text-transform: uppercase !important; /* uppercase */
+  letter-spacing: 0.05em !important; /* tracking-wider */
+  line-height: 1.5 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Recent searches items */
+.ragsuite-search-widget-root .flex.flex-col.w-full > div,
+#ragsuite-search-widget-container .flex.flex-col.w-full > div,
+.search-widget-container .flex.flex-col.w-full > div,
+.ragsuite-search-widget-root [class*="flex"][class*="flex-col"][class*="w-full"] > div,
+#ragsuite-search-widget-container [class*="flex"][class*="flex-col"][class*="w-full"] > div,
+.search-widget-container [class*="flex"][class*="flex-col"][class*="w-full"] > div {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important; /* gap-3 */
+  padding: 12px 16px !important; /* px-4 py-3 */
+  background: rgba(0, 0, 0, 0.03) !important; /* bg-muted/30 */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important; /* border-b border-border/50 */
+  cursor: pointer !important;
+  transition: background-color 0.2s !important; /* transition-colors */
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.ragsuite-search-widget-root .flex.flex-col.w-full > div:hover,
+#ragsuite-search-widget-container .flex.flex-col.w-full > div:hover,
+.search-widget-container .flex.flex-col.w-full > div:hover {
+  background: rgba(0, 0, 0, 0.05) !important; /* hover:bg-muted/50 */
+}
+
+.ragsuite-search-widget-root .flex.flex-col.w-full > div:last-child,
+#ragsuite-search-widget-container .flex.flex-col.w-full > div:last-child,
+.search-widget-container .flex.flex-col.w-full > div:last-child {
+  border-bottom: none !important; /* last:border-0 */
+}
+
+/* Recent searches text */
+.ragsuite-search-widget-root .flex.flex-col.w-full > div span.text-sm.font-medium,
+#ragsuite-search-widget-container .flex.flex-col.w-full > div span.text-sm.font-medium,
+.search-widget-container .flex.flex-col.w-full > div span.text-sm.font-medium {
+  font-size: 14px !important; /* text-sm */
+  font-weight: 500 !important; /* font-medium */
+  line-height: 1.5 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important; /* truncate */
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Dark mode recent searches */
+[data-theme="dark"] .ragsuite-search-widget-root .flex.flex-col.w-full > div,
+[data-theme="dark"] #ragsuite-search-widget-container .flex.flex-col.w-full > div,
+[data-theme="dark"] .search-widget-container .flex.flex-col.w-full > div,
+.dark .ragsuite-search-widget-root .flex.flex-col.w-full > div,
+.dark #ragsuite-search-widget-container .flex.flex-col.w-full > div,
+.dark .search-widget-container .flex.flex-col.w-full > div {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-theme="dark"] .ragsuite-search-widget-root .flex.flex-col.w-full > div:hover,
+[data-theme="dark"] #ragsuite-search-widget-container .flex.flex-col.w-full > div:hover,
+[data-theme="dark"] .search-widget-container .flex.flex-col.w-full > div:hover,
+.dark .ragsuite-search-widget-root .flex.flex-col.w-full > div:hover,
+.dark #ragsuite-search-widget-container .flex.flex-col.w-full > div:hover,
+.dark .search-widget-container .flex.flex-col.w-full > div:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ============================================
+   RESULTS - Match Search Test tab exactly
+   ============================================ */
+/* Prose styling for results - Match Search Test tab */
+.ragsuite-search-widget-root .prose,
+#ragsuite-search-widget-container .prose,
+.search-widget-container .prose,
+.ragsuite-search-widget-root [class*="prose"],
+#ragsuite-search-widget-container [class*="prose"],
+.search-widget-container [class*="prose"] {
+  font-size: 14px !important; /* prose-sm */
+  line-height: 1.75 !important;
+  max-width: none !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.ragsuite-search-widget-root .prose p,
+#ragsuite-search-widget-container .prose p,
+.search-widget-container .prose p {
+  font-size: 14px !important;
+  line-height: 1.75 !important;
+  margin: 0 0 1em 0 !important;
+  padding: 0 !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+}
+
+.ragsuite-search-widget-root .prose h1,
+#ragsuite-search-widget-container .prose h1,
+.search-widget-container .prose h1,
+.ragsuite-search-widget-root .prose h2,
+#ragsuite-search-widget-container .prose h2,
+.search-widget-container .prose h2,
+.ragsuite-search-widget-root .prose h3,
+#ragsuite-search-widget-container .prose h3,
+.search-widget-container .prose h3 {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  line-height: 1.5 !important;
+  margin: 0 0 0.5em 0 !important;
+  padding: 0 !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+}
+
+.ragsuite-search-widget-root .prose code,
+#ragsuite-search-widget-container .prose code,
+.search-widget-container .prose code {
+  font-size: 14px !important; /* text-sm */
+  font-family: monospace !important; /* font-mono */
+  background: rgba(0, 0, 0, 0.05) !important; /* bg-muted */
+  padding: 2px 4px !important; /* px-1 py-0.5 */
+  border-radius: 4px !important; /* rounded */
+  margin: 0 !important;
+}
+
+/* ============================================
+   CITATION CARDS - Match Search Test tab exactly
+   ============================================ */
+.ragsuite-search-widget-root .shadcn-card,
+#ragsuite-search-widget-container .shadcn-card,
+.search-widget-container .shadcn-card,
+.ragsuite-search-widget-root [class*="card"],
+#ragsuite-search-widget-container [class*="card"],
+.search-widget-container [class*="card"] {
+  padding: 12px !important; /* p-3 */
+  width: 100% !important;
+  min-width: 0 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important; /* border border-border/20 */
+  border-radius: 0.5rem !important; /* rounded-lg */
+  background: rgba(0, 0, 0, 0.03) !important; /* bg-muted/30 */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important; /* shadow-sm */
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Citation grid layout */
+.ragsuite-search-widget-root .grid.gap-3,
+#ragsuite-search-widget-container .grid.gap-3,
+.search-widget-container .grid.gap-3 {
+  display: grid !important;
+  gap: 12px !important; /* gap-3 */
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.ragsuite-search-widget-root .grid.grid-cols-1,
+#ragsuite-search-widget-container .grid.grid-cols-1,
+.search-widget-container .grid.grid-cols-1 {
+  grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+}
+
+.ragsuite-search-widget-root .grid.sm\\:grid-cols-2,
+#ragsuite-search-widget-container .grid.sm\\:grid-cols-2,
+.search-widget-container .grid.sm\\:grid-cols-2 {
+  grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+}
+
+@media (min-width: 640px) {
+  .ragsuite-search-widget-root .grid.sm\\:grid-cols-2,
+  #ragsuite-search-widget-container .grid.sm\\:grid-cols-2,
+  .search-widget-container .grid.sm\\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+.ragsuite-search-widget-root .grid.lg\\:grid-cols-3,
+#ragsuite-search-widget-container .grid.lg\\:grid-cols-3,
+.search-widget-container .grid.lg\\:grid-cols-3 {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+@media (min-width: 1024px) {
+  .ragsuite-search-widget-root .grid.lg\\:grid-cols-3,
+  #ragsuite-search-widget-container .grid.lg\\:grid-cols-3,
+  .search-widget-container .grid.lg\\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Citation text styling */
+.ragsuite-search-widget-root .text-xs.font-medium.text-muted-foreground,
+#ragsuite-search-widget-container .text-xs.font-medium.text-muted-foreground,
+.search-widget-container .text-xs.font-medium.text-muted-foreground {
+  font-size: 12px !important; /* text-xs */
+  font-weight: 500 !important; /* font-medium */
+  color: rgba(0, 0, 0, 0.6) !important; /* text-muted-foreground */
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.ragsuite-search-widget-root .text-xs.font-semibold.text-muted-foreground,
+#ragsuite-search-widget-container .text-xs.font-semibold.text-muted-foreground,
+.search-widget-container .text-xs.font-semibold.text-muted-foreground {
+  font-size: 12px !important; /* text-xs */
+  font-weight: 600 !important; /* font-semibold */
+  color: rgba(0, 0, 0, 0.6) !important; /* text-muted-foreground */
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ============================================
+   FEEDBACK BUTTONS - Match Search Test tab exactly
+   ============================================ */
+.ragsuite-search-widget-root .chatbot-message-action-button,
+#ragsuite-search-widget-container .chatbot-message-action-button,
+.search-widget-container .chatbot-message-action-button {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  color: #707070 !important;
+  cursor: pointer !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-  z-index: 99999 !important;
-  outline: none !important;
-  color: #1a1a1a !important;
+  padding: 4px !important;
+  opacity: 1 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  transition: color 0.2s ease !important;
+  margin: 0 !important;
+  width: auto !important;
+  height: auto !important;
 }
 
-/* Dark mode handled by React ThemeContext - no media queries needed */
-
-.search-widget-trigger:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+.ragsuite-search-widget-root .chatbot-message-action-button:hover,
+#ragsuite-search-widget-container .chatbot-message-action-button:hover,
+.search-widget-container .chatbot-message-action-button:hover {
+  color: #3b82f6 !important; /* var(--primary) */
 }
 
-.search-widget-trigger:active {
-  transform: scale(0.95);
+.ragsuite-search-widget-root .chatbot-message-action-button.active,
+#ragsuite-search-widget-container .chatbot-message-action-button.active,
+.search-widget-container .chatbot-message-action-button.active {
+  color: #3b82f6 !important; /* var(--primary) */
 }
 
-.search-widget-trigger:focus {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
+.ragsuite-search-widget-root .chatbot-message-action-button svg,
+#ragsuite-search-widget-container .chatbot-message-action-button svg,
+.search-widget-container .chatbot-message-action-button svg {
+  width: 12px !important; /* h-3 */
+  height: 12px !important; /* w-3 */
 }
 
-/* COMPLETE ISOLATION: Remove ALL chatbot-specific elements and styling */
+/* Feedback buttons container */
+.ragsuite-search-widget-root .flex.items-center.justify-between.gap-2.pt-3.mt-3.border-t,
+#ragsuite-search-widget-container .flex.items-center.justify-between.gap-2.pt-3.mt-3.border-t,
+.search-widget-container .flex.items-center.justify-between.gap-2.pt-3.mt-3.border-t {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important; /* gap-2 */
+  padding-top: 12px !important; /* pt-3 */
+  margin-top: 12px !important; /* mt-3 */
+  border-top: 1px solid rgba(0, 0, 0, 0.05) !important; /* border-t border-border/20 */
+}
+
+/* ============================================
+   SPACING - Match Search Test tab exactly
+   ============================================ */
+.ragsuite-search-widget-root .space-y-4 > * + *,
+#ragsuite-search-widget-container .space-y-4 > * + *,
+.search-widget-container .space-y-4 > * + * {
+  margin-top: 16px !important; /* space-y-4 = 1rem = 16px */
+}
+
+.ragsuite-search-widget-root .space-y-6 > * + *,
+#ragsuite-search-widget-container .space-y-6 > * + *,
+.search-widget-container .space-y-6 > * + * {
+  margin-top: 24px !important; /* space-y-6 = 1.5rem = 24px */
+}
+
+.ragsuite-search-widget-root .pt-4,
+#ragsuite-search-widget-container .pt-4,
+.search-widget-container .pt-4 {
+  padding-top: 16px !important; /* pt-4 = 1rem = 16px */
+}
+
+.ragsuite-search-widget-root .pt-6,
+#ragsuite-search-widget-container .pt-6,
+.search-widget-container .pt-6 {
+  padding-top: 24px !important; /* pt-6 = 1.5rem = 24px */
+}
+
+.ragsuite-search-widget-root .px-4,
+#ragsuite-search-widget-container .px-4,
+.search-widget-container .px-4 {
+  padding-left: 16px !important; /* px-4 = 1rem = 16px */
+  padding-right: 16px !important;
+}
+
+.ragsuite-search-widget-root .py-3,
+#ragsuite-search-widget-container .py-3,
+.search-widget-container .py-3 {
+  padding-top: 12px !important; /* py-3 = 0.75rem = 12px */
+  padding-bottom: 12px !important;
+}
+
+.ragsuite-search-widget-root .gap-2,
+#ragsuite-search-widget-container .gap-2,
+.search-widget-container .gap-2 {
+  gap: 8px !important; /* gap-2 = 0.5rem = 8px */
+}
+
+.ragsuite-search-widget-root .gap-3,
+#ragsuite-search-widget-container .gap-3,
+.search-widget-container .gap-3 {
+  gap: 12px !important; /* gap-3 = 0.75rem = 12px */
+}
+
+/* ============================================
+   BORDERS - Match Search Test tab
+   ============================================ */
+.ragsuite-search-widget-root .border-t,
+#ragsuite-search-widget-container .border-t,
+.search-widget-container .border-t {
+  border-top: 1px solid rgba(0, 0, 0, 0.1) !important; /* border-border */
+}
+
+[data-theme="dark"] .ragsuite-search-widget-root .border-t,
+[data-theme="dark"] #ragsuite-search-widget-container .border-t,
+[data-theme="dark"] .search-widget-container .border-t,
+.dark .ragsuite-search-widget-root .border-t,
+.dark #ragsuite-search-widget-container .border-t,
+.dark .search-widget-container .border-t {
+  border-top-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ============================================
+   HIDE CHATBOT ELEMENTS
+   ============================================ */
 .ragsuite-search-widget-root .chatbot-header,
 .ragsuite-search-widget-root .chatbot-messages,
 .ragsuite-search-widget-root .chatbot-window,
@@ -146,85 +751,37 @@
   pointer-events: none !important;
 }
 
-/* Hide any chatbot trigger that might appear */
-.ragsuite-search-widget-root .chatbot-trigger,
-#ragsuite-search-widget-container .chatbot-trigger,
-.ragsuite-search-widget-root #chatbot-trigger,
-#ragsuite-search-widget-container #chatbot-trigger {
-  display: none !important;
-  visibility: hidden !important;
-}
-
-/* Ensure proper scrolling */
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+.ragsuite-search-widget-root .flex-1,
+#ragsuite-search-widget-container .flex-1,
 .search-widget-container .flex-1 {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent !important;
 }
 
+.ragsuite-search-widget-root .flex-1::-webkit-scrollbar,
+#ragsuite-search-widget-container .flex-1::-webkit-scrollbar,
 .search-widget-container .flex-1::-webkit-scrollbar {
-  width: 8px;
+  width: 8px !important;
 }
 
+.ragsuite-search-widget-root .flex-1::-webkit-scrollbar-track,
+#ragsuite-search-widget-container .flex-1::-webkit-scrollbar-track,
 .search-widget-container .flex-1::-webkit-scrollbar-track {
-  background: transparent;
+    background: transparent !important;
 }
 
+.ragsuite-search-widget-root .flex-1::-webkit-scrollbar-thumb,
+#ragsuite-search-widget-container .flex-1::-webkit-scrollbar-thumb,
 .search-widget-container .flex-1::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  border-radius: 4px !important;
 }
 
+.ragsuite-search-widget-root .flex-1::-webkit-scrollbar-thumb:hover,
+#ragsuite-search-widget-container .flex-1::-webkit-scrollbar-thumb:hover,
 .search-widget-container .flex-1::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: rgba(0, 0, 0, 0.3) !important;
 }
-
-/* Dark mode scrollbar handled by React ThemeContext - no media queries needed */
-
-/* Search form styles - matching Search Test tab */
-.rag-search-form-wrapper {
-  width: 100%;
-  min-width: 0;
-}
-
-.rag-search-form-inner {
-  width: 100%;
-  min-width: 0;
-}
-
-.rag-search-input-field {
-  width: 100%;
-}
-
-.rag-search-clear-button,
-.rag-search-submit-button {
-  transition: opacity 0.2s, background-color 0.2s, border-radius 0.2s;
-}
-
-/* Feedback button styles */
-.chatbot-message-action-button {
-  background: transparent !important;
-  background-color: transparent !important;
-  border: none !important;
-  border-color: transparent !important;
-  color: #707070 !important;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  opacity: 1 !important;
-  transform: none !important;
-  box-shadow: none !important;
-  transition: color 0.2s ease !important;
-}
-
-.chatbot-message-action-button:hover {
-  color: var(--primary, #3b82f6) !important;
-}
-
-.chatbot-message-action-button.active {
-  color: var(--primary, #3b82f6) !important;
-}
-
-/* Dark mode handled by React ThemeContext - no media queries needed */
-

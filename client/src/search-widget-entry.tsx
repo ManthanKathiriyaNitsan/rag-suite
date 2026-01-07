@@ -179,11 +179,10 @@ function initSearchWidget(config: SearchWidgetConfig) {
       container.style.minHeight = '200px';
       container.style.width = '100%';
       container.style.position = 'relative';
-      // Temporary debug: add visible border and background to see if container exists
-      container.style.border = '2px solid red';
-      container.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
-      container.style.padding = '10px';
-      console.log('🔴 DEBUG: Container styled with red border for visibility');
+      // No debug styling - clean container
+      container.style.border = 'none';
+      container.style.backgroundColor = 'transparent';
+      container.style.padding = '0';
     } else {
       scriptTag.parentNode.insertBefore(container, scriptTag.nextSibling);
       console.log('✅ Container inserted after script tag (inline)');
@@ -198,7 +197,7 @@ function initSearchWidget(config: SearchWidgetConfig) {
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
           if (document.body) {
-            document.body.appendChild(container);
+  document.body.appendChild(container);
             console.log('✅ Container appended to body (after DOMContentLoaded fallback)');
           }
         });
@@ -228,18 +227,36 @@ function initSearchWidget(config: SearchWidgetConfig) {
     // Add temporary test content to verify container is visible
     const testDiv = document.createElement('div');
     testDiv.id = 'ragsuite-widget-test';
-    testDiv.style.cssText = 'background: yellow; color: black; padding: 10px; margin: 10px 0; border: 2px solid orange; font-weight: bold; z-index: 999999;';
+    testDiv.style.cssText = 'background: yellow; color: black; padding: 10px; margin: 10px 0; border: 2px solid orange; font-weight: bold; z-index: 999999; position: relative;';
     testDiv.textContent = '🔴 TEST: If you see this, the container exists! Widget should render below...';
     containerInDOM.appendChild(testDiv);
     console.log('🔴 DEBUG: Added test div to container');
+    
+    // Force container to be visible with high z-index and important styles
+    containerInDOM.style.cssText += 'position: relative !important; z-index: 999999 !important; display: block !important; visibility: visible !important; opacity: 1 !important; min-height: 200px !important; width: 100% !important;';
+    console.log('🔴 DEBUG: Forced container visibility with inline styles');
   } else {
     console.error('❌ Container NOT found in DOM after insertion!');
   }
+
+  // Add a simple fallback HTML element to ensure something is visible
+  const fallbackDiv = document.createElement('div');
+  fallbackDiv.id = 'ragsuite-widget-fallback';
+  fallbackDiv.style.cssText = 'background: #f0f0f0; border: 2px solid #333; padding: 20px; margin: 20px 0; min-height: 200px;';
+  fallbackDiv.innerHTML = '<h3 style="margin:0 0 10px 0;">RAG Suite Search Widget</h3><p style="margin:0; color:#666;">Loading search widget...</p>';
+  container.appendChild(fallbackDiv);
+  console.log('🔴 DEBUG: Added fallback HTML element to container');
 
   const root = createRoot(container);
 
   const onReadyCallback = () => {
     console.log("RAG Suite Search Widget: Ready and initialized");
+    // Remove fallback when widget is ready
+    const fallback = document.getElementById('ragsuite-widget-fallback');
+    if (fallback) {
+      fallback.remove();
+      console.log('🔴 DEBUG: Removed fallback element - widget should be visible now');
+    }
     window.dispatchEvent(new CustomEvent("ragsuite-search:ready"));
   };
   
@@ -305,27 +322,49 @@ function initSearchWidget(config: SearchWidgetConfig) {
       }
     }, [isSearchActive, isActivationLoading, activationData, isWidgetMode]);
     
-    // In widget mode, always render the widget (default to active)
+    // In widget mode, ALWAYS render the widget - no conditions
+    // This ensures the widget is always visible when embedded
     if (isWidgetMode) {
-      // Widget mode: always show, don't check activation status
       console.log('✅ Widget mode: Rendering widget (always visible)', {
         projectId: (window as any).RAGSUITE_PROJECT_ID,
-        isWidgetMode: true
+        isWidgetMode: true,
+        timestamp: new Date().toISOString()
       });
-    } else if (!isSearchActive) {
+      // Always render in widget mode - don't check anything else
+      // Remove fallback element when rendering
+      React.useEffect(() => {
+        const fallback = document.getElementById('ragsuite-widget-fallback');
+        if (fallback) {
+          fallback.remove();
+          console.log('🔴 DEBUG: Removed fallback element in useEffect');
+        }
+      }, []);
+      
+      return (
+        <EmbeddableSearchWidget
+          isOpen={isOpen}
+          onToggle={handleToggle}
+          onReady={onReadyCallback}
+          onError={onErrorCallback}
+        />
+      );
+    }
+    
+    // Not in widget mode - check activation status
+    if (!isSearchActive) {
       console.log('⚠️ Not in widget mode and search not active, returning null');
       return null;
     }
-
-    if (isActivationLoading && activationData === undefined && !isWidgetMode) {
+    
+    if (isActivationLoading && activationData === undefined) {
       console.log('⚠️ Activation loading, returning null');
       return null;
     }
-
+    
     console.log('✅ Rendering EmbeddableSearchWidget component', {
       isOpen,
       isWidgetMode,
-      projectId: (window as any).RAGSUITE_PROJECT_ID
+      projectId: (window as any).RAGSUITE_PROJECT_ID    
     });
     return (
       <EmbeddableSearchWidget
@@ -337,6 +376,14 @@ function initSearchWidget(config: SearchWidgetConfig) {
     );
   });
 
+  // Render with error boundary to catch any rendering errors
+  console.log('🔴 DEBUG: About to render React root', {
+    containerId: container.id,
+    containerInDOM: !!container.parentNode,
+    hasRoot: !!root
+  });
+  
+  try {
   root.render(
     <QueryClientProvider client={searchWidgetQueryClient}>
       <AuthProvider>
@@ -352,6 +399,15 @@ function initSearchWidget(config: SearchWidgetConfig) {
       </AuthProvider>
     </QueryClientProvider>
   );
+    console.log('✅ React root rendered successfully');
+  } catch (error) {
+    console.error('❌ Error rendering React root:', error);
+    // Show error in fallback
+    const fallback = document.getElementById('ragsuite-widget-fallback');
+    if (fallback) {
+      fallback.innerHTML = '<h3 style="margin:0 0 10px 0; color:red;">Error Loading Widget</h3><p style="margin:0; color:#666;">' + (error as Error).message + '</p>';
+    }
+  }
 
   searchWidgetInstance = { root, container };
 

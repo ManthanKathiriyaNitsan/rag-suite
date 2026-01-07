@@ -517,8 +517,16 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
       widgetPosition,
       isPreviewMode,
       searchTitle,
-      searchFormType
+      searchFormType,
+      isWidgetMode: typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID
     });
+    
+    // Force the widget container to be visible
+    const widgetElement = document.getElementById('search-widget');
+    if (widgetElement) {
+      widgetElement.style.cssText += 'display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 1 !important;';
+      console.log('✅ Forced widget element visibility');
+    }
   }, [isOpen, widgetPosition, isPreviewMode, searchTitle, searchFormType]);
 
   return (
@@ -555,21 +563,51 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
         {/* Content Area - Matching Search Test tab exactly */}
         <div className="space-y-6 w-full min-w-0 max-w-full" style={{
           padding: '0', // No padding - let GlassCard handle spacing
+          margin: '0', // No margin
+          width: '100%', // Full width
+          maxWidth: '100%', // No max width constraint
         }}>
             {/* Search Box Section - Exact match to Search Test tab */}
             <GlassCard className="overflow-visible" style={{
-              minHeight: '200px', // Ensure card has minimum height
+              minHeight: 'auto', // Auto height based on content
               display: 'block', // Ensure it's displayed
+              width: '100%', // Full width
+              maxWidth: '100%', // No max width constraint
+              margin: '0', // No margin
+              padding: '0', // No padding - CardContent handles it
             }}>
-              <CardContent className="space-y-4 pt-6">
-                {/* Title with Icon - Matching Search Test tab */}
+              <CardContent className="space-y-4 pt-6" style={{
+                width: '100%', // Full width
+                maxWidth: '100%', // No max width constraint
+              }}>
+                {/* Title with Icon - Matching Search Test tab EXACTLY */}
                 {searchTitle && (
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="relative">
-                      <Search className="h-5 w-5 text-foreground" />
-                      <Sparkles className="h-2.5 w-2.5 text-foreground absolute -top-0.5 -right-0.5" fill="currentColor" />
+                  <div className="flex items-center gap-2 mb-4" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px', // gap-2
+                    marginBottom: '16px', // mb-4
+                  }}>
+                    <div className="relative" style={{ position: 'relative' }}>
+                      <Search className="h-5 w-5 text-foreground" style={{
+                        width: '20px', // h-5
+                        height: '20px', // w-5
+                      }} />
+                      <Sparkles className="h-2.5 w-2.5 text-foreground absolute -top-0.5 -right-0.5" fill="currentColor" style={{
+                        width: '10px', // h-2.5
+                        height: '10px', // w-2.5
+                        position: 'absolute',
+                        top: '-2px', // -top-0.5
+                        right: '-2px', // -right-0.5
+                      }} />
                     </div>
-                    <h3 className="text-base font-semibold text-foreground">{searchTitle}</h3>
+                    <h3 className="text-base font-semibold text-foreground" style={{
+                      fontSize: '16px', // text-base
+                      fontWeight: '600', // font-semibold
+                      lineHeight: '1.5',
+                      margin: '0',
+                      padding: '0',
+                    }}>{searchTitle}</h3>
                   </div>
                 )}
 
@@ -760,38 +798,103 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                   )}
                 </form>
 
-                {/* Predefined Questions - Only show if enabled */}
-                {searchPredefinedQuestions && searchQuestionsList.length > 0 && (
-                  <div className="pt-4 border-t border-border space-y-4 w-full min-w-0">
-                    <p className="text-sm font-semibold text-foreground">
-                      Suggestions
-                    </p>
-                    <div className="flex flex-wrap gap-3 w-full">
-                      {searchQuestionsList.slice(0, searchQuestionsLimit).map((query, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between gap-2 px-4 py-3 bg-muted/30 hover:bg-muted/50 border border-border cursor-pointer transition-all hover:shadow-sm w-full sm:w-auto sm:flex-1 sm:min-w-[200px] sm:max-w-full"
-                          style={{
-                            borderRadius: borderRadiusValue
-                          }}
-                          onClick={() => {
-                            setSearchInput(query);
-                            handleSearch(query);
-                            if (searchInputRef.current) {
-                              searchInputRef.current.blur();
+                {/* Predefined Questions - Only show if enabled - Match Search Test tab EXACTLY */}
+                {searchPredefinedQuestions && searchQuestionsList.length > 0 && (() => {
+                      // Get border radius value (matching Search Test tab)
+                      const getBorderRadiusValue = (borderRadius: string) => {
+                        switch (borderRadius) {
+                          case 'rounded': return '12px';
+                          case 'medium-rounded': return '10px';
+                          case 'semi-rounded': return '8px';
+                          case 'square': return '0px';
+                          default: return '8px';
                         }
-                          }}
-                          data-testid={`example-query-${index}`}
-                        >
-                          <span className="text-sm font-medium flex-1 break-words overflow-wrap-anywhere">
-                            {query}
-                          </span>
-                          <HelpCircle className="h-4 w-4 flex-shrink-0" />
+                      };
+                      const borderRadiusValueForSuggestions = getBorderRadiusValue(searchBorderRadius || 'semi-rounded');
+                      return (
+                        <div className="pt-4 border-t border-border space-y-4 w-full min-w-0" style={{
+                          paddingTop: '16px', // pt-4
+                          borderTop: '1px solid rgba(0, 0, 0, 0.1)', // border-t border-border
+                          width: '100%',
+                          minWidth: '0',
+                        }}>
+                          <p className="text-sm font-semibold text-foreground" style={{
+                            fontSize: '14px', // text-sm
+                            fontWeight: '600', // font-semibold
+                            lineHeight: '1.5',
+                            margin: '0',
+                            padding: '0',
+                          }}>
+                            Suggestions
+                          </p>
+                          <div className="flex flex-wrap gap-3 w-full" style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: '12px', // gap-3
+                            width: '100%',
+                          }}>
+                            {searchQuestionsList.slice(0, searchQuestionsLimit).map((query, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between gap-2 px-4 py-3 bg-muted/30 hover:bg-muted/50 border border-border cursor-pointer transition-all hover:shadow-sm w-full sm:w-auto sm:flex-1 sm:min-w-[200px] sm:max-w-full"
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: '8px', // gap-2
+                                  padding: '12px 16px', // px-4 py-3
+                                  backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', // bg-muted/30
+                                  border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`, // border border-border
+                                  borderRadius: borderRadiusValueForSuggestions,
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  width: 'auto', // Auto width for horizontal layout (not 100%)
+                                  minWidth: '200px', // sm:min-w-[200px]
+                                  flex: '1 1 auto', // sm:flex-1 - allows chips to grow and shrink
+                                  maxWidth: '100%', // sm:max-w-full
+                                  margin: '0',
+                                  boxSizing: 'border-box',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
+                                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.1)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)';
+                                  e.currentTarget.style.boxShadow = 'none';
+                                }}
+                                onClick={() => {
+                                  setSearchInput(query);
+                                  handleSearch(query);
+                                  if (searchInputRef.current) {
+                                    searchInputRef.current.blur();
+                                  }
+                                }}
+                                data-testid={`example-query-${index}`}
+                              >
+                                <span className="text-sm font-medium flex-1 break-words overflow-wrap-anywhere" style={{
+                                  fontSize: '14px', // text-sm
+                                  fontWeight: '500', // font-medium
+                                  lineHeight: '1.5',
+                                  flex: '1',
+                                  wordBreak: 'break-word',
+                                  overflowWrap: 'anywhere',
+                                  margin: '0',
+                                  padding: '0',
+                                }}>
+                                  {query}
+                                </span>
+                                <HelpCircle className="h-4 w-4 flex-shrink-0" style={{
+                                  width: '16px', // h-4
+                                  height: '16px', // w-4
+                                  flexShrink: '0',
+                                }} />
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                      );
+                    })()}
 
                 {/* Recent Searches Block - Show when enabled AND Predefined Questions are OFF */}
                 {searchRecentSearch && !searchPredefinedQuestions && recentSearches.length > 0 && (
@@ -825,10 +928,19 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
               </CardContent>
             </GlassCard>
 
-            {/* Search Results Section - Matching Search Test tab */}
+            {/* Search Results Section - Matching Search Test tab EXACTLY */}
             {(messages.length > 0 || isTyping || isStreaming) && (
-              <GlassCard>
-                <CardContent className="pt-6">
+              <GlassCard style={{
+                width: '100%', // Full width
+                maxWidth: '100%', // No max width constraint
+                margin: '0', // No margin
+                padding: '0', // No padding - CardContent handles it
+              }}>
+                <CardContent className="pt-6" style={{
+                  width: '100%', // Full width
+                  maxWidth: '100%', // No max width constraint
+                  paddingTop: '24px', // pt-6
+                }}>
                   {/* Loading - Skeleton or Typing Loader based on searchLoaderType */}
                   {(isTyping || (isStreaming && !streamingContent)) && (
                     <>
@@ -1006,38 +1118,124 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                               };
                               
                               return (
-                                <div className="pt-4 border-t border-border space-y-3 w-full min-w-0">
+                                <div className="pt-4 border-t border-border space-y-3 w-full min-w-0" style={{
+                                  paddingTop: '16px', // pt-4
+                                  borderTop: '1px solid rgba(0, 0, 0, 0.1)', // border-t border-border
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '12px', // space-y-3
+                                  width: '100%',
+                                  minWidth: '0',
+                                }}>
                                   {citationFormatting.showSourceCount && (
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="text-xs font-medium text-muted-foreground">
+                                    <div className="flex items-center gap-2 flex-wrap" style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '8px', // gap-2
+                                      flexWrap: 'wrap',
+                                    }}>
+                                      <span className="text-xs font-medium text-muted-foreground" style={{
+                                        fontSize: '12px', // text-xs
+                                        fontWeight: '500', // font-medium
+                                        color: 'rgba(0, 0, 0, 0.6)', // text-muted-foreground
+                                        margin: '0',
+                                        padding: '0',
+                                      }}>
                                         Sources ({displayedCitations.length}):
                                       </span>
-                  </div>
+                                    </div>
                                   )}
-                                  <div className={`grid gap-3 w-full min-w-0 ${citationFormatting.layout === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+                                  <div className={`grid gap-3 w-full min-w-0 ${citationFormatting.layout === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`} style={{
+                                    display: 'grid',
+                                    gap: '12px', // gap-3
+                                    width: '100%',
+                                    minWidth: '0',
+                                    gridTemplateColumns: citationFormatting.layout === 'grid' 
+                                      ? 'repeat(1, minmax(0, 1fr))' 
+                                      : 'repeat(1, minmax(0, 1fr))',
+                                  }}>
                                     {displayedCitations.map((citation, index) => (
-                                      <Card key={index} className={`p-3 w-full min-w-0 border ${getCitationColorSchemeClasses()}`}>
-                                        <div className="space-y-2 w-full min-w-0">
-                                          <div className="flex items-start gap-2 w-full min-w-0">
-                                            <span className="text-xs font-semibold text-muted-foreground flex-shrink-0">{index + 1}.</span>
-                                            <div className="flex-1 min-w-0 overflow-hidden">
-                                              <h4 className="text-sm font-medium text-foreground break-words overflow-wrap-anywhere">{citation.title}</h4>
-                                              <p className="text-xs text-muted-foreground mt-1 break-words overflow-wrap-anywhere">{citation.snippet}</p>
+                                      <Card key={index} className={`p-3 w-full min-w-0 border ${getCitationColorSchemeClasses()}`} style={{
+                                        padding: '12px', // p-3
+                                        width: '100%',
+                                        minWidth: '0',
+                                        border: '1px solid rgba(0, 0, 0, 0.1)', // border
+                                        borderRadius: '0.5rem', // rounded-lg
+                                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)', // shadow-sm
+                                      }}>
+                                        <div className="space-y-2 w-full min-w-0" style={{
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          gap: '8px', // space-y-2
+                                          width: '100%',
+                                          minWidth: '0',
+                                        }}>
+                                          <div className="flex items-start gap-2 w-full min-w-0" style={{
+                                            display: 'flex',
+                                            alignItems: 'flex-start',
+                                            gap: '8px', // gap-2
+                                            width: '100%',
+                                            minWidth: '0',
+                                          }}>
+                                            <span className="text-xs font-semibold text-muted-foreground flex-shrink-0" style={{
+                                              fontSize: '12px', // text-xs
+                                              fontWeight: '600', // font-semibold
+                                              color: 'rgba(0, 0, 0, 0.6)', // text-muted-foreground
+                                              flexShrink: '0',
+                                            }}>{index + 1}.</span>
+                                            <div className="flex-1 min-w-0 overflow-hidden" style={{
+                                              flex: '1',
+                                              minWidth: '0',
+                                              overflow: 'hidden',
+                                            }}>
+                                              <h4 className="text-sm font-medium text-foreground break-words overflow-wrap-anywhere" style={{
+                                                fontSize: '14px', // text-sm
+                                                fontWeight: '500', // font-medium
+                                                margin: '0',
+                                                padding: '0',
+                                                wordBreak: 'break-word',
+                                                overflowWrap: 'anywhere',
+                                              }}>{citation.title}</h4>
+                                              <p className="text-xs text-muted-foreground mt-1 break-words overflow-wrap-anywhere" style={{
+                                                fontSize: '12px', // text-xs
+                                                color: 'rgba(0, 0, 0, 0.6)', // text-muted-foreground
+                                                marginTop: '4px', // mt-1
+                                                marginBottom: '0',
+                                                padding: '0',
+                                                wordBreak: 'break-word',
+                                                overflowWrap: 'anywhere',
+                                              }}>{citation.snippet}</p>
                                               <a
                                                 href={citation.url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="text-xs text-primary hover:underline mt-2 inline-flex items-center gap-1 break-all"
+                                                style={{
+                                                  fontSize: '12px', // text-xs
+                                                  color: '#3b82f6', // text-primary
+                                                  marginTop: '8px', // mt-2
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  gap: '4px', // gap-1
+                                                  wordBreak: 'break-all',
+                                                  textDecoration: 'none',
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                  e.currentTarget.style.textDecoration = 'underline';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                  e.currentTarget.style.textDecoration = 'none';
+                                                }}
                                               >
                                                 View Source
                                                 <span>→</span>
                                               </a>
-                </div>
-              </div>
-          </div>
+                                            </div>
+                                          </div>
+                                        </div>
                                       </Card>
                                     ))}
-        </div>
+                                  </div>
                                 </div>
                               );
                             })()}

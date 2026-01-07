@@ -702,8 +702,8 @@ export default function Onboarding() {
                       />
                       <div className="flex items-center justify-between mt-1">
                         <p className="text-xs text-muted-foreground">
-                          Provide a brief description of your project
-                        </p>
+                        Provide a brief description of your project
+                      </p>
                         <p className={`text-xs font-medium ${
                           countCharacters(projectDescription) > MAX_DESCRIPTION_CHARS
                             ? 'text-destructive'
@@ -733,7 +733,7 @@ export default function Onboarding() {
                         value={sourceUrl}
                         onChange={(e) => setSourceUrl(e.target.value)}
                         data-testid="input-source-url"
-                        className="flex-1"
+                          className="flex-1"
                         disabled={isCrawlComplete || isCrawlStarting || isCreatingDataSourceLocal || isCreatingDataSourceFromHook}
                       />
                         <Button
@@ -953,16 +953,16 @@ export default function Onboarding() {
                 <div className={`flex flex-col sm:flex-row gap-3 pt-4 sm:pt-6 border-t ${currentStep === 1 ? 'justify-end' : 'justify-between'}`}>
                   {/* Only show Back button if not on Step 1 (Branding) */}
                   {currentStep > 1 && (
-                    <Button
-                      variant="outline"
-                      onClick={handleBack}
+                  <Button
+                    variant="outline"
+                    onClick={handleBack}
                       disabled={isSavingBranding || isCreatingProject || isCreatingDataSourceFromHook || isCreatingDataSourceLocal}
-                      data-testid="button-back"
-                      className="w-full sm:w-auto"
-                    >
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Back
-                    </Button>
+                    data-testid="button-back"
+                    className="w-full sm:w-auto"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back
+                  </Button>
                   )}
 
                   {currentStep < 4 ? (

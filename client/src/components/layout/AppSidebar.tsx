@@ -202,7 +202,7 @@ const AppSidebar = React.memo(function AppSidebar() {
       await activateProjectAsync(project.id);
       
       // Reload the page immediately - no need to invalidate queries since we're reloading
-      window.location.reload();
+        window.location.reload();
     } catch (error: any) {
       toast({
         title: "Error",

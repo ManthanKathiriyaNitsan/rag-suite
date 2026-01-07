@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { User, Mail, Shield, Key, Bell, Globe, Save, Upload, Camera } from "lucide-react";
+import { User, Mail, Shield, Key, Bell, Globe, Save, Upload, Camera, Loader2 } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,33 +13,74 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { userAPI, type UserProfile, type UpdateProfilePayload, type UpdatePasswordPayload } from "@/services/api/api";
+import { useToast } from "@/hooks/useToast";
 
 const Profile = React.memo(function Profile() {
   const { user: authUser } = useAuthContext();
-  const [userData, setUserData] = useState({
-    name: (authUser as any)?.name || authUser?.username || "User",
-    email: (authUser as any)?.email || "user@example.com",
-    title: "Senior Product Manager", // Default title
-    department: "Engineering", // Default department
-    bio: "Passionate about building AI-powered solutions that enhance user experience and drive business growth.",
-    avatar: (authUser as any)?.avatar || "",
-    phone: "+1 (555) 123-4567", // Default phone
-    location: "San Francisco, CA", // Default location
-    timezone: "America/Los_Angeles", // Default timezone
-    joinDate: "March 2023" // Default join date
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch user profile data
+  const { data: profileData, isLoading: isLoadingProfile, error: profileError } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: async () => {
+      const profile = await userAPI.getProfile();
+      return profile;
+    },
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 
-  // 🔧 FIXED: Update user data when auth user changes
+  // Local state for form fields (with additional fields not in API)
+  const [userData, setUserData] = useState({
+    name: "",
+    email: "",
+    title: "Senior Product Manager", // Additional field
+    department: "Engineering", // Additional field
+    bio: "Passionate about building AI-powered solutions that enhance user experience and drive business growth.", // Additional field
+    avatar: "",
+    phone: "+1 (555) 123-4567", // Additional field
+    location: "San Francisco, CA", // Additional field
+    timezone: "America/Los_Angeles", // Additional field
+    joinDate: "" // Will be set from created_at
+  });
+
+  // Password form state
+  const [passwordData, setPasswordData] = useState({
+    current_password: "",
+    new_password: "",
+    confirm_password: ""
+  });
+
+  // Track if we've initialized the form data
+  const [hasInitialized, setHasInitialized] = useState(false);
+  
+  // Update local state when profile data is fetched
+  // Only update on initial load to preserve user's unsaved changes
   useEffect(() => {
-    if (authUser) {
+    if (profileData && !hasInitialized) {
+      setUserData(prev => ({
+        ...prev,
+        name: profileData.username || prev.name,
+        email: profileData.email || prev.email,
+        joinDate: profileData.created_at 
+          ? new Date(profileData.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+          : prev.joinDate
+      }));
+      setHasInitialized(true);
+    } else if (authUser && !hasInitialized && !profileData) {
+      // Fallback to auth user if profile API fails
       setUserData(prev => ({
         ...prev,
         name: (authUser as any)?.name || authUser?.username || prev.name,
         email: (authUser as any)?.email || prev.email,
         avatar: (authUser as any)?.avatar || prev.avatar,
       }));
+      setHasInitialized(true);
     }
-  }, [authUser]); // Only depend on authUser
+  }, [profileData, authUser, hasInitialized]);
 
   const [notifications, setNotifications] = useState({
     emailUpdates: true,
@@ -65,10 +106,99 @@ const Profile = React.memo(function Profile() {
       .slice(0, 2);
   }, []);
 
-  // 💾 Memoized save handler
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (payload: UpdateProfilePayload) => {
+      return await userAPI.updateProfile(payload);
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      });
+      // Update the query cache with the new data instead of invalidating
+      // This preserves the local state for fields not in the API response
+      queryClient.setQueryData(['userProfile'], data);
+      // Also update local state to reflect the saved changes
+      setUserData(prev => ({
+        ...prev,
+        name: data.username || prev.name,
+        email: data.email || prev.email,
+      }));
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.detail || error?.message || "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update password mutation
+  const updatePasswordMutation = useMutation({
+    mutationFn: async (payload: UpdatePasswordPayload) => {
+      return await userAPI.updatePassword(payload);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Password updated",
+        description: "Your password has been changed successfully.",
+      });
+      // Clear password fields
+      setPasswordData({
+        current_password: "",
+        new_password: "",
+        confirm_password: ""
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.detail || error?.message || "Failed to update password. Please check your current password.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // 💾 Memoized save handler for profile
   const handleSave = useCallback(() => {
-    // Save functionality
-  }, []);
+    const payload: UpdateProfilePayload = {
+      username: userData.name,
+      email: userData.email,
+    };
+    updateProfileMutation.mutate(payload);
+  }, [userData.name, userData.email, updateProfileMutation]);
+
+  // 🔐 Handle password update
+  const handlePasswordUpdate = useCallback(() => {
+    // Validate passwords match
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      toast({
+        title: "Error",
+        description: "New password and confirm password do not match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate password length
+    if (passwordData.new_password.length < 8) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 8 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const payload: UpdatePasswordPayload = {
+      current_password: passwordData.current_password,
+      new_password: passwordData.new_password,
+      confirm_password: passwordData.confirm_password,
+    };
+    updatePasswordMutation.mutate(payload);
+  }, [passwordData, updatePasswordMutation, toast]);
 
   // 📷 Memoized avatar upload handler
   const handleAvatarUpload = useCallback(() => {
@@ -131,9 +261,23 @@ const Profile = React.memo(function Profile() {
                 </div>
 
                 <div className="relative">
-                  <Button className="w-full md:w-auto group" onClick={handleSave} data-testid="button-save-profile">
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Changes
+                  <Button 
+                    className="w-full md:w-auto group" 
+                    onClick={handleSave} 
+                    data-testid="button-save-profile"
+                    disabled={updateProfileMutation.isPending || isLoadingProfile}
+                  >
+                    {updateProfileMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Changes
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -303,6 +447,8 @@ const Profile = React.memo(function Profile() {
                       id="current-password"
                       type="password"
                       placeholder="Enter current password"
+                      value={passwordData.current_password}
+                      onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
                       data-testid="input-current-password"
                     />
                   </div>
@@ -313,6 +459,8 @@ const Profile = React.memo(function Profile() {
                       id="new-password"
                       type="password"
                       placeholder="Enter new password"
+                      value={passwordData.new_password}
+                      onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
                       data-testid="input-new-password"
                     />
                   </div>
@@ -323,13 +471,27 @@ const Profile = React.memo(function Profile() {
                       id="confirm-password"
                       type="password"
                       placeholder="Confirm new password"
+                      value={passwordData.confirm_password}
+                      onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
                       data-testid="input-confirm-password"
                     />
                   </div>
 
                   <div className="relative">
-                    <Button className="w-full group" data-testid="button-update-password">
-                      Update Password
+                    <Button 
+                      className="w-full group" 
+                      onClick={handlePasswordUpdate}
+                      data-testid="button-update-password"
+                      disabled={updatePasswordMutation.isPending}
+                    >
+                      {updatePasswordMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        "Update Password"
+                      )}
                     </Button>
                   </div>
                 </CardContent>

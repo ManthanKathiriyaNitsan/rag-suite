@@ -43,7 +43,9 @@ interface CommandPaletteProps {
 const CommandPalette = React.memo(function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const [, setLocation] = useLocation();
 
-  // 🧭 Memoized navigation commands
+  // 🧭 Memoized navigation commands - Only show pages from sidebar and user dropdown
+  // Sidebar pages: Overview, Crawl, Analytics, Chatbot Configuration, Search Configuration, System Health
+  // User dropdown pages: Profile, Settings
   const navigationCommands: CommandAction[] = useMemo(() => [
     {
       id: "nav-overview",
@@ -55,19 +57,11 @@ const CommandPalette = React.memo(function CommandPalette({ open, onOpenChange }
     },
     {
       id: "nav-crawl",
-      title: "Go to Crawl Sources",
+      title: "Go to Crawl",
       description: "Manage crawl sources and jobs",
       icon: Globe,
       action: () => setLocation("/crawl"),
-      keywords: ["crawl", "sources", "spider"],
-    },
-    {
-      id: "nav-documents",
-      title: "Go to Documents",
-      description: "Browse document library",
-      icon: FileText,
-      action: () => setLocation("/crawl"),
-      keywords: ["documents", "files", "library"],
+      keywords: ["crawl", "sources", "spider", "documents"],
     },
     {
       id: "nav-analytics",
@@ -78,12 +72,36 @@ const CommandPalette = React.memo(function CommandPalette({ open, onOpenChange }
       keywords: ["analytics", "metrics", "performance"],
     },
     {
-      id: "nav-feedback",
-      title: "Go to Feedback",
-      description: "Review user feedback",
+      id: "nav-chatbot-config",
+      title: "Go to Chatbot Configuration",
+      description: "Configure chatbot settings",
       icon: MessageSquare,
-      action: () => setLocation("/feedback"),
-      keywords: ["feedback", "reviews", "moderation"],
+      action: () => setLocation("/chatbot-configuration"),
+      keywords: ["chatbot", "chat", "configuration", "config"],
+    },
+    {
+      id: "nav-search-config",
+      title: "Go to Search Configuration",
+      description: "Configure search settings",
+      icon: Search,
+      action: () => setLocation("/search-configuration"),
+      keywords: ["search", "configuration", "config"],
+    },
+    {
+      id: "nav-system-health",
+      title: "Go to System Health",
+      description: "View system status and health",
+      icon: Activity,
+      action: () => setLocation("/system-health"),
+      keywords: ["health", "status", "system", "monitoring"],
+    },
+    {
+      id: "nav-profile",
+      title: "Go to Profile",
+      description: "Manage your account settings",
+      icon: Users,
+      action: () => setLocation("/profile"),
+      keywords: ["profile", "account", "user"],
     },
     {
       id: "nav-settings",
@@ -95,7 +113,7 @@ const CommandPalette = React.memo(function CommandPalette({ open, onOpenChange }
     },
   ], [setLocation]);
 
-  // ⚡ Memoized action commands
+  // ⚡ Memoized action commands - Only show actions that actually work
   const actionCommands: CommandAction[] = useMemo(() => [
     {
       id: "create-source",
@@ -104,10 +122,13 @@ const CommandPalette = React.memo(function CommandPalette({ open, onOpenChange }
       icon: Plus,
       action: () => {
         setLocation("/crawl");
+        // Try to click add source button after navigation
         setTimeout(() => {
           const addButton = document.querySelector('[data-testid="button-add-source"]') as HTMLElement;
-          addButton?.click();
-        }, 100);
+          if (addButton) {
+            addButton.click();
+          }
+        }, 300);
       },
       keywords: ["create", "add", "new", "source", "crawl"],
     },
@@ -118,62 +139,26 @@ const CommandPalette = React.memo(function CommandPalette({ open, onOpenChange }
       icon: FileText,
       action: () => {
         setLocation("/crawl");
+        // Navigate to documents tab and try to click upload button
         setTimeout(() => {
-          const uploadButton = document.querySelector('[data-testid="button-upload-document"]') as HTMLElement;
-          uploadButton?.click();
-        }, 100);
+          const documentTab = document.querySelector('[data-testid="tab-document"]') as HTMLElement;
+          if (documentTab) {
+            documentTab.click();
+            setTimeout(() => {
+              const uploadButton = document.querySelector('[data-testid="button-upload-document"]') as HTMLElement;
+              if (uploadButton) {
+                uploadButton.click();
+              }
+            }, 200);
+          }
+        }, 300);
       },
       keywords: ["upload", "documents", "files"],
     },
-    {
-      id: "create-api-key",
-      title: "Create API Key",
-      description: "Generate a new API key",
-      icon: Key,
-      action: () => {
-        setLocation("/settings");
-        setTimeout(() => {
-          const apiTab = document.querySelector('[data-testid="tab-api-keys"]') as HTMLElement;
-          apiTab?.click();
-          setTimeout(() => {
-            const createButton = document.querySelector('[data-testid="button-create-api-key"]') as HTMLElement;
-            createButton?.click();
-          }, 100);
-        }, 100);
-      },
-      keywords: ["create", "api", "key", "token"],
-    },
-    {
-      id: "start-crawl",
-      title: "Start Manual Crawl",
-      description: "Trigger a crawl job manually",
-      icon: Activity,
-      action: () => {
-        setLocation("/crawl");
-        console.log("Start crawl action triggered");
-      },
-      keywords: ["start", "crawl", "manual", "trigger"],
-    },
   ], [setLocation]);
 
-  // 🔧 Memoized system commands
+  // 🔧 Memoized system commands - Only show functional commands
   const systemCommands: CommandAction[] = useMemo(() => [
-    {
-      id: "view-notifications",
-      title: "View Notifications",
-      description: "See system alerts and updates",
-      icon: Bell,
-      action: () => console.log("Open notifications"),
-      keywords: ["notifications", "alerts", "inbox"],
-    },
-    {
-      id: "view-audit-log",
-      title: "View Audit Log",
-      description: "See system activity history",
-      icon: History,
-      action: () => console.log("Open audit log"),
-      keywords: ["audit", "log", "history", "activity"],
-    },
     {
       id: "help-docs",
       title: "Open Documentation",
@@ -182,21 +167,7 @@ const CommandPalette = React.memo(function CommandPalette({ open, onOpenChange }
       action: () => window.open("https://docs.ragsuite.com", "_blank"),
       keywords: ["help", "docs", "documentation", "support"],
     },
-    {
-      id: "system-health",
-      title: "Check System Health",
-      description: "View system status and health",
-      icon: Activity,
-      action: () => {
-        setLocation("/settings");
-        setTimeout(() => {
-          const healthTab = document.querySelector('[data-testid="tab-health"]') as HTMLElement;
-          healthTab?.click();
-        }, 100);
-      },
-      keywords: ["health", "status", "system", "monitoring"],
-    },
-  ], [setLocation]);
+  ], []);
 
   // 🎯 Memoized all commands
   const allCommands = useMemo(() => [...navigationCommands, ...actionCommands, ...systemCommands], [navigationCommands, actionCommands, systemCommands]);
