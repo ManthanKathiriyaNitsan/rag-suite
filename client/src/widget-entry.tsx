@@ -151,7 +151,7 @@ function initWidget(config: WidgetConfig) {
 
   // Set API endpoint
   // Use provided endpoint or default to a standard API URL
-  API_BASE_URL = config.apiEndpoint || "http://192.168.0.101:8000/api/v1";
+  API_BASE_URL = config.apiEndpoint || "http://18.159.50.221:8000/api/v1";
 
   // Create container element
   // This is where the widget will be rendered

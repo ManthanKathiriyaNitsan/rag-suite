@@ -1079,7 +1079,7 @@ export default function SearchConfiguration() {
   const generateWebScript = useCallback(() => {
     // Get API endpoint from environment or use default
     const apiEndpoint = import.meta.env.VITE_API_BASE_URL || 
-      'http://192.168.0.101:8000/api/v1';
+      'http://18.159.50.221:8000/api/v1';
     const widgetVersion = 'v1';
     
     // Use current project ID for widget embedding

@@ -58,7 +58,7 @@
   // Extract configuration
   const projectId = scriptTag.getAttribute('data-ragsuite-project-id');
   const apiEndpoint = scriptTag.getAttribute('data-api-endpoint') || 
-    'http://192.168.0.101:8000/api/v1';
+    'http://18.159.50.221:8000/api/v1';
   const widgetVersion = scriptTag.getAttribute('data-version') || 'v1';
   
   // Check for window config

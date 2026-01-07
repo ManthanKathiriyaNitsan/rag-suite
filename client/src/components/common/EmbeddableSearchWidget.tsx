@@ -805,17 +805,8 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
 
                 {/* Predefined Questions - Only show if enabled - Match Search Test tab EXACTLY */}
                 {searchPredefinedQuestions && searchQuestionsList.length > 0 && (() => {
-                      // Get border radius value (matching Search Test tab)
-                      const getBorderRadiusValue = (borderRadius: string) => {
-                        switch (borderRadius) {
-                          case 'rounded': return '12px';
-                          case 'medium-rounded': return '10px';
-                          case 'semi-rounded': return '8px';
-                          case 'square': return '0px';
-                          default: return '8px';
-                        }
-                      };
-                      const borderRadiusValueForSuggestions = getBorderRadiusValue(searchBorderRadius || 'semi-rounded');
+                      // Use the same border radius value from configuration (already calculated above)
+                      const borderRadiusValueForSuggestions = borderRadiusValue;
                       return (
                         <div className="pt-4 border-t border-border space-y-4 w-full min-w-0" style={{
                           paddingTop: '16px', // pt-4

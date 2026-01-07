@@ -906,31 +906,7 @@ export default function Onboarding() {
                       )}
                     </div>
 
-                    <div className="space-y-2">
-                      <Label>Example Queries:</Label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {isLoadingSuggestions ? (
-                          <div className="col-span-2 flex items-center justify-center py-4">
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            <span className="text-sm text-muted-foreground">Loading suggestions...</span>
-                          </div>
-                        ) : (
-                          exampleQueries.map((query, index) => (
-                          <Button
-                            key={index}
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleTestQuery(query)}
-                            data-testid={`example-query-${index}`}
-                            className="text-left justify-start h-auto py-2 px-3"
-                              disabled={isTestingQuery || !projectId}
-                          >
-                            {query}
-                          </Button>
-                          ))
-                        )}
-                      </div>
-                    </div>
+             
 
                     {testResponse && (
                       <div className="mt-6">

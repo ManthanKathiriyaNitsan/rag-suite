@@ -95,7 +95,7 @@ function initSearchWidget(config: SearchWidgetConfig) {
     return;
   }
 
-  API_BASE_URL = config.apiEndpoint || "http://192.168.0.101:8000/api/v1";
+  API_BASE_URL = config.apiEndpoint || "http://18.159.50.221:8000/api/v1";
 
   // Insert widget inline where script tag is (or in specified container)
   const scriptTag = document.currentScript || 

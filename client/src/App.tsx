@@ -539,7 +539,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
 
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0">
 
               {/* <Button
 
@@ -593,7 +593,8 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
 
               <div className="hidden md:block">
 
-                <LanguageSelector />
+                {/* LanguageSelector - Hidden for now */}
+                {/* <LanguageSelector /> */}
 
               </div>
 

@@ -81,7 +81,7 @@
    */
   const projectId = scriptTag.getAttribute('data-ragsuite-project-id');
   const apiEndpoint = scriptTag.getAttribute('data-api-endpoint') || 
-    'http://192.168.0.101:8000/api/v1'; // Default API endpoint
+    'http://18.159.50.221:8000/api/v1'; // Default API endpoint
   const widgetVersion = scriptTag.getAttribute('data-version') || 'v1';
   
   /**

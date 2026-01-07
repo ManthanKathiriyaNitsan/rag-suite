@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { User, AuthState } from '@/services/api/api';
+import { useToast } from '@/hooks/useToast';
+import { useQueryClient } from '@tanstack/react-query';
 
 // 🔐 Authentication Context
 interface AuthContextType {
@@ -52,6 +54,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetLogin,
   } = useAuth();
 
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
 
@@ -64,6 +68,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => clearTimeout(initTimer);
   }, []); // Empty dependency array - runs only on mount
+
+  // 🔐 Listen for session expiration events from API interceptor
+  useEffect(() => {
+    const handleSessionExpired = (event: CustomEvent) => {
+      const errorMessage = event.detail?.message || 'Session expired due to inactivity';
+      
+      // Show toast notification
+      toast({
+        title: 'Session Expired',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+      
+      // Update auth state to reflect logout (storage already cleared by interceptor)
+      // Don't call logout mutation to avoid API call since we're already redirecting
+      setUser(null);
+      setToken(null);
+      setIsAuthenticated(false);
+      
+      // Clear React Query cache
+      queryClient.clear();
+    };
+
+    window.addEventListener('session-expired', handleSessionExpired as EventListener);
+
+    return () => {
+      window.removeEventListener('session-expired', handleSessionExpired as EventListener);
+    };
+  }, [toast]);
 
   // Clear error when it changes
   useEffect(() => {

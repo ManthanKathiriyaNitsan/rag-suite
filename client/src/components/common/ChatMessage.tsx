@@ -327,7 +327,7 @@ const ChatMessage = React.memo(function ChatMessage({
       if (typeof window !== 'undefined' && (window as any).RAGSUITE_API_URL) {
         return (window as any).RAGSUITE_API_URL;
       }
-      return 'http://192.168.0.101:8000/api/v1';
+      return 'http://18.159.50.221:8000/api/v1';
     };
     const apiBaseUrl = getApiBaseUrl();
     

@@ -64,6 +64,17 @@ const UserDropdown = React.memo(function UserDropdown({ user }: UserDropdownProp
       .slice(0, 2);
   }, [safeUser.name]);
 
+  // Get first word of username for display (if 2-3 words, show only first word)
+  const displayName = useMemo(() => {
+    const nameParts = safeUser.name.split(" ");
+    // If username has 2-3 words, return only the first word
+    if (nameParts.length >= 2 && nameParts.length <= 3) {
+      return nameParts[0];
+    }
+    // Otherwise return full name
+    return safeUser.name;
+  }, [safeUser.name]);
+
   // 🔧 FIXED: Only control rendering, never conditionally call hooks
   if (!isAuthenticated || !currentUser) {
     console.log('🔍 UserDropdown - No user found, not rendering');
@@ -86,7 +97,7 @@ const UserDropdown = React.memo(function UserDropdown({ user }: UserDropdownProp
               </AvatarFallback>
             </Avatar>
             <span className="text-xs text-sidebar-foreground whitespace-nowrap">
-              {safeUser.role}
+              {displayName}
             </span>
           </Button>
         </DropdownMenuTrigger>

@@ -8,7 +8,7 @@ const getApiBaseUrl = () => {
     return (window as any).RAGSUITE_API_URL;
   }
   // Default API URL for main app
-  return 'http://192.168.0.101:8000/api/v1';
+  return 'http://18.159.50.221:8000/api/v1';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -131,18 +131,58 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
       }
       
-      // Don't automatically log out on 401 - let the user stay logged in
-      // Only logout when user explicitly clicks logout button
       // If it's a login request that fails, that's expected and should be handled by the login component
       const isLoginRequest = error.config?.url?.includes('/login') || error.config?.url?.includes('/auth/login');
       
       if (isLoginRequest) {
         console.warn('🔐 Login failed - invalid credentials');
-      } else {
-        // Only log 401 errors in development mode to reduce console spam
-        if (import.meta.env.DEV) {
-        console.warn('🔐 Authentication failed (401) - request rejected but user remains logged in');
+        return Promise.reject(error);
+      }
+      
+      // 🔐 Check if this is a session expiration due to inactivity (from backend)
+      // Backend returns: "Session expired due to inactivity ({timeout} minutes)"
+      const errorDetail = error.response?.data?.detail || '';
+      const isInactivityTimeout = typeof errorDetail === 'string' && 
+        errorDetail.toLowerCase().includes('session expired due to inactivity');
+      
+      // Only handle inactivity timeout for non-widget mode (user login sessions)
+      // Widget mode uses projectId authentication, not user sessions
+      if (isInactivityTimeout && !isWidgetMode) {
+        console.warn('🔐 Session expired due to inactivity - logging out automatically');
+        
+        // Clear all auth data (including compatibility and legacy keys)
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth-token');
+        localStorage.removeItem('auth-user');
+        localStorage.removeItem('user_data');
+        localStorage.removeItem('token_expires');
+        
+        // Clear React Query cache
+        // Note: We can't import queryClient here (circular dependency), so we'll clear it via event
+        // The AuthContext will handle clearing the query cache when it receives the session-expired event
+        
+        // Show toast notification (if toast is available)
+        // We'll trigger this via a custom event that AuthContext can listen to
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('session-expired', {
+            detail: { message: errorDetail }
+          }));
         }
+        
+        // Redirect to login page
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+          // Use a small delay to ensure storage is cleared
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 100);
+        }
+        
+        return Promise.reject(error);
+      }
+      
+      // For other 401 errors, only log in development mode to reduce console spam
+      if (import.meta.env.DEV) {
+        console.warn('🔐 Authentication failed (401) - request rejected');
       }
     }
 
