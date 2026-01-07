@@ -231,7 +231,7 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
     
     // If there's a predefined answer, show it instead of making API call (matching Search Test tab)
     if (predefinedAnswer && predefinedAnswer.trim()) {
-      setIsTyping(true);
+    setIsTyping(true);
       await new Promise(resolve => setTimeout(resolve, 500));
       setIsTyping(false);
       setIsStreaming(true);
@@ -286,26 +286,25 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
     setSearchError("");
     
     setIsTyping(true);
+    setIsStreaming(false);
+      setStreamingContent("");
 
     try {
       const searchResponse = await searchAsync(query, settings, responseType);
-      setIsTyping(false);
 
       const responseContent = searchResponse.answer || "No answer from API";
       const serverMessage = searchResponse.message || "";
       const { topK: actualTopK, reranker: actualReranker } = extractTopKFromMessage(serverMessage);
       const sources = searchResponse.sources || [];
 
-      await simulateStreamingResponse(responseContent, (content) => {
-        setStreamingContent(content);
-      });
-
+      // Map sources immediately
       const mappedSources = sources.map((source: any) => ({
         title: source.title || "Unknown Source",
         url: source.url || "#",
         snippet: source.snippet || "No snippet available",
       }));
 
+      // Create assistant message with full content immediately
       const assistantMessage: Message = {
         type: "assistant",
         content: responseContent,
@@ -324,9 +323,11 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
         setCurrentSessionId(searchResponse.session_id);
       }
       
-      setMessages([userMessage, assistantMessage]);
+      // Stop typing and show message immediately (no waiting for streaming simulation)
+      setIsTyping(false);
       setIsStreaming(false);
       setStreamingContent("");
+      setMessages([userMessage, assistantMessage]);
       setSearchInput("");
 
       if (onReady) {
@@ -337,18 +338,22 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
       setIsTyping(false);
       setIsStreaming(false);
       
-      // Handle backend validation errors (400 status) (matching Search Test tab)
-      let errorContent = `Sorry, I encountered an error while searching: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`;
+      // Get user-friendly API key error message
+      const { getUserFriendlyApiKeyErrorMessage } = await import("@/utils/apiKeyErrors");
+      let errorContent = getUserFriendlyApiKeyErrorMessage(error, `Sorry, I encountered an error while searching: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
       
+      // Handle backend validation errors (400 status) (matching Search Test tab)
       if (error?.response?.status === 400) {
         const errorDetail = error?.response?.data?.detail || error?.message;
         if (errorDetail) {
-          errorContent = `Validation Error: ${errorDetail}`;
+          // Check if it's an API key error, otherwise use validation error format
+          const errorString = typeof errorDetail === 'string' ? errorDetail.toLowerCase() : '';
+          if (errorString.includes('api key') || errorString.includes('apikey') || errorString.includes('api_key')) {
+            errorContent = getUserFriendlyApiKeyErrorMessage(error, errorDetail);
+          } else {
+            errorContent = `Validation Error: ${errorDetail}`;
+          }
         }
-      } else if (error?.response?.data?.detail) {
-        errorContent = error.response.data.detail;
-      } else if (error?.message) {
-        errorContent = error.message;
       }
       
       const errorMessage: Message = {
@@ -700,7 +705,7 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                               padding: '0',
                               margin: '0',
                               flexShrink: 0,
-                              borderRadius: showSendButton ? '8px 0 0 8px' : '8px'
+                              borderRadius: showSendButton ? `${borderRadiusValue} 0 0 ${borderRadiusValue}` : borderRadiusValue
                             }}
                             onClick={handleClearSearch}
               aria-label="Clear Search"
@@ -902,7 +907,9 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {searchRecentSearchTitle}
                     </p>
-                    <div className="flex flex-col w-full border border-border rounded-lg overflow-hidden">
+                    <div className="flex flex-col w-full border border-border overflow-hidden" style={{
+                      borderRadius: borderRadiusValue, // Use dynamic border radius
+                    }}>
                       {recentSearches.slice(0, 3).map((query, index) => (
                         <div
                           key={index}
@@ -941,19 +948,56 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                   maxWidth: '100%', // No max width constraint
                   paddingTop: '24px', // pt-6
                 }}>
-                  {/* Loading - Skeleton or Typing Loader based on searchLoaderType */}
-                  {(isTyping || (isStreaming && !streamingContent)) && (
+                  {/* Loading - Skeleton or Typing Loader based on searchLoaderType - Only show when actually typing */}
+                  {isTyping && (
                     <>
                       {searchLoaderType === "typing" ? (
                         <TypingAnimation message="AI is thinking..." speed={50} />
                       ) : (
-                        <div className="space-y-3">
-                          <div className="h-4 bg-muted/50 rounded animate-pulse"></div>
-                          <div className="h-4 bg-muted/50 rounded animate-pulse"></div>
-                          <div className="h-4 bg-muted/50 rounded animate-pulse w-3/4"></div>
-                          <div className="h-4 bg-muted/50 rounded animate-pulse"></div>
-                          <div className="h-4 bg-muted/50 rounded animate-pulse w-5/6"></div>
-                          <div className="h-4 bg-muted/50 rounded animate-pulse w-2/3"></div>
+                        <div className="space-y-3" style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '12px', // space-y-3
+                        }}>
+                          <div className="h-4 bg-muted/50 rounded animate-pulse" style={{
+                            height: '16px', // h-4
+                            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)', // bg-muted/50
+                            borderRadius: borderRadiusValue, // Use dynamic border radius
+                            animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                          }}></div>
+                          <div className="h-4 bg-muted/50 rounded animate-pulse" style={{
+                            height: '16px', // h-4
+                            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)', // bg-muted/50
+                            borderRadius: borderRadiusValue, // Use dynamic border radius
+                            animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                          }}></div>
+                          <div className="h-4 bg-muted/50 rounded animate-pulse w-3/4" style={{
+                            height: '16px', // h-4
+                            width: '75%', // w-3/4
+                            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)', // bg-muted/50
+                            borderRadius: borderRadiusValue, // Use dynamic border radius
+                            animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                          }}></div>
+                          <div className="h-4 bg-muted/50 rounded animate-pulse" style={{
+                            height: '16px', // h-4
+                            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)', // bg-muted/50
+                            borderRadius: borderRadiusValue, // Use dynamic border radius
+                            animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                          }}></div>
+                          <div className="h-4 bg-muted/50 rounded animate-pulse w-5/6" style={{
+                            height: '16px', // h-4
+                            width: '83.333333%', // w-5/6
+                            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)', // bg-muted/50
+                            borderRadius: borderRadiusValue, // Use dynamic border radius
+                            animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                          }}></div>
+                          <div className="h-4 bg-muted/50 rounded animate-pulse w-2/3" style={{
+                            height: '16px', // h-4
+                            width: '66.666667%', // w-2/3
+                            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)', // bg-muted/50
+                            borderRadius: borderRadiusValue, // Use dynamic border radius
+                            animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                          }}></div>
                         </div>
                       )}
                     </>
@@ -967,7 +1011,11 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                         const isLastMessage = index === messages.filter((m) => m.type === "assistant").length - 1;
                         return (
                           <div key={message.messageId || `${message.timestamp?.getTime()}-${index}`} className="space-y-4 w-full min-w-0 max-w-full overflow-x-hidden">
-                            <div className="prose prose-sm dark:prose-invert max-w-none w-full min-w-0 prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground prose-blockquote:text-muted-foreground prose-blockquote:border-l-muted-foreground prose-p:break-words prose-p:overflow-wrap-anywhere prose-headings:break-words prose-headings:overflow-wrap-anywhere prose-li:break-words prose-li:overflow-wrap-anywhere">
+                            <div className="prose prose-sm dark:prose-invert max-w-none w-full min-w-0 prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground prose-blockquote:text-muted-foreground prose-blockquote:border-l-muted-foreground prose-p:break-words prose-p:overflow-wrap-anywhere prose-headings:break-words prose-headings:overflow-wrap-anywhere prose-li:break-words prose-li:overflow-wrap-anywhere" style={{
+                              fontSize: '14px', // prose-sm
+                              lineHeight: '1.75', // prose line-height
+                              color: isDarkMode ? '#f9fafb' : '#374151', // text-foreground - dynamic for dark mode
+                            }}>
                               {isStreaming && isLastMessage && streamingContent ? (
                                 <ReactMarkdown
                                   remarkPlugins={[remarkGfm]}
@@ -1103,9 +1151,26 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                               )}
                     </div>
                             {message.citations && message.citations.length > 0 && (() => {
+                              // Check if this is an "out of context" error message - hide citations if so
+                              const messageContent = safeStringConversion(message.content).toLowerCase();
+                              const isOutOfContextError = messageContent.includes('out of context') || 
+                                                         messageContent.includes('out of the context') || 
+                                                         messageContent.includes('provided documents');
+                              
+                              // Don't show citations for "out of context" error messages
+                              if (isOutOfContextError) {
+                                return null;
+                              }
+                              
                               const topKValue = message.actualTopK !== undefined ? message.actualTopK : (message.ragSettings?.topK !== undefined ? message.ragSettings.topK : message.citations.length);
                               const displayedCitations = topKValue ? message.citations.slice(0, topKValue) : message.citations;
-                              const citationFormatting = searchCitationFormatting || { showSourceCount: true, layout: 'grid', colorScheme: 'default' };
+                              // Use citation formatting from API with real-time updates
+                              // Map 'vertical' layout to 'list' for single column, 'grid' for multi-column
+                              const citationLayout = searchCitationFormatting?.layout === 'vertical' ? 'list' : (searchCitationFormatting?.layout === 'grid' ? 'grid' : 'grid');
+                              const citationFormatting = searchCitationFormatting ? {
+                                ...searchCitationFormatting,
+                                layout: citationLayout,
+                              } : { showSourceCount: true, layout: 'grid', colorScheme: 'default' };
                               
                               const getCitationColorSchemeClasses = () => {
                                 const colorScheme = citationFormatting.colorScheme || 'default';
@@ -1120,7 +1185,7 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                               return (
                                 <div className="pt-4 border-t border-border space-y-3 w-full min-w-0" style={{
                                   paddingTop: '16px', // pt-4
-                                  borderTop: '1px solid rgba(0, 0, 0, 0.1)', // border-t border-border
+                                  borderTop: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`, // border-t border-border - dynamic for dark mode
                                   display: 'flex',
                                   flexDirection: 'column',
                                   gap: '12px', // space-y-3
@@ -1137,31 +1202,33 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                                       <span className="text-xs font-medium text-muted-foreground" style={{
                                         fontSize: '12px', // text-xs
                                         fontWeight: '500', // font-medium
-                                        color: 'rgba(0, 0, 0, 0.6)', // text-muted-foreground
+                                        color: isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)', // text-muted-foreground - dynamic for dark mode
                                         margin: '0',
                                         padding: '0',
                                       }}>
                                         Sources ({displayedCitations.length}):
                                       </span>
-                                    </div>
+                  </div>
                                   )}
                                   <div className={`grid gap-3 w-full min-w-0 ${citationFormatting.layout === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`} style={{
                                     display: 'grid',
                                     gap: '12px', // gap-3
                                     width: '100%',
                                     minWidth: '0',
-                                    gridTemplateColumns: citationFormatting.layout === 'grid' 
-                                      ? 'repeat(1, minmax(0, 1fr))' 
-                                      : 'repeat(1, minmax(0, 1fr))',
+                                    // Base: 1 column, CSS will handle responsive via classes
+                                    gridTemplateColumns: 'repeat(1, minmax(0, 1fr))',
                                   }}>
                                     {displayedCitations.map((citation, index) => (
                                       <Card key={index} className={`p-3 w-full min-w-0 border ${getCitationColorSchemeClasses()}`} style={{
                                         padding: '12px', // p-3
                                         width: '100%',
                                         minWidth: '0',
-                                        border: '1px solid rgba(0, 0, 0, 0.1)', // border
-                                        borderRadius: '0.5rem', // rounded-lg
-                                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)', // shadow-sm
+                                        border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`, // border - dynamic for dark mode
+                                        borderRadius: borderRadiusValue, // Use dynamic border radius from configuration
+                                        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', // bg-muted/30 - dynamic for dark mode
+                                        boxShadow: isDarkMode ? '0 1px 2px rgba(0, 0, 0, 0.1)' : '0 1px 2px rgba(0, 0, 0, 0.05)', // shadow-sm - dynamic for dark mode
+                                        margin: '0',
+                                        boxSizing: 'border-box',
                                       }}>
                                         <div className="space-y-2 w-full min-w-0" style={{
                                           display: 'flex',
@@ -1180,7 +1247,7 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                                             <span className="text-xs font-semibold text-muted-foreground flex-shrink-0" style={{
                                               fontSize: '12px', // text-xs
                                               fontWeight: '600', // font-semibold
-                                              color: 'rgba(0, 0, 0, 0.6)', // text-muted-foreground
+                                              color: isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)', // text-muted-foreground - dynamic for dark mode
                                               flexShrink: '0',
                                             }}>{index + 1}.</span>
                                             <div className="flex-1 min-w-0 overflow-hidden" style={{
@@ -1191,19 +1258,22 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                                               <h4 className="text-sm font-medium text-foreground break-words overflow-wrap-anywhere" style={{
                                                 fontSize: '14px', // text-sm
                                                 fontWeight: '500', // font-medium
+                                                color: isDarkMode ? '#f9fafb' : '#374151', // text-foreground - dynamic for dark mode
                                                 margin: '0',
                                                 padding: '0',
                                                 wordBreak: 'break-word',
                                                 overflowWrap: 'anywhere',
+                                                lineHeight: '1.5',
                                               }}>{citation.title}</h4>
                                               <p className="text-xs text-muted-foreground mt-1 break-words overflow-wrap-anywhere" style={{
                                                 fontSize: '12px', // text-xs
-                                                color: 'rgba(0, 0, 0, 0.6)', // text-muted-foreground
+                                                color: isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)', // text-muted-foreground - dynamic for dark mode
                                                 marginTop: '4px', // mt-1
                                                 marginBottom: '0',
                                                 padding: '0',
                                                 wordBreak: 'break-word',
                                                 overflowWrap: 'anywhere',
+                                                lineHeight: '1.5',
                                               }}>{citation.snippet}</p>
                                               <a
                                                 href={citation.url}
@@ -1230,18 +1300,34 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                                                 View Source
                                                 <span>→</span>
                                               </a>
-                                            </div>
-                                          </div>
-                                        </div>
+                </div>
+              </div>
+          </div>
                                       </Card>
                                     ))}
-                                  </div>
+        </div>
                                 </div>
                               );
                             })()}
-                            {/* Feedback and Copy Buttons */}
-                            <div className="flex items-center justify-between gap-2 pt-3 mt-3 border-t border-border/20">
-                              <div className="flex items-center gap-2">
+                            {/* Feedback and Copy Buttons - Match Search Test tab exactly */}
+                            <div className="flex items-center justify-between gap-2 pt-3 mt-3 border-t border-border/20" style={{
+                              display: 'flex',
+                              flexDirection: 'row', // Force horizontal layout
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '8px', // gap-2
+                              paddingTop: '12px', // pt-3
+                              marginTop: '12px', // mt-3
+                              borderTop: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'}`, // border-t border-border/20 - dynamic for dark mode
+                              width: '100%',
+                            }}>
+                              <div className="flex items-center gap-2" style={{
+                                display: 'flex',
+                                flexDirection: 'row', // Force horizontal layout
+                                alignItems: 'center',
+                                gap: '8px', // gap-2
+                                flexWrap: 'nowrap', // Prevent wrapping
+                              }}>
                                 <button
                                   className={`chatbot-message-action-button ${messageCopied[message.messageId || ''] ? "active" : ""}`}
                                   onClick={async () => {
@@ -1253,11 +1339,35 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                                     }, 2000);
                                   }}
                                   title="Copy message"
+                                  style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: messageCopied[message.messageId || ''] ? (isDarkMode ? '#3b82f6' : '#3b82f6') : '#707070',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '4px',
+                                    opacity: '1',
+                                    transform: 'none',
+                                    boxShadow: 'none',
+                                    transition: 'none',
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (!messageCopied[message.messageId || '']) {
+                                      e.currentTarget.style.color = '#707070';
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (!messageCopied[message.messageId || '']) {
+                                      e.currentTarget.style.color = '#707070';
+                                    }
+                                  }}
                                 >
                                   {messageCopied[message.messageId || ''] ? (
-                                    <Check className="h-3 w-3" />
+                                    <Check className="h-3 w-3" style={{ width: '12px', height: '12px' }} />
                                   ) : (
-                                    <Copy className="h-3 w-3" />
+                                    <Copy className="h-3 w-3" style={{ width: '12px', height: '12px' }} />
                                   )}
                                 </button>
                                 <button
@@ -1277,8 +1387,32 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                                   }}
                                   disabled={isSubmitting}
                                   title="Thumbs up"
+                                  style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: messageFeedback[message.messageId || ''] === "up" ? (isDarkMode ? '#3b82f6' : '#3b82f6') : '#707070',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '4px',
+                                    opacity: '1',
+                                    transform: 'none',
+                                    boxShadow: 'none',
+                                    transition: 'none',
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (messageFeedback[message.messageId || ''] !== "up") {
+                                      e.currentTarget.style.color = '#707070';
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (messageFeedback[message.messageId || ''] !== "up") {
+                                      e.currentTarget.style.color = '#707070';
+                                    }
+                                  }}
                                 >
-                                  <ThumbsUp className="h-3 w-3" />
+                                  <ThumbsUp className="h-3 w-3" style={{ width: '12px', height: '12px' }} />
                                 </button>
                 <button
                                   className={`chatbot-message-action-button ${messageFeedback[message.messageId || ''] === "down" ? "active" : ""}`}
@@ -1297,8 +1431,32 @@ const EmbeddableSearchWidgetComponent = React.memo(function EmbeddableSearchWidg
                                   }}
                                   disabled={isSubmitting}
                                   title="Thumbs down"
+                                  style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: messageFeedback[message.messageId || ''] === "down" ? (isDarkMode ? '#3b82f6' : '#3b82f6') : '#707070',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '4px',
+                                    opacity: '1',
+                                    transform: 'none',
+                                    boxShadow: 'none',
+                                    transition: 'none',
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (messageFeedback[message.messageId || ''] !== "down") {
+                                      e.currentTarget.style.color = '#707070';
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (messageFeedback[message.messageId || ''] !== "down") {
+                                      e.currentTarget.style.color = '#707070';
+                                    }
+                                  }}
                                 >
-                                  <ThumbsDown className="h-3 w-3" />
+                                  <ThumbsDown className="h-3 w-3" style={{ width: '12px', height: '12px' }} />
                 </button>
               </div>
             </div>

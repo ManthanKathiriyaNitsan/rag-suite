@@ -1,3 +1,4 @@
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { searchAPI } from '@/services/api/api';
 import { useToast } from '@/hooks/useToast';
@@ -47,7 +48,10 @@ export function useSearchCitation() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Get search citation settings
+  // Track if we've encountered a 401 error to stop polling
+  const [has401Error, setHas401Error] = React.useState(false);
+
+  // Get search citation settings with real-time polling
   const citationQuery = useQuery({
     queryKey: ['search-citation'],
     queryFn: async () => {
@@ -57,6 +61,7 @@ export function useSearchCitation() {
         console.log('🔍 useSearchCitation - API data received:', apiData);
         const mappedData = mapApiToFrontend(apiData);
         console.log('🔍 useSearchCitation - Mapped data:', mappedData);
+        setHas401Error(false); // Reset error flag on success
         return mappedData;
       } catch (error: any) {
         // If error is 401 in widget mode, API already returns defaults
@@ -64,6 +69,7 @@ export function useSearchCitation() {
         const isWidgetMode = typeof window !== 'undefined' && !!(window as any).RAGSUITE_PROJECT_ID;
         if (isWidgetMode && error?.response?.status === 401) {
           console.log('ℹ️ useSearchCitation - 401 in widget mode, using default citation settings');
+          setHas401Error(true);
           return mapApiToFrontend({
             citation_style: 'detailed',
             layout: 'vertical',
@@ -79,10 +85,11 @@ export function useSearchCitation() {
         throw error;
       }
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0, // Always consider data stale for real-time updates
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     retry: 1,
+    refetchInterval: has401Error ? false : 5000, // Poll every 5 seconds for live updates (same as config/customization)
   });
 
   // Save search citation settings mutation

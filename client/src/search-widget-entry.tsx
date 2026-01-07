@@ -117,12 +117,16 @@ function initSearchWidget(config: SearchWidgetConfig) {
   container.id = "ragsuite-search-widget-container";
   container.className = "ragsuite-search-widget-root";
   
-  // Make container visible immediately
+  // Make container visible immediately - NO PADDING
   container.style.display = 'block';
   container.style.visibility = 'visible';
   container.style.opacity = '1';
   container.style.minHeight = '100px';
   container.style.width = '100%';
+  container.style.padding = '0';
+  container.style.margin = '0';
+  container.style.border = 'none';
+  container.style.backgroundColor = 'transparent';
   
   console.log('📦 Creating widget container', {
     id: container.id,

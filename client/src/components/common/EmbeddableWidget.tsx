@@ -605,15 +605,23 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
   // 📜 Track previous message count to detect new messages
   const prevMessageCountRef = useRef(messages.length);
   
-  // 📜 Auto-scroll when new messages are added (only if not restoring scroll)
+  // 📜 Auto-scroll when new messages are added (skip only during active restoration)
   useEffect(() => {
-    if (!isPreviewMode && isOpen && !hasRestoredRef.current && !shouldRestoreScrollRef.current) {
+    // Only skip auto-scroll if we're currently in the process of restoring (not after it's done)
+    const isCurrentlyRestoring = shouldRestoreScrollRef.current && !hasRestoredRef.current;
+    
+    if (!isPreviewMode && isOpen && !isCurrentlyRestoring) {
       const currentMessageCount = messages.length;
       const prevMessageCount = prevMessageCountRef.current;
       
-      // Only auto-scroll if a new message was added (count increased)
+      // Auto-scroll if a new message was added (count increased)
       if (currentMessageCount > prevMessageCount) {
-        scrollToBottom();
+        // Use requestAnimationFrame to ensure DOM is updated before scrolling
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            scrollToBottom();
+          });
+        });
       }
       
       prevMessageCountRef.current = currentMessageCount;
@@ -621,7 +629,41 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
       // Update message count even when restoring
       prevMessageCountRef.current = messages.length;
     }
-  }, [messages.length, isPreviewMode, isOpen]);
+  }, [messages.length, isPreviewMode, isOpen, scrollToBottom]);
+  
+  // 📜 Auto-scroll during streaming (real-time updates)
+  useEffect(() => {
+    // Only skip auto-scroll if we're currently in the process of restoring
+    const isCurrentlyRestoring = shouldRestoreScrollRef.current && !hasRestoredRef.current;
+    
+    if (!isPreviewMode && isOpen && isStreaming && streamingContent && !isCurrentlyRestoring) {
+      // Scroll during streaming with a small delay to ensure content is rendered
+      const timeoutId = setTimeout(() => {
+        requestAnimationFrame(() => {
+          scrollToBottom();
+        });
+      }, 50);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [streamingContent, isStreaming, isPreviewMode, isOpen, scrollToBottom]);
+  
+  // 📜 Auto-scroll when streaming starts or stops
+  useEffect(() => {
+    // Only skip auto-scroll if we're currently in the process of restoring
+    const isCurrentlyRestoring = shouldRestoreScrollRef.current && !hasRestoredRef.current;
+    
+    if (!isPreviewMode && isOpen && isStreaming && !isCurrentlyRestoring) {
+      // Small delay to ensure streaming container is rendered
+      const timeoutId = setTimeout(() => {
+        requestAnimationFrame(() => {
+          scrollToBottom();
+        });
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isStreaming, isPreviewMode, isOpen, scrollToBottom]);
 
   // 🎯 onReady callback - trigger when widget is ready
   useEffect(() => {
@@ -884,7 +926,9 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
       const isTimeoutError = error && typeof error === 'object' && 'message' in error && (error as any).message.includes('timeout');
       const isAbortError = error && typeof error === 'object' && 'name' in error && (error as any).name === 'AbortError';
 
-      let errorMessage = "Sorry, I encountered an error while chatting. Please try again.";
+      // Get user-friendly API key error message
+      const { getUserFriendlyApiKeyErrorMessage } = await import("@/utils/apiKeyErrors");
+      let errorMessage = getUserFriendlyApiKeyErrorMessage(error, "Sorry, I encountered an error while chatting. Please try again.");
 
       if (isAbortError || isTimeoutError) {
         errorMessage = "Connection Timeout: The chat server is not responding. Please check if the server is running at http://192.168.0.117:8000";
@@ -894,7 +938,8 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
         errorMessage = "Network Error: Cannot connect to the chat server. Please check if the server is running at http://192.168.0.117:8000";
       } else if (isServerError) {
         errorMessage = "Server Error: The chat server is experiencing issues. Please try again later.";
-      } else if (error instanceof Error) {
+      } else if (error instanceof Error && !errorMessage.includes('API key') && !errorMessage.includes('Please enter')) {
+        // Only use generic error message if it's not an API key error
         errorMessage = `Chat Error: ${error.message}`;
       }
 

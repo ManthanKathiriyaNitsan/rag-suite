@@ -496,15 +496,33 @@
   padding: 12px !important; /* p-3 */
   width: 100% !important;
   min-width: 0 !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important; /* border border-border/20 */
+  border: 1px solid rgba(0, 0, 0, 0.1) !important; /* border border-border/20 - light mode */
   border-radius: 0.5rem !important; /* rounded-lg */
-  background: rgba(0, 0, 0, 0.03) !important; /* bg-muted/30 */
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important; /* shadow-sm */
+  background: rgba(0, 0, 0, 0.03) !important; /* bg-muted/30 - light mode */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important; /* shadow-sm - light mode */
   margin: 0 !important;
   box-sizing: border-box !important;
 }
 
-/* Citation grid layout */
+/* Dark mode citation cards */
+[data-theme="dark"] .ragsuite-search-widget-root .shadcn-card,
+[data-theme="dark"] #ragsuite-search-widget-container .shadcn-card,
+[data-theme="dark"] .search-widget-container .shadcn-card,
+.dark .ragsuite-search-widget-root .shadcn-card,
+.dark #ragsuite-search-widget-container .shadcn-card,
+.dark .search-widget-container .shadcn-card,
+[data-theme="dark"] .ragsuite-search-widget-root [class*="card"],
+[data-theme="dark"] #ragsuite-search-widget-container [class*="card"],
+[data-theme="dark"] .search-widget-container [class*="card"],
+.dark .ragsuite-search-widget-root [class*="card"],
+.dark #ragsuite-search-widget-container [class*="card"],
+.dark .search-widget-container [class*="card"] {
+  background: rgba(255, 255, 255, 0.05) !important; /* bg-muted/30 - dark mode */
+  border-color: rgba(255, 255, 255, 0.1) !important; /* border border-border/20 - dark mode */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important; /* shadow-sm - dark mode */
+}
+
+/* Citation grid layout - Match Search Test tab exactly */
 .ragsuite-search-widget-root .grid.gap-3,
 #ragsuite-search-widget-container .grid.gap-3,
 .search-widget-container .grid.gap-3 {
@@ -514,12 +532,20 @@
   min-width: 0 !important;
 }
 
+/* Base: 1 column */
 .ragsuite-search-widget-root .grid.grid-cols-1,
 #ragsuite-search-widget-container .grid.grid-cols-1,
-.search-widget-container .grid.grid-cols-1 {
+.search-widget-container .grid.grid-cols-1,
+.ragsuite-search-widget-root .grid[class*="grid-cols-1"],
+#ragsuite-search-widget-container .grid[class*="grid-cols-1"],
+.search-widget-container .grid[class*="grid-cols-1"] {
   grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
 }
 
+/* sm: 2 columns at 640px+ */
+.ragsuite-search-widget-root .grid[class*="sm:grid-cols-2"],
+#ragsuite-search-widget-container .grid[class*="sm:grid-cols-2"],
+.search-widget-container .grid[class*="sm:grid-cols-2"],
 .ragsuite-search-widget-root .grid.sm\\:grid-cols-2,
 #ragsuite-search-widget-container .grid.sm\\:grid-cols-2,
 .search-widget-container .grid.sm\\:grid-cols-2 {
@@ -527,6 +553,9 @@
 }
 
 @media (min-width: 640px) {
+  .ragsuite-search-widget-root .grid[class*="sm:grid-cols-2"],
+  #ragsuite-search-widget-container .grid[class*="sm:grid-cols-2"],
+  .search-widget-container .grid[class*="sm:grid-cols-2"],
   .ragsuite-search-widget-root .grid.sm\\:grid-cols-2,
   #ragsuite-search-widget-container .grid.sm\\:grid-cols-2,
   .search-widget-container .grid.sm\\:grid-cols-2 {
@@ -534,6 +563,10 @@
   }
 }
 
+/* lg: 3 columns at 1024px+ */
+.ragsuite-search-widget-root .grid[class*="lg:grid-cols-3"],
+#ragsuite-search-widget-container .grid[class*="lg:grid-cols-3"],
+.search-widget-container .grid[class*="lg:grid-cols-3"],
 .ragsuite-search-widget-root .grid.lg\\:grid-cols-3,
 #ragsuite-search-widget-container .grid.lg\\:grid-cols-3,
 .search-widget-container .grid.lg\\:grid-cols-3 {
@@ -541,6 +574,9 @@
 }
 
 @media (min-width: 1024px) {
+  .ragsuite-search-widget-root .grid[class*="lg:grid-cols-3"],
+  #ragsuite-search-widget-container .grid[class*="lg:grid-cols-3"],
+  .search-widget-container .grid[class*="lg:grid-cols-3"],
   .ragsuite-search-widget-root .grid.lg\\:grid-cols-3,
   #ragsuite-search-widget-container .grid.lg\\:grid-cols-3,
   .search-widget-container .grid.lg\\:grid-cols-3 {
@@ -548,13 +584,13 @@
   }
 }
 
-/* Citation text styling */
+/* Citation text styling - Dynamic for dark mode */
 .ragsuite-search-widget-root .text-xs.font-medium.text-muted-foreground,
 #ragsuite-search-widget-container .text-xs.font-medium.text-muted-foreground,
 .search-widget-container .text-xs.font-medium.text-muted-foreground {
   font-size: 12px !important; /* text-xs */
   font-weight: 500 !important; /* font-medium */
-  color: rgba(0, 0, 0, 0.6) !important; /* text-muted-foreground */
+  color: rgba(0, 0, 0, 0.6) !important; /* text-muted-foreground - light mode */
   margin: 0 !important;
   padding: 0 !important;
 }
@@ -564,9 +600,47 @@
 .search-widget-container .text-xs.font-semibold.text-muted-foreground {
   font-size: 12px !important; /* text-xs */
   font-weight: 600 !important; /* font-semibold */
-  color: rgba(0, 0, 0, 0.6) !important; /* text-muted-foreground */
+  color: rgba(0, 0, 0, 0.6) !important; /* text-muted-foreground - light mode */
   margin: 0 !important;
   padding: 0 !important;
+}
+
+/* Dark mode citation text */
+[data-theme="dark"] .ragsuite-search-widget-root .text-xs.font-medium.text-muted-foreground,
+[data-theme="dark"] #ragsuite-search-widget-container .text-xs.font-medium.text-muted-foreground,
+[data-theme="dark"] .search-widget-container .text-xs.font-medium.text-muted-foreground,
+.dark .ragsuite-search-widget-root .text-xs.font-medium.text-muted-foreground,
+.dark #ragsuite-search-widget-container .text-xs.font-medium.text-muted-foreground,
+.dark .search-widget-container .text-xs.font-medium.text-muted-foreground {
+  color: rgba(255, 255, 255, 0.6) !important; /* text-muted-foreground - dark mode */
+}
+
+[data-theme="dark"] .ragsuite-search-widget-root .text-xs.font-semibold.text-muted-foreground,
+[data-theme="dark"] #ragsuite-search-widget-container .text-xs.font-semibold.text-muted-foreground,
+[data-theme="dark"] .search-widget-container .text-xs.font-semibold.text-muted-foreground,
+.dark .ragsuite-search-widget-root .text-xs.font-semibold.text-muted-foreground,
+.dark #ragsuite-search-widget-container .text-xs.font-semibold.text-muted-foreground,
+.dark .search-widget-container .text-xs.font-semibold.text-muted-foreground {
+  color: rgba(255, 255, 255, 0.6) !important; /* text-muted-foreground - dark mode */
+}
+
+/* Citation card text colors - dark mode */
+[data-theme="dark"] .ragsuite-search-widget-root .text-sm.font-medium.text-foreground,
+[data-theme="dark"] #ragsuite-search-widget-container .text-sm.font-medium.text-foreground,
+[data-theme="dark"] .search-widget-container .text-sm.font-medium.text-foreground,
+.dark .ragsuite-search-widget-root .text-sm.font-medium.text-foreground,
+.dark #ragsuite-search-widget-container .text-sm.font-medium.text-foreground,
+.dark .search-widget-container .text-sm.font-medium.text-foreground {
+  color: #f9fafb !important; /* text-foreground - dark mode */
+}
+
+[data-theme="dark"] .ragsuite-search-widget-root .text-xs.text-muted-foreground,
+[data-theme="dark"] #ragsuite-search-widget-container .text-xs.text-muted-foreground,
+[data-theme="dark"] .search-widget-container .text-xs.text-muted-foreground,
+.dark .ragsuite-search-widget-root .text-xs.text-muted-foreground,
+.dark #ragsuite-search-widget-container .text-xs.text-muted-foreground,
+.dark .search-widget-container .text-xs.text-muted-foreground {
+  color: rgba(255, 255, 255, 0.6) !important; /* text-muted-foreground - dark mode */
 }
 
 /* ============================================
@@ -588,42 +662,113 @@
   opacity: 1 !important;
   transform: none !important;
   box-shadow: none !important;
-  transition: color 0.2s ease !important;
+  transition: none !important; /* Match Search Test tab - no transition */
   margin: 0 !important;
   width: auto !important;
   height: auto !important;
+  font-size: 12px !important;
+  gap: 4px !important;
 }
 
+/* Light mode - Remove ALL hover effects completely (match Search Test tab) */
 .ragsuite-search-widget-root .chatbot-message-action-button:hover,
 #ragsuite-search-widget-container .chatbot-message-action-button:hover,
-.search-widget-container .chatbot-message-action-button:hover {
-  color: #3b82f6 !important; /* var(--primary) */
+.search-widget-container .chatbot-message-action-button:hover,
+.ragsuite-search-widget-root .chatbot-message-action-button:active,
+#ragsuite-search-widget-container .chatbot-message-action-button:active,
+.search-widget-container .chatbot-message-action-button:active,
+.ragsuite-search-widget-root .chatbot-message-action-button:focus,
+#ragsuite-search-widget-container .chatbot-message-action-button:focus,
+.search-widget-container .chatbot-message-action-button:focus {
+  background-color: transparent !important;
+  background: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  color: #707070 !important; /* Keep same color on hover - match Search Test tab */
+  opacity: 1 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  scale: 1 !important;
+  outline: none !important;
+  cursor: pointer !important;
 }
 
+/* Active state - match Search Test tab color */
 .ragsuite-search-widget-root .chatbot-message-action-button.active,
 #ragsuite-search-widget-container .chatbot-message-action-button.active,
 .search-widget-container .chatbot-message-action-button.active {
-  color: #3b82f6 !important; /* var(--primary) */
+  color: #3b82f6 !important; /* Primary blue when active - match Search Test tab */
+}
+
+/* Active state hover - keep active color */
+.ragsuite-search-widget-root .chatbot-message-action-button.active:hover,
+#ragsuite-search-widget-container .chatbot-message-action-button.active:hover,
+.search-widget-container .chatbot-message-action-button.active:hover,
+.ragsuite-search-widget-root .chatbot-message-action-button.active:active,
+#ragsuite-search-widget-container .chatbot-message-action-button.active:active,
+.search-widget-container .chatbot-message-action-button.active:active,
+.ragsuite-search-widget-root .chatbot-message-action-button.active:focus,
+#ragsuite-search-widget-container .chatbot-message-action-button.active:focus,
+.search-widget-container .chatbot-message-action-button.active:focus {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  color: #3b82f6 !important; /* Keep active color */
+  opacity: 1 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  scale: 1 !important;
+  outline: none !important;
 }
 
 .ragsuite-search-widget-root .chatbot-message-action-button svg,
 #ragsuite-search-widget-container .chatbot-message-action-button svg,
 .search-widget-container .chatbot-message-action-button svg {
-  width: 12px !important; /* h-3 */
-  height: 12px !important; /* w-3 */
+  width: 12px !important; /* h-3 = 12px */
+  height: 12px !important; /* w-3 = 12px */
+  flex-shrink: 0 !important;
 }
 
-/* Feedback buttons container */
+/* Feedback buttons container - Force horizontal layout */
 .ragsuite-search-widget-root .flex.items-center.justify-between.gap-2.pt-3.mt-3.border-t,
 #ragsuite-search-widget-container .flex.items-center.justify-between.gap-2.pt-3.mt-3.border-t,
 .search-widget-container .flex.items-center.justify-between.gap-2.pt-3.mt-3.border-t {
   display: flex !important;
+  flex-direction: row !important; /* Force horizontal layout */
   align-items: center !important;
   justify-content: space-between !important;
   gap: 8px !important; /* gap-2 */
   padding-top: 12px !important; /* pt-3 */
   margin-top: 12px !important; /* mt-3 */
   border-top: 1px solid rgba(0, 0, 0, 0.05) !important; /* border-t border-border/20 */
+  width: 100% !important;
+}
+
+/* Feedback buttons inner container - Force horizontal layout */
+.ragsuite-search-widget-root .flex.items-center.gap-2,
+#ragsuite-search-widget-container .flex.items-center.gap-2,
+.search-widget-container .flex.items-center.gap-2,
+.ragsuite-search-widget-root [class*="flex"][class*="items-center"][class*="gap-2"],
+#ragsuite-search-widget-container [class*="flex"][class*="items-center"][class*="gap-2"],
+.search-widget-container [class*="flex"][class*="items-center"][class*="gap-2"] {
+  display: flex !important;
+  flex-direction: row !important; /* Force horizontal layout */
+  align-items: center !important;
+  gap: 8px !important; /* gap-2 */
+  flex-wrap: nowrap !important; /* Prevent wrapping to new line */
+}
+
+/* Ensure buttons don't stack vertically */
+.ragsuite-search-widget-root .chatbot-message-action-button,
+#ragsuite-search-widget-container .chatbot-message-action-button,
+.search-widget-container .chatbot-message-action-button {
+  display: inline-flex !important; /* Use inline-flex to prevent stacking */
+  flex-shrink: 0 !important; /* Prevent shrinking */
+  width: auto !important;
+  height: auto !important;
 }
 
 /* ============================================
@@ -770,7 +915,7 @@
 .ragsuite-search-widget-root .flex-1::-webkit-scrollbar-track,
 #ragsuite-search-widget-container .flex-1::-webkit-scrollbar-track,
 .search-widget-container .flex-1::-webkit-scrollbar-track {
-    background: transparent !important;
+  background: transparent !important;
 }
 
 .ragsuite-search-widget-root .flex-1::-webkit-scrollbar-thumb,
@@ -784,4 +929,56 @@
 #ragsuite-search-widget-container .flex-1::-webkit-scrollbar-thumb:hover,
 .search-widget-container .flex-1::-webkit-scrollbar-thumb:hover {
   background-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ============================================
+   SKELETON LOADER - Match Search Test tab exactly
+   ============================================ */
+.ragsuite-search-widget-root .space-y-3 > div.h-4.bg-muted\/50,
+#ragsuite-search-widget-container .space-y-3 > div.h-4.bg-muted\/50,
+.search-widget-container .space-y-3 > div.h-4.bg-muted\/50,
+.ragsuite-search-widget-root .space-y-3 > div[class*="h-4"][class*="bg-muted"],
+#ragsuite-search-widget-container .space-y-3 > div[class*="h-4"][class*="bg-muted"],
+.search-widget-container .space-y-3 > div[class*="h-4"][class*="bg-muted"] {
+  height: 16px !important; /* h-4 */
+  background-color: rgba(0, 0, 0, 0.1) !important; /* bg-muted/50 - light mode */
+  border-radius: 8px !important; /* Default border radius, will be overridden by inline styles */
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Dark mode skeleton loader */
+[data-theme="dark"] .ragsuite-search-widget-root .space-y-3 > div.h-4.bg-muted\/50,
+[data-theme="dark"] #ragsuite-search-widget-container .space-y-3 > div.h-4.bg-muted\/50,
+[data-theme="dark"] .search-widget-container .space-y-3 > div.h-4.bg-muted\/50,
+.dark .ragsuite-search-widget-root .space-y-3 > div.h-4.bg-muted\/50,
+.dark #ragsuite-search-widget-container .space-y-3 > div.h-4.bg-muted\/50,
+.dark .search-widget-container .space-y-3 > div.h-4.bg-muted\/50,
+[data-theme="dark"] .ragsuite-search-widget-root .space-y-3 > div[class*="h-4"][class*="bg-muted"],
+[data-theme="dark"] #ragsuite-search-widget-container .space-y-3 > div[class*="h-4"][class*="bg-muted"],
+[data-theme="dark"] .search-widget-container .space-y-3 > div[class*="h-4"][class*="bg-muted"],
+.dark .ragsuite-search-widget-root .space-y-3 > div[class*="h-4"][class*="bg-muted"],
+.dark #ragsuite-search-widget-container .space-y-3 > div[class*="h-4"][class*="bg-muted"],
+.dark .search-widget-container .space-y-3 > div[class*="h-4"][class*="bg-muted"] {
+  background-color: rgba(255, 255, 255, 0.1) !important; /* bg-muted/50 - dark mode */
+}
+
+/* Skeleton loader container spacing */
+.ragsuite-search-widget-root .space-y-3,
+#ragsuite-search-widget-container .space-y-3,
+.search-widget-container .space-y-3 {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important; /* space-y-3 = 0.75rem = 12px */
+}
+
+/* Pulse animation keyframes */
+@keyframes pulse {
+  0%, 100% {
+  opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }

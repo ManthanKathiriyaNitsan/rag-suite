@@ -396,7 +396,7 @@ export default function ChatbotConfiguration() {
   const [widgetShowDateTime, setWidgetShowDateTime] = useState(widgetShowDateTimeGlobal !== undefined ? widgetShowDateTimeGlobal : true);
   const [widgetBottomSpace, setWidgetBottomSpace] = useState(widgetBottomSpaceGlobal || 15);
   const [widgetFontSize, setWidgetFontSize] = useState(widgetFontSizeGlobal || 14);
-  const [widgetTriggerBorderRadius, setWidgetTriggerBorderRadius] = useState(widgetTriggerBorderRadiusGlobal || 50); // Default 50px for circular
+  const [widgetTriggerBorderRadius, setWidgetTriggerBorderRadius] = useState(widgetTriggerBorderRadiusGlobal || 0); // Default 0px
 
   // Chatbot configuration state (for new Configuration tab)
   const [chatbotTitle, setChatbotTitle] = useState(orgNameGlobal || "RAGSuite Demo");
@@ -2281,6 +2281,20 @@ chatbot.init();`);
                                     e.preventDefault();
                                     e.stopPropagation();
                                     try {
+                                      // Validate API key before saving (skip validation for Ollama)
+                                      if (modelProvider?.toLowerCase() !== "ollama") {
+                                        const { validateApiKeyForSave } = await import("@/utils/apiKeyErrors");
+                                        const validation = validateApiKeyForSave(modelApiKey);
+                                        if (!validation.isValid) {
+                                          toast({
+                                            title: "Validation Error",
+                                            description: validation.message || "Please enter a valid API key",
+                                            variant: "destructive",
+                                          });
+                                          return;
+                                        }
+                                      }
+
                                       // Store the API key value before saving to preserve it
                                       const apiKeyToSave = modelApiKey;
                                       await saveConfigModelsAsync({
@@ -2305,7 +2319,14 @@ chatbot.init();`);
                                       }
                                     } catch (error) {
                                       console.error("Failed to save model settings:", error);
-                                      // Error toast is handled in the hook
+                                      // Get user-friendly API key error message
+                                      const { getUserFriendlyApiKeyErrorMessage } = await import("@/utils/apiKeyErrors");
+                                      const errorMessage = getUserFriendlyApiKeyErrorMessage(error, "Failed to save model settings. Please try again.");
+                                      toast({
+                                        title: "Error",
+                                        description: errorMessage,
+                                        variant: "destructive",
+                                      });
                                     }
                                   }}
                                   {...preventScrollOnClick}
@@ -2951,8 +2972,8 @@ chatbot.init();`);
                                       />
                                     </div>
 
-                                    {/* Border Radius */}
-                                    <div className="space-y-1.5">
+                                    {/* Border Radius - Hidden for now */}
+                                    {/* <div className="space-y-1.5">
                                       <div className="flex items-center justify-between">
                                         <Label className="text-sm">Border Radius: {widgetTriggerBorderRadius}px</Label>
                                       </div>
@@ -2966,7 +2987,7 @@ chatbot.init();`);
                                         max={50}
                                         step={1}
                                       />
-                                    </div>
+                                    </div> */}
                                   </CardContent>
                                 </GlassCard>
 

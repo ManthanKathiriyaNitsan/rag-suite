@@ -59,7 +59,7 @@ const DEFAULT_BRANDING: BrandingState = {
   widgetShowDateTime: true,
   widgetBottomSpace: 15,
   widgetFontSize: 14,
-  widgetTriggerBorderRadius: 50, // Default 50px (fully circular)
+  widgetTriggerBorderRadius: 0, // Default 0px
 };
 
 // Initialize with default value to prevent "must be used within provider" errors

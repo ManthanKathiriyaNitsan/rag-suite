@@ -3255,6 +3255,20 @@ search.init();`);
                                     e.preventDefault();
                                     e.stopPropagation();
                                     try {
+                                      // Validate API key before saving (skip validation for Ollama)
+                                      if (modelProvider?.toLowerCase() !== "ollama") {
+                                        const { validateApiKeyForSave } = await import("@/utils/apiKeyErrors");
+                                        const validation = validateApiKeyForSave(modelApiKey);
+                                        if (!validation.isValid) {
+                                          toast({
+                                            title: "Validation Error",
+                                            description: validation.message || "Please enter a valid API key",
+                                            variant: "destructive",
+                                          });
+                                          return;
+                                        }
+                                      }
+
                                       // Store the API key value before saving to preserve it
                                       const apiKeyToSave = modelApiKey;
                                       await saveConfigModelsAsync({
@@ -3280,7 +3294,14 @@ search.init();`);
                                       }
                                     } catch (error) {
                                       console.error("Failed to save model settings:", error);
-                                      // Error toast is handled in the hook
+                                      // Get user-friendly API key error message
+                                      const { getUserFriendlyApiKeyErrorMessage } = await import("@/utils/apiKeyErrors");
+                                      const errorMessage = getUserFriendlyApiKeyErrorMessage(error, "Failed to save model settings. Please try again.");
+                                      toast({
+                                        title: "Error",
+                                        description: errorMessage,
+                                        variant: "destructive",
+                                      });
                                     }
                                   }}
                                   {...preventScrollOnClick}
@@ -4963,6 +4984,17 @@ search.init();`);
                                     )}
                                   </div>
                                   {message.citations && message.citations.length > 0 && (() => {
+                                    // Check if this is an "out of context" error message - hide citations if so
+                                    const messageContent = (message.content || '').toLowerCase();
+                                    const isOutOfContextError = messageContent.includes('out of context') || 
+                                                                 messageContent.includes('out of the context') || 
+                                                                 messageContent.includes('provided documents');
+                                    
+                                    // Don't show citations for "out of context" error messages
+                                    if (isOutOfContextError) {
+                                      return null;
+                                    }
+                                    
                                     const topKValue = message.actualTopK !== undefined ? message.actualTopK : (message.ragSettings?.topK !== undefined ? message.ragSettings.topK : message.citations.length);
                                     const displayedCitations = topKValue ? message.citations.slice(0, topKValue) : message.citations;
                                     const citationFormatting = searchCitationFormatting || { showSourceCount: true, layout: 'grid', colorScheme: 'default' };
