@@ -3009,7 +3009,7 @@ chatbot.init();`);
                                         widget_show_logo: widgetShowLogo,
                                         widget_show_date_time: widgetShowDateTime,
                                         widget_bottom_space: widgetBottomSpace,
-                                        widget_trigger_border_radius: widgetTriggerBorderRadius,
+                                        widget_trigger_border_radius: 50, // Always circular, not configurable
                                         widget_position: widgetPosition,
                                         widget_z_index: widgetZIndex,
                                         widget_offset_x: widgetOffsetX,

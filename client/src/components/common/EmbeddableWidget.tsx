@@ -115,7 +115,8 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
   const widgetShowDateTime = previewOverrides?.widgetShowDateTime !== undefined ? previewOverrides.widgetShowDateTime : branding.widgetShowDateTime;
   const widgetBottomSpace = previewOverrides?.widgetBottomSpace !== undefined ? previewOverrides.widgetBottomSpace : branding.widgetBottomSpace;
   const widgetFontSize = previewOverrides?.widgetFontSize !== undefined ? previewOverrides.widgetFontSize : branding.widgetFontSize;
-  const widgetTriggerBorderRadius = previewOverrides?.widgetTriggerBorderRadius !== undefined ? previewOverrides.widgetTriggerBorderRadius : (branding.widgetTriggerBorderRadius ?? 50);
+  // Chatbot button is always circular - border radius is always 50%
+  const widgetTriggerBorderRadius = 50; // Always circular, not configurable
   const orgName = previewOverrides?.orgName !== undefined ? previewOverrides.orgName : branding.orgName;
   // Widget title should use chatbotTitle (from Chatbot Configuration) if available, otherwise fall back to orgName (from Settings) or title prop
   const widgetTitle = previewOverrides?.chatbotTitle !== undefined 
@@ -619,7 +620,7 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
         // Use requestAnimationFrame to ensure DOM is updated before scrolling
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            scrollToBottom();
+        scrollToBottom();
           });
         });
       }
@@ -992,12 +993,12 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
   const isCustomGradient = widgetChatbotColor && widgetChatbotColor.startsWith("linear-gradient");
   const isDefaultGradient = widgetChatbotColor === "gradient";
   
-  // Ensure border radius is applied and persists (reapply after any DOM changes)
+  // Ensure border radius is always circular (50%) and persists
   useEffect(() => {
     if (triggerButtonRef.current) {
-      triggerButtonRef.current.style.setProperty('border-radius', `${widgetTriggerBorderRadius}px`, 'important');
+      triggerButtonRef.current.style.setProperty('border-radius', '50%', 'important');
     }
-  }, [widgetTriggerBorderRadius, shouldShow, isOpen]);
+  }, [shouldShow, isOpen]);
 
   // Format timestamp as relative time (e.g., "2 months ago")
   const formatRelativeTime = (date: Date): string => {
@@ -1345,7 +1346,7 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
           style={{
             width: `${widgetAvatarSize}px`,
             height: `${widgetAvatarSize}px`,
-            borderRadius: `${widgetTriggerBorderRadius}px`,
+            borderRadius: '50%', // Always circular
             backgroundColor: widgetChatbotColor || '#007bff',
             backgroundImage: widgetChatbotColor?.startsWith('linear-gradient') ? widgetChatbotColor : undefined,
             border: 'none',
@@ -1368,7 +1369,7 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
               width={widgetAvatarSize}
               height={widgetAvatarSize}
               style={{
-                borderRadius: `${widgetTriggerBorderRadius}px`,
+                borderRadius: '50%', // Always circular
               }}
               onError={(e) => {
                 // Fallback to default avatar image if custom image fails to load
@@ -1384,7 +1385,7 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
               width={widgetAvatarSize}
               height={widgetAvatarSize}
               style={{
-                borderRadius: `${widgetTriggerBorderRadius}px`,
+                borderRadius: '50%', // Always circular
                 objectFit: 'cover',
               }}
               onError={(e) => {
@@ -1402,7 +1403,7 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
               width={widgetAvatarSize}
               height={widgetAvatarSize}
               style={{
-                borderRadius: `${widgetTriggerBorderRadius}px`,
+                borderRadius: '50%', // Always circular
                 objectFit: 'cover',
               }}
               onError={(e) => {
@@ -1463,9 +1464,9 @@ const EmbeddableWidgetComponent = React.memo(function EmbeddableWidget({
           zIndex: isPreviewMode ? 1 : Math.max(widgetZIndex, 99999),
           '--widget-bottom-size': `${widgetBottomSpace}px`,
           '--chatbot-color': widgetChatbotColor,
-          '--widget-border-radius': `${widgetTriggerBorderRadius}px`, // CSS variable for border radius
+          '--widget-border-radius': '12px', // CSS variable for chatbot window border radius
           fontSize: widgetFontSize ? `${widgetFontSize}px` : undefined,
-          borderRadius: `${widgetTriggerBorderRadius}px`, // Apply border radius from configuration
+          borderRadius: '12px', // Chatbot window border radius (button is always circular)
         } as React.CSSProperties & { [key: string]: string | number }}
         role="dialog"
         aria-label="AI Assistant Chat"

@@ -198,7 +198,8 @@
   background-color: transparent !important;
   border: none !important;
   border-color: transparent !important;
-  /* border-radius is set via inline styles from widgetTriggerBorderRadius - default 50% */
+  /* border-radius is always 50% (circular) - not configurable */
+  border-radius: 50% !important;
   bottom: var(--widget-bottom-size);
   box-shadow: none !important;
   cursor: pointer;
@@ -248,6 +249,7 @@
   box-shadow: none !important;
   transform: none !important;
   opacity: 1 !important;
+  border-radius: 50% !important; /* Always circular */
 }
 
 /* Light mode - Remove ALL edges on hover, active, focus, click */
@@ -275,13 +277,13 @@ button.chatbot-trigger:hover,
   outline: none !important;
   background: transparent !important;
   background-color: transparent !important;
+  border-radius: 50% !important; /* Always circular */
 }
 
 .chatbot-trigger img {
   height: var(--avatar-size);
-  /* border-radius matches parent button - set via inline style to match widgetTriggerBorderRadius */
-  /* Use inherit so it matches the button's border-radius (which is set via widgetTriggerBorderRadius) */
-  border-radius: inherit !important;
+  /* border-radius is always 50% (circular) to match the button */
+  border-radius: 50% !important;
   object-fit: cover;
   transition: opacity 0.3s ease;
   width: var(--avatar-size);
